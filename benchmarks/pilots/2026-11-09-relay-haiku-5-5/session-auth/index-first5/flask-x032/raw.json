@@ -1,0 +1,154 @@
+[
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "src/flask/ctx.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1697,
+      "cacheRead": 25211,
+      "cacheWrite": 12317
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00356461,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 14076,
+    "answer": "The request pipeline and 500 handling are all in one file. I read these sections directly.\n\nSteps per request, in order:\n1. `wsgi_app` builds the request context and pushes it.\n2. `full_dispatch_request` fires `request_started`, then runs `preprocess_request`, which applies URL value preprocessors and then `before_request` functions. A non-None return short-circuits the view.\n3. If nothing short-circuited, `dispatch_request` answers OPTIONS automatically or calls the view function.\n4. `finalize_request` converts the return value with `make_response` and runs `process_response` (the `after_request` functions), then fires `request_finished`.\n5. `wsgi_app` calls the response as a WSGI app, then pops the context in `finally`, which runs teardown and passes any error to it.\n\nUnhandled errors:\n- An exception inside step 2 or 3 goes to `handle_user_exception`. HTTP exceptions go to `handle_http_exception`, which uses a registered error handler if one matches. Other exceptions use a handler if one exists, otherwise they are re-raised.\n- A re-raised exception reaches `wsgi_app`, where `handle_exception` runs. If `PROPAGATE_EXCEPTIONS` is set (or the app is in testing or debug mode), the error is re-raised so the debugger can show it.\n- Otherwise `handle_exception` sends `got_request_exception`, logs the traceback via `log_exception`, and builds `InternalServerError(original_exception=e)`. A handler registered for 500 or `InternalServerError` gets that object. The result goes through `finalize_request(..., from_error_handler=True)`, so the 500 response still gets `after_request` processing, and any failure there is logged instead of raised.\n\n`src/flask/app.py`: this single file holds `wsgi_app`, `full_dispatch_request`, `preprocess_request`, `dispatch_request`, `finalize_request`, `process_response`, `handle_user_exception`, `handle_http_exception` and `handle_exception`, so it is the one place that implements both the per-request flow and the 500 conversion. I did not open `src/flask/ctx.py`, which holds the context push and pop that runs teardown, so I have not listed it."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "ctx.push",
+      "src/flask/views.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1885,
+      "cacheRead": 25801,
+      "cacheWrite": 17369
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00467491,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 15046,
+    "answer": "Per request, the steps run in this order, all in `src/flask/app.py`:\n\n1. `wsgi_app` builds the request context and pushes it (`ctx.push()`), then calls `full_dispatch_request`.\n2. `full_dispatch_request` sends `request_started`, then calls `preprocess_request`. That runs `url_value_preprocessors` (app, then blueprints), then `before_request_funcs`. A non-None return from a before-request hook short-circuits the view.\n3. If preprocessing returned None, `dispatch_request` runs the view.\n4. `finalize_request` converts the return value with `make_response`, then calls `process_response`. That runs the `after_request` functions (reverse registration order), then session saving. It then sends `request_finished`.\n5. Teardown and context pop happen after the response is built. I did not read that part of `wsgi_app`, so I can't give exact lines for it.\n\nErrors take two paths:\n\n- **Exceptions from steps 2–3** are caught in `full_dispatch_request` and passed to `handle_user_exception`. HTTPExceptions go to `handle_http_exception`. Other exceptions go to a registered error handler if one exists. If none exists, it re-raises.\n- **Anything that escapes that** reaches the outer `except` in `wsgi_app`, which calls `handle_exception`. With `PROPAGATE_EXCEPTIONS` on (defaults to testing or debug mode), it re-raises. Otherwise it logs via `log_exception` and wraps the error in `InternalServerError(original_exception=e)`. That goes to a 500 handler if one is registered, and then `finalize_request(..., from_error_handler=True)` builds the 500 response. Errors raised inside that finalization are logged and swallowed rather than re-raised.\n\nRelevant files, most relevant first:\n\n`src/flask/app.py`\nContains every step above: `wsgi_app`, `full_dispatch_request`, `preprocess_request`, `finalize_request`, `process_response`, `handle_user_exception`, `handle_exception`, and `log_exception`. It is the only file where the whole pipeline is visible.\n\nI only verified `src/flask/app.py`, so I'm not listing other files. The `dispatch_request` in `src/flask/views.py` is the class-based view entry point, but I did not read it."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "src/flask/sansio/scaffold.py",
+      "src/flask/sansio/blueprints.py",
+      "ctx.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1587,
+      "cacheRead": 36428,
+      "cacheWrite": 10016
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0031615799999999998,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 14283,
+    "answer": "The request flow is in `src/flask/app.py`: `wsgi_app` (1566) wraps `full_dispatch_request` (992), which runs `preprocess_request` (1366), then `dispatch_request` (966), then `finalize_request` (1021), which calls `process_response` (1394). Unhandled exceptions go to `handle_exception` (897), which logs them, builds an `InternalServerError`, and sends it through `finalize_request`.\n\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/sansio/scaffold.py`\n`src/flask/sansio/blueprints.py`\n\nThe first is the core of the answer: it holds the whole pipeline and the 500 path, and I read those sections directly. `ctx.py` is where the request context is pushed and popped, which is where teardown runs; I did not open it, so that role is from the file ranking and Flask's design rather than something I checked. `scaffold.py` and `blueprints.py` are where the `before_request`, `after_request`, and error-handler registrations are stored; I did not read those either."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "l.1566",
+      "l.992",
+      "l.1366",
+      "l.966"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 2375,
+      "cacheRead": 43289,
+      "cacheWrite": 8848
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0033907900000000003,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 18539,
+    "answer": "Request steps, in order (all in `src/flask/app.py` unless noted):\n\n1. `wsgi_app` (l.1566) builds the request context, pushes it, and calls `full_dispatch_request`.\n2. `full_dispatch_request` (l.992) sends `request_started`, then calls `preprocess_request` (l.1366), which runs the before-request hooks. If a hook returns a value, dispatch is skipped.\n3. `dispatch_request` (l.966) raises routing errors, answers automatic `OPTIONS` via `make_default_options_response`, or calls the view function.\n4. Any exception from steps 2–3 goes to `handle_user_exception`, which looks up a registered error handler. With no handler, the exception is re-raised.\n5. `finalize_request` (l.1021) converts the return value with `make_response`, then runs `process_response` (l.1394), which applies the after-request hooks, and sends `request_finished`.\n6. In `wsgi_app`'s `finally`, `ctx.pop(error)` (`src/flask/ctx.py` l.446) runs `do_teardown_request` (l.490) and `do_teardown_appcontext` (l.496), even when an error occurred.\n\nUnhandled errors: `wsgi_app` catches the exception and calls `handle_exception` (l.897). It sends `got_request_exception`. If `PROPAGATE_EXCEPTIONS` is on (defaults to testing or debug mode), it re-raises. Otherwise it calls `log_exception` (l.950), builds `InternalServerError(original_exception=e)`, and looks up a 500 or `InternalServerError` handler. It then passes the result through `finalize_request(..., from_error_handler=True)`, so the 500 response still gets after-request processing. If that processing fails, the failure is logged instead of raised.\n\nFiles, most relevant first:\n\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/sansio/app.py`\n\nThe first is where the whole flow and the 500 path live. The second holds the teardown calls that run on every request. The third has `_find_error_handler` (l.865), which handler lookup depends on. I did not read the bodies of `preprocess_request` or `process_response`, so their hook details are from their names and the surrounding code. Nothing was modified."
+  }
+]

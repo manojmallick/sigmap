@@ -1,0 +1,160 @@
+[
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/application.js",
+      "lib/utils.js",
+      "req.protocol",
+      "socket.encrypted"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 884,
+      "cacheRead": 40117,
+      "cacheWrite": 7019
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00224777,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11928,
+    "answer": "`lib/request.js`\n`lib/application.js`\n`lib/utils.js`\n\nThe `req.protocol` getter (`lib/request.js:297-315`) starts from the socket: `https` if `socket.encrypted` is set, otherwise `http`. It then checks whether the socket's remote address is trusted via the `trust proxy fn` setting. If it is, it returns the first value of `X-Forwarded-Proto` (falling back to the socket value), and `req.secure` is just `req.protocol === 'https'`. `lib/application.js:370-371` compiles the `trust proxy` setting into that trust function, and `lib/utils.js:194-214` (`compileTrust`) turns the setting's boolean, hop count, address, or subnet form into the matching predicate."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/application.js",
+      "test/req.protocol.js",
+      "test/req.secure.js",
+      "req.secure"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 760,
+      "cacheRead": 31925,
+      "cacheWrite": 8366
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0023730500000000002,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9111,
+    "answer": "`lib/request.js`\n`lib/application.js`\n`test/req.protocol.js`\n`test/req.secure.js`\n`lib/request.js` is where the answer lives: the `protocol` getter starts from whether the socket is encrypted, and if the socket address is trusted by the `trust proxy` setting, it returns the first value of `X-Forwarded-Proto` instead. `lib/application.js` compiles the `trust proxy` setting into the trust function that the getter calls. The two test files cover the behaviour, and `req.secure` is just `protocol === 'https'`."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/utils.js",
+      "lib/application.js",
+      "req.protocol"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 932,
+      "cacheRead": 35017,
+      "cacheWrite": 4703
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017573700000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10862,
+    "answer": "`lib/request.js`\n`lib/utils.js`\n`lib/application.js`\n\n`req.protocol` in `lib/request.js` returns `https` from the socket's TLS state, but only when the socket is not trusted, and otherwise it takes the first value of `X-Forwarded-Proto` from the proxy. Whether that header is trusted depends on the `trust proxy` setting, which `lib/application.js` stores and `lib/utils.js` compiles into the trust check that decides if the socket address is a trusted proxy."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/application.js",
+      "lib/utils.js",
+      "req.protocol",
+      "socket.encrypted"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "git": 1
+      }
+    },
+    "usage": {
+      "in": 6,
+      "out": 920,
+      "cacheRead": 27586,
+      "cacheWrite": 5377
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018118600000000002,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11801,
+    "answer": "`lib/request.js`\n`lib/application.js`\n`lib/utils.js`\n\nThe `req.protocol` getter in `lib/request.js` reads the TLS state from `socket.encrypted`, and only when the socket's remote address is trusted by the `trust proxy` setting does it take the first value of `X-Forwarded-Proto` instead; `lib/application.js` stores that setting and `lib/utils.js` compiles it into the trust function."
+  }
+]
