@@ -1,0 +1,772 @@
+[
+  {
+    "repo": "laravel",
+    "task": "x046",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+      "src/Illuminate/Database/Eloquent/Attributes/ObservedBy.php",
+      "src/Illuminate/Foundation/Console/ObserverMakeCommand.php",
+      "HasEvents.php",
+      "ObservedBy.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Bash": 1
+      },
+      "byCommand": {
+        "sed": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1882,
+      "cacheRead": 40295,
+      "cacheWrite": 7085
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027617500000000003,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 15880,
+    "answer": "The mechanism is Eloquent model observers: a plain class with `creating`, `updating`, `deleting` (and related) methods, attached with `Model::observe()` or the `#[ObservedBy]` attribute. The Grep results confirm the `observe` and `registerObserver` methods and the before-event names, but I could not re-read the file bodies because the sandbox failed to start, so I did not open the code directly.\n\n`src/Illuminate/Database/Eloquent/Concerns/HasEvents.php`\n`src/Illuminate/Database/Eloquent/Attributes/ObservedBy.php`\n`src/Illuminate/Foundation/Console/ObserverMakeCommand.php`\n\n`HasEvents.php` holds the `observe()` and `registerObserver()` methods and the `creating`/`updating`/`deleting` hooks that run before a row is written or removed, `ObservedBy.php` is the attribute that attaches an observer class to a model, and `ObserverMakeCommand.php` generates the listener class skeleton.\n\nI did not modify anything."
+  },
+  {
+    "repo": "laravel",
+    "task": "x046",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+      "src/Illuminate/Events/Dispatcher.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1268,
+      "cacheRead": 46899,
+      "cacheWrite": 8953
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00289439,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 14375,
+    "answer": "`src/Illuminate/Database/Eloquent/Concerns/HasEvents.php`\n`src/Illuminate/Events/Dispatcher.php`\n\nHasEvents provides `observe()`, which registers a dedicated observer class by mapping its `creating`, `updating`, `deleting` and similar methods onto Eloquent's `eloquent.{event}: {Model}` events, and the Events Dispatcher is what actually stores and fires those listeners."
+  },
+  {
+    "repo": "laravel",
+    "task": "x046",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+      "src/Illuminate/Foundation/Console/ObserverMakeCommand.php",
+      "HasEvents.php",
+      "ObserverMakeCommand.php"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 925,
+      "cacheRead": 36940,
+      "cacheWrite": 5756
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019837,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 13965,
+    "answer": "`src/Illuminate/Database/Eloquent/Concerns/HasEvents.php`\n`src/Illuminate/Foundation/Console/ObserverMakeCommand.php`\n\nThe answer is Eloquent model observers: a dedicated class with methods named after the model events (`creating`, `updating`, `deleting`, and so on), registered on the model with `observe()`. `HasEvents.php` maps each method the observer defines onto the matching model event (`registerObserver`, `observe`), and `ObserverMakeCommand.php` is the `make:observer` generator that scaffolds that class.\n\nI did not modify anything. I only checked `HasEvents.php` lines 70–125 and the search results; I didn't open `ObserverMakeCommand.php` or look for the event-name list itself."
+  },
+  {
+    "repo": "laravel",
+    "task": "x046",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+      "src/Illuminate/Database/Eloquent/Model.php",
+      "src/Illuminate/Foundation/Console/ObserverMakeCommand.php",
+      "HasEvents.php",
+      "Model.php"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1884,
+      "cacheRead": 40421,
+      "cacheWrite": 7652
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0028774100000000004,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 16117,
+    "answer": "The \"dedicated listener class\" is an Eloquent observer, wired up with `Model::observe()`.\n\n`src/Illuminate/Database/Eloquent/Concerns/HasEvents.php`\n`src/Illuminate/Database/Eloquent/Model.php`\n`src/Illuminate/Foundation/Console/ObserverMakeCommand.php`\n\n`HasEvents.php` implements `observe()` and `registerObserver()`, which hook observer methods named `creating`, `updating` and `deleting` into the model's event system. `Model.php` fires those events just before the insert, update and delete run. `ObserverMakeCommand.php` generates the observer class skeleton for `php artisan make:observer`."
+  },
+  {
+    "repo": "laravel",
+    "task": "x047",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Queue/Worker.php",
+      "src/Illuminate/Queue/Jobs/Job.php",
+      "src/Illuminate/Contracts/Queue/Job.php",
+      "src/Illuminate/Queue/Jobs/RedisJob.php",
+      "src/Illuminate/Queue/Jobs/DatabaseJob.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1798,
+      "cacheRead": 41607,
+      "cacheWrite": 8521
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00302007,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 17973,
+    "answer": "`src/Illuminate/Queue/Worker.php`\n`src/Illuminate/Queue/Jobs/Job.php`\n`src/Illuminate/Contracts/Queue/Job.php`\n`src/Illuminate/Queue/Jobs/RedisJob.php`\n`src/Illuminate/Queue/Jobs/DatabaseJob.php`\n\nThe decision is made in `Worker::handleJobException()` (`Worker.php:527`). It calls `markJobAsFailedIfWillExceedMaxAttempts()` (`Worker.php:604`) to fail the job once `attempts()` reaches `maxTries` or `retryUntil()` has passed. Otherwise, in its `finally` block, it calls `$job->release($this->calculateBackoff(...))` (`Worker.php:551-553`), and the driver-specific `release()` re-enqueues the job with that delay. `Jobs/Job.php` supplies the `maxTries`, `backoff`, and `retryUntil` values, and `Jobs/RedisJob.php` and `Jobs/DatabaseJob.php` implement the actual re-enqueue. I read the Worker and base Job code directly, but did not open the RedisJob or DatabaseJob `release()` bodies, so their listing is based on the method signatures only."
+  },
+  {
+    "repo": "laravel",
+    "task": "x047",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Queue/Worker.php",
+      "src/Illuminate/Queue/Jobs/Job.php",
+      "src/Illuminate/Queue/Jobs/DatabaseJob.php",
+      "Jobs/Job.php",
+      "DatabaseJob.php"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1122,
+      "cacheRead": 35305,
+      "cacheWrite": 6469
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0022084500000000003,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11741,
+    "answer": "`src/Illuminate/Queue/Worker.php`\n`src/Illuminate/Queue/Jobs/Job.php`\n`src/Illuminate/Queue/Jobs/DatabaseJob.php`\n\nThe worker decides in `handleJobException()` (line 527): it marks the job failed via `markJobAsFailedIfWillExceedMaxAttempts()` (max tries or `retryUntil`) and `markJobAsFailedIfWillExceedMaxExceptions()`, and otherwise releases it with a backoff from `calculateBackoff()` in the `finally` block, then rethrows. `Jobs/Job.php` provides the base `release()` and `retryUntil()`, and `DatabaseJob.php` shows one driver's concrete `release($delay)` that puts the job back on the queue with a delay.\n\nI only read the Worker.php logic in full; the other two files were confirmed by their method signatures and not by reading their bodies."
+  },
+  {
+    "repo": "laravel",
+    "task": "x047",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Queue/Worker.php",
+      "src/Illuminate/Queue/Jobs/Job.php",
+      "Jobs/Job.php"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1117,
+      "cacheRead": 36079,
+      "cacheWrite": 6713
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0022624900000000002,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 12191,
+    "answer": "`src/Illuminate/Queue/Worker.php`\n`src/Illuminate/Queue/Jobs/Job.php`\n\n`Worker::handleJobException()` (line 527) makes the decision: it fails the job when `markJobAsFailedIfWillExceedMaxAttempts` or `markJobAsFailedIfWillExceedMaxExceptions` says the limit is reached, and otherwise calls `$job->release($this->calculateBackoff(...))` in its `finally` block, with the delay taken from the `backoff` setting (lines 551–553). `Job::release()` in `Jobs/Job.php` (line 131) is the mechanism that puts the job back on the queue after that delay, and the `maxTries()` and `retryUntil()` methods there supply the per-job limits the worker checks."
+  },
+  {
+    "repo": "laravel",
+    "task": "x047",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Queue/Worker.php",
+      "src/Illuminate/Queue/Jobs/Job.php",
+      "src/Illuminate/Queue/InteractsWithQueue.php",
+      "src/Illuminate/Queue/Jobs/RedisJob.php",
+      "Worker.php"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1040,
+      "cacheRead": 27609,
+      "cacheWrite": 7298
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00225629,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11411,
+    "answer": "`src/Illuminate/Queue/Worker.php`\n`src/Illuminate/Queue/Jobs/Job.php`\n`src/Illuminate/Queue/InteractsWithQueue.php`\n`src/Illuminate/Queue/Jobs/RedisJob.php`\n\nThe decision is made in `Worker::handleJobException()` (`Worker.php:527`), which marks the job failed when `markJobAsFailedIfWillExceedMaxAttempts` or `markJobAsFailedIfWillExceedMaxExceptions` says so, and otherwise calls `$job->release($backoff)` with a delay from `calculateBackoff()` (`Worker.php:677`). The `Job.php` and `RedisJob.php` entries are where the driver-level `release()` and `fail()` actually run; I identified them from method names and did not open their bodies."
+  },
+  {
+    "repo": "laravel",
+    "task": "x048",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Routing/AbstractRouteCollection.php",
+      "src/Illuminate/Routing/CompiledRouteCollection.php",
+      "src/Illuminate/Routing/RouteCollection.php",
+      "src/Illuminate/Routing/Router.php",
+      "Router.php"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1564,
+      "cacheRead": 44056,
+      "cacheWrite": 10836
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00339056,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 15942,
+    "answer": "`src/Illuminate/Routing/AbstractRouteCollection.php` holds the logic. When no route matches, `checkForAlternateVerbs()` checks the other verbs in `Router::$verbs`. If any match, `getRouteForMethods()` either returns a synthetic OPTIONS route answering 200 with an `Allow` header, or throws `MethodNotAllowedHttpException`. If nothing matches, it throws `NotFoundHttpException` (lines 35–48, 56–69, 107–116).\n\n`src/Illuminate/Routing/CompiledRouteCollection.php`\n`src/Illuminate/Routing/RouteCollection.php`\n`src/Illuminate/Routing/Router.php`\n\nThese are the most relevant because the compiled and uncompiled route collections both route through the abstract class's fallback logic, and `Router.php` defines the verb list (line 136) and the `options()` registration helper (line 220)."
+  },
+  {
+    "repo": "laravel",
+    "task": "x048",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Routing/AbstractRouteCollection.php",
+      "src/Illuminate/Routing/CompiledRouteCollection.php",
+      "src/Illuminate/Routing/Router.php",
+      "AbstractRouteCollection.php",
+      "CompiledRouteCollection.php"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1481,
+      "cacheRead": 52337,
+      "cacheWrite": 8175
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00289967,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 14901,
+    "answer": "`src/Illuminate/Routing/AbstractRouteCollection.php`\n`src/Illuminate/Routing/CompiledRouteCollection.php`\n`src/Illuminate/Routing/Router.php`\n\nThe shared logic is in `AbstractRouteCollection.php`: when no route matches the request's verb, `checkForAlternateVerbs()` checks the other verbs in `Router::$verbs`. If any of them match, `getRouteForMethods()` either answers OPTIONS with a 200 and an `Allow` header, or throws `MethodNotAllowedHttpException` (405). If none match, it throws `NotFoundHttpException` (404). `CompiledRouteCollection.php` is the production matcher that falls back into this path when its compiled matcher raises a not-found or method-not-allowed error, and `Router.php` defines the verb list and registers the OPTIONS route.\n\nI read `AbstractRouteCollection.php` and `CompiledRouteCollection.php` directly; `Router.php` is cited from grep matches only (the `$verbs` list and `options()` registration), so I did not open its surrounding code."
+  },
+  {
+    "repo": "laravel",
+    "task": "x048",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Routing/AbstractRouteCollection.php",
+      "src/Illuminate/Routing/RouteCollection.php",
+      "src/Illuminate/Routing/CompiledRouteCollection.php",
+      "src/Illuminate/Routing/Router.php",
+      "Router.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1632,
+      "cacheRead": 52758,
+      "cacheWrite": 7239
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00279218,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 14559,
+    "answer": "`src/Illuminate/Routing/AbstractRouteCollection.php`\n`src/Illuminate/Routing/RouteCollection.php`\n`src/Illuminate/Routing/CompiledRouteCollection.php`\n`src/Illuminate/Routing/Router.php`\n\n`AbstractRouteCollection::getRouteForMethods()` answers OPTIONS requests with a 200 and an `Allow` header, and otherwise throws `MethodNotAllowedHttpException` (405) when the path matches only other verbs. `RouteCollection::match()` does the per-verb lookup and calls that handler when nothing matches, and `CompiledRouteCollection::match()` (the cached-routes path) falls back to it on a `ResourceNotFoundException` or `MethodNotAllowedException`. `Router.php` defines the verb list (including OPTIONS) and the `options()` route helper.\n\nI did not read `handleMatchedRoute` directly, so the step where a true miss becomes a 404 is inferred from the calls above rather than verified."
+  },
+  {
+    "repo": "laravel",
+    "task": "x048",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Routing/AbstractRouteCollection.php",
+      "src/Illuminate/Routing/RouteCollection.php",
+      "src/Illuminate/Routing/CompiledRouteCollection.php",
+      "src/Illuminate/Routing/Router.php",
+      "Router.php"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1756,
+      "cacheRead": 42881,
+      "cacheWrite": 9044
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00311641,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 15211,
+    "answer": "The routing logic is in these files:\n\n`src/Illuminate/Routing/AbstractRouteCollection.php`\n`src/Illuminate/Routing/RouteCollection.php`\n`src/Illuminate/Routing/CompiledRouteCollection.php`\n`src/Illuminate/Routing/Router.php`\n\n`AbstractRouteCollection` decides the outcome: when no route matches it checks the other verbs in `Router::$verbs`, returns a generated 200 response with an `Allow` header for OPTIONS, throws `MethodNotAllowedHttpException` (405) if another verb matches, and otherwise throws `NotFoundHttpException` (404). `RouteCollection::match` and `CompiledRouteCollection::match` are the two entry points that feed into that logic, and `Router.php` defines the verb list and the `options()` registration helper."
+  },
+  {
+    "repo": "laravel",
+    "task": "x049",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Validation/Validator.php",
+      "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+      "Validator.php",
+      "ValidatesAttributes.php"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1279,
+      "cacheRead": 26722,
+      "cacheWrite": 6802
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00226772,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 13102,
+    "answer": "`src/Illuminate/Validation/Validator.php`\n`src/Illuminate/Validation/Concerns/ValidatesAttributes.php`\n\n`Validator.php` holds the logic: `validateAttribute` loop around lines 480–490 breaks on `shouldStopValidating` (line 969), which honours `bail` and `$stopOnFirstFailure`, and `isValidatable` (line 817) skips blank optional fields via `presentOrRuleIsImplicit`, `passesOptionalCheck` (`sometimes`) and `isNotNullIfMarkedAsNullable` (`nullable`). `ValidatesAttributes.php` only defines the `bail` (line 168) and `nullable` (line 1951) rule methods, which are no-ops, so the behaviour comes from the validator."
+  },
+  {
+    "repo": "laravel",
+    "task": "x049",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Validation/Validator.php",
+      "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+      "src/Illuminate/Foundation/Http/Attributes/StopOnFirstFailure.php",
+      "src/Illuminate/Foundation/Http/FormRequest.php",
+      "src/Illuminate/Contracts/Validation/Validator.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1589,
+      "cacheRead": 36478,
+      "cacheWrite": 7938
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00274748,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 16384,
+    "answer": "The framework stops per-field rules in `Validator::passes()`'s loop, and decides which blank fields to skip in `isValidatable()`. The `bail` check is in `shouldStopValidating()`.\n\n`src/Illuminate/Validation/Validator.php`\n`src/Illuminate/Validation/Concerns/ValidatesAttributes.php`\n`src/Illuminate/Foundation/Http/Attributes/StopOnFirstFailure.php`\n`src/Illuminate/Foundation/Http/FormRequest.php`\n`src/Illuminate/Contracts/Validation/Validator.php`\n\n`Validator.php` holds the logic: the per-rule loop breaks in `shouldStopValidating()` (line 969) when a `bail` field has a message or a required-type rule has already failed, and `isValidatable()` (line 817) skips blank optional fields via `presentOrRuleIsImplicit()`, `passesOptionalCheck()` (`sometimes`), and the nullable check. `ValidatesAttributes.php` supplies the `bail` marker rule (`validateBail()`, line 172), which is a no-op and only signals the behaviour. `StopOnFirstFailure.php` is the attribute that turns on global stop-on-first-failure, which `Validator.php` enforces at line 476. `FormRequest.php` wires that attribute into requests, and the contract file only declares the interface.\n\nI only read the relevant ranges of `Validator.php` and did not modify anything."
+  },
+  {
+    "repo": "laravel",
+    "task": "x049",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Validation/Validator.php"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1329,
+      "cacheRead": 35711,
+      "cacheWrite": 6004
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00222301,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 13294,
+    "answer": "The logic lives in one file, `src/Illuminate/Validation/Validator.php`:\n\n- `shouldStopValidating()` (~line 969) stops further rules on a field. With `bail` it stops once any message exists for the field. Otherwise it stops after a failed implicit/required rule, or after an upload failure. It is called from the per-attribute loop at line 487.\n- `isValidatable()` (~line 817) skips blank optional fields. It combines `presentOrRuleIsImplicit()`, `passesOptionalCheck()` (for `sometimes`), `isNotNullIfMarkedAsNullable()` (for `nullable`), and `hasNotFailedPreviousRuleIfPresenceRule()`. A rule that is not validatable is never called (line ~714).\n\n`src/Illuminate/Validation/Validator.php`\n\nI only read this file. I did not check whether the `bail` or `nullable` keywords are parsed in a separate rule-parser file, so I'm not listing one."
+  },
+  {
+    "repo": "laravel",
+    "task": "x049",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "Validator.php",
+      "src/Illuminate/Validation/Validator.php",
+      "src/Illuminate/Validation/Concerns/ValidatesAttributes.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1384,
+      "cacheRead": 27442,
+      "cacheWrite": 6834
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00233382,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 12417,
+    "answer": "The logic lives in `Validator.php`. Its rule loop (around lines 476–489) stops once an attribute has a message and the rule is `bail` or `stopOnFirstFailure` is set (`shouldStopValidating`, line 969). Blank optional fields are skipped by `isValidatable` (line 817), which checks whether the field is present or has an implicit rule, plus the `sometimes` and `nullable` checks.\n\n`src/Illuminate/Validation/Validator.php`\n`src/Illuminate/Validation/Concerns/ValidatesAttributes.php`\n\nThe first file holds the stop-on-failure loop and the presence and optional checks that decide whether a rule runs at all. The second has the `nullable` rule method, which is a no-op that returns true so the rule name can be used in a rule list."
+  },
+  {
+    "repo": "laravel",
+    "task": "x050",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Cache/Repository.php",
+      "src/Illuminate/Support/functions.php",
+      "src/Illuminate/Cache/DatabaseStore.php",
+      "src/Illuminate/Cache/FileStore.php",
+      "Repository.php"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1598,
+      "cacheRead": 40810,
+      "cacheWrite": 9429
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0030936999999999996,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 16785,
+    "answer": "Stale values are served because `Repository::flexible()` takes a `[fresh, total]` TTL pair. Once the entry is older than the fresh period but still in the store, it returns the old value immediately and runs the rebuild as a deferred callback, guarded by a cache lock and a `created` timestamp check so only one refresh writes.\n\n`src/Illuminate/Cache/Repository.php`\n`src/Illuminate/Support/functions.php`\n`src/Illuminate/Cache/DatabaseStore.php`\n`src/Illuminate/Cache/FileStore.php`\n\n`Repository.php` holds the logic: it returns the cached value while it is fresh, and after that it defers a locked rebuild that rewrites the value and its `created` timestamp (lines 620–660). `functions.php` provides the `defer()` helper that runs that rebuild after the response, and the two store files handle the `created` key for the database and file drivers. I did not modify anything."
+  },
+  {
+    "repo": "laravel",
+    "task": "x050",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Cache/Repository.php",
+      "src/Illuminate/Support/Facades/Cache.php",
+      "src/Illuminate/Cache/FileStore.php",
+      "src/Illuminate/Cache/DatabaseStore.php"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 3,
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1671,
+      "cacheRead": 74797,
+      "cacheWrite": 12631
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00411067,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 17094,
+    "answer": "`Cache::flexible()` implements this. It stores a \"created\" timestamp next to the value, serves the cached value immediately, and runs the rebuild in a deferred callback under a lock.\n\n`src/Illuminate/Cache/Repository.php`\n`src/Illuminate/Support/Facades/Cache.php`\n`src/Illuminate/Cache/FileStore.php`\n`src/Illuminate/Cache/DatabaseStore.php`\n\n`Repository::flexible()` holds the logic: `$ttl[0]` is the fresh window, `$ttl[1]` is how long the value stays in the store (the grace period). Past the fresh window it returns the old value, then calls `defer()` to run a lock-guarded refresh that rewrites the value and timestamp, skipping the write if another process already refreshed it. The facade declares the signature, and `FileStore` and `DatabaseStore` delete the companion `illuminate:cache:flexible:created:*` marker when the key is forgotten or expired.\n\nI didn't modify anything."
+  },
+  {
+    "repo": "laravel",
+    "task": "x050",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Cache/Repository.php",
+      "src/Illuminate/Cache/DatabaseStore.php",
+      "src/Illuminate/Cache/FileStore.php"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1011,
+      "cacheRead": 35611,
+      "cacheWrite": 6119
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00208601,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11266,
+    "answer": "`src/Illuminate/Cache/Repository.php`\n`src/Illuminate/Cache/DatabaseStore.php`\n`src/Illuminate/Cache/FileStore.php`\n\n`Repository::flexible()` stores the value with a \"created\" timestamp and the full TTL, so it is served without blocking while it is still fresh. Once the first window passes, it returns the stale value immediately and defers a rebuild that takes a per-key lock and writes the new value only if the created timestamp is unchanged. `DatabaseStore` and `FileStore` handle the companion `illuminate:cache:flexible:created:{key}` entry so that it is written, cleared, and pruned alongside the value. I did not open the `defer()` helper, so I have not verified how it runs the rebuild after the response."
+  },
+  {
+    "repo": "laravel",
+    "task": "x050",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/Illuminate/Cache/Repository.php",
+      "src/Illuminate/Cache/DatabaseStore.php",
+      "src/Illuminate/Cache/FileStore.php"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1147,
+      "cacheRead": 27956,
+      "cacheWrite": 5784
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020104600000000004,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11609,
+    "answer": "`src/Illuminate/Cache/Repository.php`\n`src/Illuminate/Cache/DatabaseStore.php`\n`src/Illuminate/Cache/FileStore.php`\n\n`Repository::flexible()` stores the value with a creation timestamp and a longer TTL, so the value is still returned once it is past its fresh window. When that window has passed, it returns the stale value immediately and runs the rebuild through `defer()`, which takes a lock and rewrites the value only if the creation timestamp has not changed. The two store files hold the backend-specific handling for the `flexible:created:` key that this relies on; I only checked the matching lines in those two files, not their full logic."
+  }
+]

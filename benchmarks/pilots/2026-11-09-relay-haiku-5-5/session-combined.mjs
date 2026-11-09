@@ -20,8 +20,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const load = (sub) => fs.readdirSync(path.join(here, 'session-auth', sub), { withFileTypes: true })
   .filter((e) => e.isDirectory()).sort((a, b) => (a.name < b.name ? -1 : 1))
   .flatMap((e) => require(path.join(here, 'session-auth', sub, e.name, 'raw.json')));
-const raw = [...load('index-first5'), ...load('index-rest')];
 
+function analyse(label, raw) {
+console.log(`\n==================== ${label} ====================`);
 const tot = (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite;
 const cost = (x) => x.cost.usd;
 const calls = (x) => x.toolCalls.total;
@@ -83,3 +84,12 @@ const used = raw.filter((x) => x.arm === 'with' && Object.keys(x.toolCalls.byToo
 console.log(`SigMap arm tool use over ${raw.filter((x) => x.arm === 'with').length} runs: ${JSON.stringify(tally('with', (t) => t.replace('mcp__sigmap__', 'sigmap:')))}; runs that asked SigMap to retrieve (query_context or read_context): ${used}`);
 console.log(`baseline tool use over ${raw.filter((x) => x.arm === 'without').length} runs: ${JSON.stringify(tally('without', (t) => t))}`);
 console.log(`total real cost of these ${raw.length} runs: $${raw.reduce((s, x) => s + cost(x), 0).toFixed(3)}`);
+}
+
+const small = [...load('index-first5'), ...load('index-rest')];
+const large = fs.existsSync(path.join(here, 'session-auth', 'index-large')) ? load('index-large') : [];
+analyse('30 questions on small and medium repos (gin, flask, express, fastify, fastapi)', small);
+if (large.length) {
+  analyse('15 questions on large repos (django, rails, laravel)', large);
+  analyse('all 45 questions', [...small, ...large]);
+}
