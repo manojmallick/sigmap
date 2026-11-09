@@ -834,7 +834,7 @@ const treeHash = (dir) => {
   // ── guards ─────────────────────────────────────────────────────────────────
 
   await test('the harness never spawns through a shell and stays out of the published package and CI', () => {
-    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs'];
+    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs', 'scripts/agent-ab-compat-shim.mjs'];
     for (const rel of files) {
       const src = fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l)).join('\n');
       assert.ok(!/\bexecSync\b|shell:\s*true|\bexec\(/.test(src), `${rel} spawns through a shell`);
