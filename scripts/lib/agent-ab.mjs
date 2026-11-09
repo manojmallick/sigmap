@@ -648,6 +648,9 @@ export const CAVEATS = Object.freeze([
   'Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.',
 ]);
 
+/** Added to a report produced with `--session-auth`. */
+export const SESSION_CAVEAT = 'Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account\'s plan.';
+
 /**
  * Assemble the report object.
  *
@@ -673,7 +676,7 @@ export function buildReport({ entries, tasks, method }) {
       publishable: pub.publishable,
       notPublishableBecause: pub.reasons,
     }),
-    caveats: [...CAVEATS],
+    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : [])],
     cells,
     ...rollup(cells),
     repetitions: repetitionEstimates(entries, tasks),

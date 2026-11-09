@@ -83,10 +83,12 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @param {'without'|'with'} p.arm
  * @param {string} p.tmpRoot directory to build the copy in
  * @param {string} [p.codeRoot] checkout whose gen-context.js generates the SigMap arm
+ * @param {boolean} [p.sessionAuth] the agent will run without --bare, so it would auto-discover a CLAUDE.md in the checkout: the SigMap
+ *   arm's generated one is removed after its section is read, leaving the appended section as the only SigMap text
  * @param {'current'|'lean'|'index'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same
  * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
  */
-export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current' }) {
+export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current', sessionAuth = false }) {
   if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, variant)) {
     throw new Error(`unknown SigMap variant "${variant}" (one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')})`);
   }
@@ -128,6 +130,9 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   const claudeMd = fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8');
   const section = findManagedSection(claudeMd);
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
+  // Without --bare the agent reads a CLAUDE.md in its working directory by itself. The section is already in
+  // `sigmapContext` and goes in through --append-system-prompt; leaving the file would hand it over twice.
+  if (sessionAuth) fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
   const shim = sigmapShimDir(tmpRoot, codeRoot);
   return Object.assign(prepared, {
     // The generated section is still produced and checked above (a run that cannot generate one

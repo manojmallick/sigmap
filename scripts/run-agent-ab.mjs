@@ -65,7 +65,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -111,6 +111,7 @@ const OUT_DIR = val('--out-dir', path.join(CODE_ROOT, 'benchmarks', 'reports'));
 const RAW_OUT = val('--raw-out', null);
 const MAX_FAILS = intArg('--max-consecutive-failures', 3);
 const TASK_IDS = val('--task-ids', null) ? val('--task-ids', null).split(',').map((x) => x.trim()).filter(Boolean) : null;
+const SESSION_AUTH = has('--session-auth');
 const VARIANT = val('--sigmap-variant', 'current');
 if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
   fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
@@ -136,7 +137,7 @@ function printPlan(plan) {
   const lines = [
     `SigMap agent-level A/B (#812)${DRY ? ' — dry run' : ''}`,
     '',
-    `  agent     claude (--bare), model ${MODEL}`,
+    `  agent     claude (${SESSION_AUTH ? 'the logged-in session, no API key; ~40k tokens of cached prefix' : '--bare'}), model ${MODEL}`,
     `  repos     ${plan.repos.length}${plan.skipped.length ? ` (${plan.skipped.length} skipped: ${plan.skipped.map((s) => `${s.name} ${s.why}`).join(', ')})` : ''}`,
     `  tasks     ${plan.tasks} (${TASK_IDS ? `task id(s) ${TASK_IDS.join(', ')}` : `first ${PER_REPO} per repo, by id`})`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
@@ -160,10 +161,10 @@ async function main() {
   const plan = { repos: present, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
   if (DRY) { writeAll(1, printPlan(plan)); return; }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!SESSION_AUTH && !process.env.ANTHROPIC_API_KEY) {
     writeAll(1, `${printPlan(plan)}\n  ⚠ ANTHROPIC_API_KEY is not set — skipping the live run.\n`
       + '  Claude Code runs with --bare so the operator\'s own instructions cannot reach the no-SigMap arm, and --bare\n'
-      + '  authenticates with the API key only.\n\n'
+      + '  authenticates with the API key only. With no key, `--session-auth` runs the same plan on the logged-in\n  session (it counts against that account\'s plan).\n\n'
       + '  Preview without spending:  npm run benchmark:agent-ab -- --dry-run\n'
       + '  Run live:                  ANTHROPIC_API_KEY=sk-... npm run benchmark:agent-ab -- --save\n');
     return;
@@ -185,7 +186,7 @@ async function main() {
     prepared[repo.name] = {};
     for (const arm of ARMS) {
       say(`  preparing ${repo.name} (${arm})`);
-      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT });
+      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
     const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
     if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
@@ -193,7 +194,7 @@ async function main() {
 
   const env = childEnv();
   const version = agentVersion(BIN, env);
-  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm] });
+  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH });
 
   let n = 0;
   const entries = await runPlan({
@@ -213,6 +214,7 @@ async function main() {
     model: MODEL,
     runs: RUNS,
     variant: VARIANT,
+    auth: SESSION_AUTH ? 'session' : 'api-key',
     taskIds: TASK_IDS,
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,

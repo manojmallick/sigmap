@@ -988,9 +988,59 @@ const treeHash = (dir) => {
     const forced = sh({ OUT: path.join(f.out, 'stale'), FORCE: '1', FAKE_MODE: 'error' });
     assert.strictEqual(forced.status, 1);
     assert.ok(!fs.existsSync(path.join(stale, 'raw.json')), 'the stale raw.json is removed when the forced rerun fails');
+    // SESSION_AUTH=1 ignores the relay runs' saved list (a different setup) and reaches the harness (no --bare, no key needed).
+    const saPlan = sh({ OUT: path.join(f.out, 'sa-dry'), SESSION_AUTH: '1', DRY: '1', ORDER: 'gin:x001' });
+    assert.match(saPlan.stdout, /run\s+index gin:x001/);
+    assert.doesNotMatch(saPlan.stdout, /skip\s+index gin:x001/, 'a session-auth run is a different setup, so the relay\'s saved list does not apply');
+    const before = fs.readFileSync(f.log, 'utf8').trim().split('\n').length;
+    const sa = sh({ OUT: path.join(f.out, 'sa'), SESSION_AUTH: '1', ANTHROPIC_API_KEY: '' });
+    assert.strictEqual(sa.status, 0, sa.stderr);
+    const saCalls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).slice(before);
+    assert.strictEqual(saCalls.length, 4);
+    assert.ok(saCalls.every((c) => !c.argv.includes('--bare') && c.argv.includes('--disable-slash-commands')));
     const unknown = sh({ VARIANTS: 'bogus', DRY: '1' });
     assert.strictEqual(unknown.status, 2);
     assert.match(unknown.stderr, /unknown variant: bogus/);
+  });
+
+  await test('--session-auth drops --bare for the settings-source isolation, needs no API key, removes the arm\'s own CLAUDE.md, and says so in the report', () => {
+    const base = { arm: 'with', model: 'm', budgetUsd: 1, sigmapContext: 'ctx', mcpConfig: '{}' };
+    const bare = claude.buildArgs(base);
+    assert.ok(bare.includes('--bare') && !bare.includes('--setting-sources'), 'the default is unchanged');
+    const sess = claude.buildArgs(Object.assign({ bare: false }, base));
+    assert.ok(!sess.includes('--bare'));
+    assert.strictEqual(sess[sess.indexOf('--setting-sources') + 1], 'project', 'no user-level settings or hooks');
+    assert.ok(sess.includes('--disable-slash-commands') && sess.includes('--strict-mcp-config'));
+    assert.deepStrictEqual(sess.filter((a, i) => sess[i - 1] === '--tools'), bare.filter((a, i) => bare[i - 1] === '--tools'), 'the same read-only tool list');
+    assert.strictEqual(sess[sess.indexOf('--append-system-prompt') + 1], 'ctx', 'the SigMap text still goes in the same way');
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-sa-'), codeRoot: ROOT, variant: 'index', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')), 'otherwise the agent would read the section twice');
+    assert.ok(a.sigmapContext.length > 0 && fs.existsSync(path.join(a.cwd, '.context')), 'the section is kept and the index is there');
+    const b = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-sb-'), codeRoot: ROOT, variant: 'index' });
+    assert.ok(fs.existsSync(path.join(b.cwd, 'CLAUDE.md')), 'without the flag nothing is removed');
+
+    const f = fixture();
+    const noKey = runCli(['--claude', f.bin, '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log });
+    assert.match(noKey.stdout, /ANTHROPIC_API_KEY is not set/);
+    assert.match(noKey.stdout, /--session-auth/, 'the no-key message names the way out');
+    assert.ok(!fs.existsSync(f.log), 'and starts nothing');
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--session-auth', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js', r2: 'src/beta.js' }) });
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.match(r.stderr, /agent\s+claude \(the logged-in session, no API key/);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 8);
+    assert.ok(calls.every((c) => !c.argv.includes('--bare') && c.argv.includes('--disable-slash-commands') && c.argv[c.argv.indexOf('--setting-sources') + 1] === 'project'));
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.auth, 'session');
+    assert.ok(rep.caveats.includes(ab.SESSION_CAVEAT));
+    const out2 = mktmp('ab-out2-');
+    const keyRun = runCli(['--claude', f.bin, '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', out2], live(f));
+    assert.strictEqual(keyRun.status, 0, keyRun.stderr);
+    const keyRep = JSON.parse(fs.readFileSync(path.join(out2, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(keyRep.method.auth, 'api-key', 'the default API-key run is unaffected');
+    assert.ok(!keyRep.caveats.includes(ab.SESSION_CAVEAT), 'and carries no session caveat');
   });
 
   await test('--sigmap-variant reaches the agent: the lean arm gets the three-line section, the other arm none, and the report records it', () => {

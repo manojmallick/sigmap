@@ -15,6 +15,12 @@
  *                          (which may well say "use sigmap") cannot reach the
  *                          no-SigMap arm. It authenticates with
  *                          ANTHROPIC_API_KEY only — that is the provider gate.
+ *                          `--session-auth` (opt-in, for someone with no API key) drops --bare and
+ *                          uses the logged-in session instead; isolation is then rebuilt from
+ *                          `--setting-sources project` (no user-level settings or hooks) and
+ *                          `--disable-slash-commands`, from a clean directory, and the SigMap arm's
+ *                          generated CLAUDE.md is removed so the appended section is the only
+ *                          SigMap text. The prompt prefix is then about 40k tokens heavier, cached.
  *   --strict-mcp-config    MCP servers come from this call and nowhere else.
  *   --tools / --allowedTools / --permission-mode dontAsk
  *                          the read-only allowlist is the same in both arms
@@ -55,14 +61,14 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true }) {
   const allowed = [
     ...BUILTIN_TOOLS.filter((t) => t !== 'Bash'),
     ...BASH_ALLOW.map((c) => `Bash(${c}:*)`),
   ];
   if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, `mcp__${SIGMAP_SERVER}`);
   const args = [
-    '-p', '--bare',
+    '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', '--disable-slash-commands']),
     '--output-format', 'stream-json', '--verbose',
     '--no-session-persistence',
     '--model', model,
@@ -316,11 +322,11 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig });
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
     const r = await runClaude({ bin, args, prompt: job.prompt, cwd: arm.cwd, env: env2, timeoutMs });
