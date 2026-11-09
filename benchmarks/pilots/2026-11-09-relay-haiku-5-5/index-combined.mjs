@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+// Re-derives the combined `index` result from the saved raw records. Offline, no key.
+//
+//   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/index-combined.mjs
+//
+// Reads index-gin-4runs/ (gin/x001) and index-5questions/*/ (the other five questions the relay's allowance covered),
+// each of which holds an `index` arm and a baseline from the SAME invocation, and the earlier `current` arm from
+// full-40runs/. Prints per-question tokens, the per-repetition workload total and typical task for `index` and for
+// `current` on the same questions, whether the file was found, and tool calls.
+import fs from 'fs';
+import path from 'path';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import { workloadChange, geometricChange } from '../../../scripts/lib/agent-ab-stats.mjs';
+
+const require = createRequire(import.meta.url);
+const here = path.dirname(fileURLToPath(import.meta.url));
+const read = (rel) => require(path.join(here, rel));
+const dirs = fs.readdirSync(path.join(here, 'index-5questions'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+const idx = [...read('index-gin-4runs/raw.json'), ...dirs.flatMap((d) => read(`index-5questions/${d}/raw.json`))];
+const cur = read('full-40runs/raw.json');
+
+const tot = (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite;
+const pct = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
+const qOf = (x) => `${x.repo}/${x.task}`;
+const qs = [...new Set(idx.map(qOf))];
+const find = (set, q, run, arm) => set.find((x) => qOf(x) === q && x.run === run && x.arm === arm);
+console.log(`questions: ${qs.length} (${qs.join(', ')}); runs: ${idx.length}; failed: ${idx.filter((x) => !x.ok).length}`);
+
+console.log('\nper question, total tokens R1/R2 and change against the arm\'s own same-run baseline');
+for (const q of qs) {
+  const k = (set, arm) => [1, 2].map((r) => find(set, q, r, arm));
+  const fmt = (xs) => xs.map((x) => `${Math.round(tot(x) / 1000)}k`).join('/');
+  const chg = (w, b) => [0, 1].map((i) => pct(tot(w[i]) / tot(b[i]) - 1)).join('/');
+  const bi = k(idx, 'without'); const wi = k(idx, 'with'); const bc = k(cur, 'without'); const wc = k(cur, 'with');
+  console.log(q.padEnd(14), 'baseline', fmt(bi).padEnd(9), '| current', fmt(wc).padEnd(9), chg(wc, bc).padEnd(11), '| index', fmt(wi).padEnd(9), chg(wi, bi).padEnd(11), `calls index ${wi.map((x) => x.toolCalls.total).join('/')} baseline ${bi.map((x) => x.toolCalls.total).join('/')}`);
+}
+
+console.log('\nper repetition over the same questions');
+for (const run of [1, 2]) {
+  for (const [label, set] of [['INDEX  ', idx], ['CURRENT', cur]]) {
+    const ps = qs.map((q) => ({ without: tot(find(set, q, run, 'without')), with: tot(find(set, q, run, 'with')) }));
+    const g = geometricChange(ps);
+    console.log(`R${run} ${label} workload ${pct(workloadChange(ps).change).padStart(5)}, typical task ${pct(g.change).padStart(5)} [${pct(g.lo)}, ${pct(g.hi)}] ${g.inNoise ? 'inside the noise' : 'OUTSIDE the noise'}`);
+  }
+}
+const pooled = (set) => { const ps = qs.flatMap((q) => [1, 2].map((r) => ({ without: tot(find(set, q, r, 'without')), with: tot(find(set, q, r, 'with')) }))); return workloadChange(ps).change; };
+console.log(`both repetitions pooled: INDEX workload ${pct(pooled(idx))}, CURRENT workload ${pct(pooled(cur))}`);
+
+const found = (set, arm, only) => { const xs = set.filter((x) => x.arm === arm && (!only || only.includes(qOf(x)))); return `${xs.filter((x) => x.pass).length}/${xs.length}`; };
+console.log(`\nfound the file: index ${found(idx, 'with')} (its baselines ${found(idx, 'without')}); current on the same questions ${found(cur, 'with', qs)} (baselines ${found(cur, 'without', qs)})`);
+const mean = (set, arm, f) => { const xs = set.filter((x) => x.arm === arm); return xs.reduce((s, x) => s + f(x), 0) / xs.length; };
+console.log(`mean tool calls: index ${mean(idx, 'with', (x) => x.toolCalls.total).toFixed(1)}, its baselines ${mean(idx, 'without', (x) => x.toolCalls.total).toFixed(1)}`);
+const sp = {}; for (const x of idx.filter((y) => y.arm === 'with')) for (const [t, n] of Object.entries(x.toolCalls.byTool || {})) sp[t.replace('mcp__sigmap__', '')] = (sp[t.replace('mcp__sigmap__', '')] || 0) + n;
+console.log(`index arm tool use over ${idx.filter((x) => x.arm === 'with').length} runs: ${JSON.stringify(sp)}`);
+console.log(`raw tokens in these ${idx.length} runs: ${idx.reduce((s, x) => s + tot(x), 0)}`);

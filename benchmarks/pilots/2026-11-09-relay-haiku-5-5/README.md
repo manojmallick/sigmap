@@ -91,7 +91,7 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 | *SigMap `lean`, modelled on the same 40 runs* | *the static prompt it no longer sends, subtracted* | *−25% / −6%* | *−36% / +2%, intervals include zero* | *workload yes, typical task no; **not a measurement*** |
 | *SigMap `lean`, measured, 1 task (gin/x001)* | *same index, 7 tools, 3-line section* | *−36% / −20%* | *one task, no interval* | *a direction only* |
 | *SigMap `index` (the docs' setup), modelled on the same 40 runs* | *index strategy + 7 tools, product's own text* | *−19% / +2%* | *−28% / +14%, intervals include zero* | *no (second repetition flat); **not a measurement*** |
-| *SigMap `index`, measured, 1 task (gin/x001)* | *same* | *−30% / −1%* | *one task, no interval* | *a direction only* |
+| **SigMap `index`, measured, 6 questions (12 paired runs)** | **index strategy + 7 tools, product's own text** | **−31% / +43%** | **−16% / +23%, intervals include zero** | **no (second repetition +43%); pooled −6%** |
 | Mandarin | translated prompts | +86% / +15% | +70% / +12% | no, much worse |
 | Context Mode | index and retrieve context | +94% / +46% | +102% / +51% | no, much worse |
 
@@ -194,21 +194,47 @@ All three found the file every time. `index` made 6 and 2 tool calls and called 
 | `index`, modelled | −19% / +2% | −28% / +14% |
 | `lean`, modelled | −25% / −6% | −36% / +2% |
 
+### The `index` arm on six questions: everything the relay's allowance covered
+
+Run one question per invocation in an order fixed beforehand, cheapest first by the baseline's own cost in the 40-run pilot (`gin/x002`, `express/x038`, `express/x037`, `flask/x033`, `fastapi/x145`, `fastify/x137`, ...), stopping at the first relay refusal. That order favours easy questions, where SigMap has least to save; and the baseline's cost proved a poor guide to it (below). The relay then returned HTTP 402, "Your Token Plan (Coding Tokens) balance is exhausted (0 tokens remaining)", during `fastify/x137`; that half-finished batch is discarded (`index-5questions/fastify-x137-aborted.log`). With the earlier `gin/x001` probe that is **6 questions, 2 repetitions, 24 runs, none failed** (`index-combined.mjs` reproduces everything below).
+
+| question | baseline R1 / R2 | `current`, earlier run (vs its baseline) | **`index`** (vs its same-run baseline) | calls: index / baseline |
+|---|---:|---:|---:|---|
+| gin/x001 | 31k / 21k | 68k / 180k (+57% / +188%) | 22k / 21k (−30% / −1%) | 6, 2 / 7, 7 |
+| gin/x002 | 177k / 9k | 65k / 73k (−2% / +239%) | 20k / 57k (−89% / +522%) | 5, 9 / 24, 4 |
+| express/x038 | 51k / 52k | 86k / 146k (+33% / +439%) | 55k / 59k (+7% / +14%) | 13, 13 / 8, 9 |
+| express/x037 | 25k / 29k | 91k / 42k (+32% / +45%) | 69k / 13k (+181% / −56%) | 12, 2 / 5, 6 |
+| flask/x033 | 184k / 54k | 256k / 256k (+201% / +205%) | 108k / 178k (−42% / +229%) | 12, 21 / 16, 10 |
+| fastapi/x145 | 27k / 84k | 38k / 81k (−55% / −33%) | 68k / 29k (+150% / −65%) | 11, 6 / 6, 15 |
+
+| over these 6 questions | `index`: workload | `index`: typical task | `current` (earlier run): workload | `current`: typical task |
+|---|---:|---:|---:|---:|
+| repetition 1 | −31% | −16% [−66%, +83%] | +46% | +24% [−25%, +95%] |
+| repetition 2 | +43% | +23% [−44%, +180%] | +126% | **+132% [+29%, +275%], outside the noise** |
+| both pooled | **−6%** | | +82% | |
+
+- **Against the old arm the fix is large.** On the same six questions `current` was +82% pooled with a second-repetition loss outside the noise; `index` is −6% pooled with every interval including zero.
+- **Against no SigMap it is break-even, not a saving.** The sign flips between repetitions (−31%, then +43%), the intervals include zero both times, tool calls are 9.3 against 9.8, and the file was found 12 of 12 times by both arms.
+- **The noise is the real finding.** The baseline alone cost 177k tokens on `gin/x002` in one repetition and 9k in the next (24 tool calls, then 4), 184k then 54k on `flask/x033`, 27k then 84k on `fastapi/x145`. With swings of 3× to 20× on the same question, six questions cannot resolve an effect of 20% either way, and a single repetition is close to a coin flip.
+- **How the agent used it:** over the 12 `index` runs, 57 `get_lines`, 22 `query_context`, 6 `read_context`, 21 shell commands and 2 file reads; it still checked what it was told.
+- **Cost:** these 24 runs used 1.44M raw tokens.
+
 ### Verdict, as far as the evidence goes
 
 1. **The pilot's loss was largely a setup problem, not a verdict on SigMap.** It re-sent about 4.3k tokens a turn that the docs' own setup avoids (about 1.6k), and the product's recommended strategy for an agent that calls the tools was not the one run.
-2. **Used efficiently, SigMap probably lands near break-even on this slice, not at a clear saving.** The arithmetic and the one measured question say the fixed tax is mostly removable; they do not say the agent then needs fewer calls. `query_context` puts the right file first only a third of the time on these questions, so the agent still has to verify, and each extra call still costs about 13k tokens. A saving shows up where the baseline needed a long search (the pilot's eight wins, −20% to −78%) and a cost where it did not.
+2. **Used efficiently, SigMap lands near break-even on this slice, not at a saving (now measured on six questions, above: −6% pooled, signs flipping between repetitions).** The arithmetic and the one measured question say the fixed tax is mostly removable; they do not say the agent then needs fewer calls. `query_context` puts the right file first only a third of the time on these questions, so the agent still has to verify, and each extra call still costs about 13k tokens. A saving shows up where the baseline needed a long search (the pilot's eight wins, −20% to −78%) and a cost where it did not.
 3. **Accuracy was not the problem:** the file was found 20 of 20 times in the 40-run pilot (18 of 20 for the baseline) and 6 of 6 in the SigMap arms of the three 4-run probes (6 of 6 for their baselines).
 4. **Against the other tools:** if the modelled rows hold, an efficiently set-up SigMap would sit with Caveman, Ponytail and RTK (near zero, noisy) and not with Context Mode and Mandarin. That is a projection.
-5. **What is not done, and what would settle it:** the 10-task × 2-repetition run of `index` (the docs' setup) and `lean`, each against a baseline. About 5M raw tokens per variant here (an estimated 15M at this relay's 3×), which the key cannot cover; the exact commands are in "Reproduce it", with `--sigmap-variant index` and `--sigmap-variant lean`. Until that is run, the honest statement is: not shown to save tokens, shown not to lose accuracy, and the pilot's +12% / +42% should not be quoted as SigMap's efficiency.
+5. **What is not done, and what would settle it:** the allowance ran out after six of the ten questions for `index` and one for `lean`, so the 10-question × 2-repetition run of each, and enough repetitions to see through swings of 3× to 20× on a single question, are still to do; they need a key that can cover about 5M raw tokens per variant (the commands are in "Reproduce it", with `--sigmap-variant index` or `lean`, and `--task-ids` to run questions one at a time). **The statement the evidence supports: with the docs' setup SigMap does not lose accuracy and does not cost more tokens than no SigMap on average, but it has not been shown to save any; the pilot's +12% / +42% was a setup problem and should not be quoted as its efficiency.**
 
 ## What it cost
 
-The two later 4-run probes used about 131k (`lean`) and 94k (`index`) raw tokens. The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
+The two later 4-run probes used about 131k (`lean`) and 94k (`index`) raw tokens, and the five-question `index` run 1.44M more (24 runs including `gin/x001`), after which the relay returned HTTP 402 with 0 tokens remaining. The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
 
 ## Files
 
 - `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `index-5questions/` and `index-combined.mjs` — the five further questions the `index` arm ran (report, data and raw records for each, the shim's stats, the run log, and the aborted `fastify/x137` log) and the script that reproduces the combined analysis above.
 - `index-gin-4runs/` — the same probe for the docs' setup (`--sigmap-variant index`).
 - `strategy-audit.mjs` — what each context strategy injects and that retrieval does not change (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/strategy-audit.mjs`; needs the fetched checkouts).
 - `lean-gin-4runs/` — the lean-variant probe above: report, data, raw records and the shim's stats.
