@@ -221,6 +221,36 @@ Run one question per invocation in an order fixed beforehand, cheapest first by 
 - **How the agent used it:** over the 12 `index` runs, 57 `get_lines`, 22 `query_context`, 6 `read_context`, 21 shell commands and 2 file reads; it still checked what it was told.
 - **Cost:** these 24 runs used 1.44M raw tokens.
 
+### The saving list: where SigMap used fewer tokens, and what it tracks
+
+`index-combined.mjs` prints every case (a question in a repetition) with its change against that repetition's own baseline. **Cases with fewer tokens:**
+
+| tool | cases with fewer tokens | source |
+|---|---:|---|
+| Caveman | 12 of 20 | the study |
+| Ponytail | 9 of 20 | the study |
+| RTK | 8 of 20 | the study |
+| Terra (cheaper model) | about 10 of 20 ("roughly half") | the study |
+| Mandarin | 2 of 20 | the study |
+| Context Mode | 1 of 20 | the study |
+| **SigMap `current`** | **8 of 20** | this pilot, 40 runs |
+| **SigMap `index`** | **6 of 12** (5 clearly, 1 a tie) | this pilot, 6 questions |
+
+`index`, the six cases that used fewer tokens:
+
+| case | change | tokens against the baseline | the baseline's repetition |
+|---|---:|---|---|
+| gin/x002 R1 | −89% | 20k against 177k | **the costlier of its two** (the other cost 9k) |
+| fastapi/x145 R2 | −65% | 29k against 84k | **the costlier** (the other cost 27k) |
+| express/x037 R2 | −56% | 13k against 29k | **the costlier** |
+| flask/x033 R1 | −42% | 108k against 184k | **the costlier** (the other cost 54k) |
+| gin/x001 R1 | −30% | 22k against 31k | **the costlier** |
+| gin/x001 R2 | −1% | 21k against 21k | a tie |
+
+**What it tracks.** Five of the six savings came in the baseline's own costlier repetition, and four of the four cases that cost more than 50% more came in its cheaper one. That is what noise looks like, and it is why the pooled result is −6% and not a saving: the baseline "lost" when the agent happened to wander, and SigMap "lost" when the agent happened to get lucky without it.
+
+**Where a real saving does seem to sit.** In the old `current` arm three questions saved in **both** repetitions: `flask/x032` (−67%, −49%; a baseline of about 380k tokens), `fastify/x138` (−78%, −20%; about 164k) and `fastapi/x145` (−55%, −33%; about 102k). They are three of the five most expensive questions, the ones where the baseline needed a long search. **`index` has not been run on `flask/x032` or `fastify/x138`**: the run order (cheapest baseline first) put them last and the allowance ended before them. So the `index` result of break-even comes from the easy questions, where SigMap has least to save; whether it saves on the hard ones with the cheaper setup is the open question, and the evidence so far says that is where to look.
+
 ### What would settle it, and why running `lean` on the rest would not
 
 The key had no balance left to run anything further (HTTP 402, rechecked after the six questions), so the rest is a plan. `index-combined.mjs` prints the numbers below.

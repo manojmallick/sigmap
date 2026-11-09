@@ -69,3 +69,27 @@ for (const hw of [0.2, 0.1]) {
 const n20 = 20; const half = 1.96 * sd / Math.sqrt(n20);
 console.log(`with all 10 pilot questions (${n20} pairs) the interval would still be about ${pct(Math.exp(mean2 - half) - 1)} to ${pct(Math.exp(mean2 + half) - 1)}`);
 console.log(`baseline, same question, repetition 1 against 2 (larger over smaller): ${qs.map((q) => { const a = tot(find(idx, q, 1, 'without')); const b = tot(find(idx, q, 2, 'without')); return (Math.max(a, b) / Math.min(a, b)).toFixed(1) + '×'; }).join(', ')}`);
+
+// The saving list: every paired case (question × repetition), for the `index` arm and the earlier `current` arm, with the change
+// against that repetition's own baseline and whether this repetition's baseline was the more expensive of its two (a spike).
+// If savings arrive when the baseline spikes and costs when it is lucky, the pattern is noise and not an effect.
+const list = (label, set, questions) => {
+  const rows = [];
+  for (const q of questions) {
+    const b = [1, 2].map((r) => tot(find(set, q, r, 'without')));
+    for (const r of [1, 2]) {
+      const w = tot(find(set, q, r, 'with'));
+      rows.push({ q, r, change: w / b[r - 1] - 1, with: w, base: b[r - 1], spike: b[r - 1] > b[2 - r] });
+    }
+  }
+  const saved = rows.filter((x) => x.change < -0.005).sort((a, b) => a.change - b.change);
+  const more = rows.filter((x) => x.change >= -0.005);
+  console.log(`\nsaving list, ${label}: fewer tokens in ${saved.length} of ${rows.length} cases`);
+  for (const x of saved) console.log(`  ${x.q} R${x.r}  ${pct(x.change).padStart(5)}  (${Math.round(x.with / 1000)}k against a ${Math.round(x.base / 1000)}k baseline${x.spike ? ', the costlier of its two baseline repetitions' : ''})`);
+  const sp = saved.filter((x) => x.spike).length;
+  const lucky = more.filter((x) => !x.spike && x.change > 0.5).length;
+  console.log(`  ${sp} of these ${saved.length} savings came in the baseline's costlier repetition; of the ${more.length} cases that cost more, ${more.filter((x) => x.change > 0.5).length} cost over 50% more and ${lucky} of those came in the baseline's cheaper repetition`);
+};
+list('index (docs\' setup)', idx, qs);
+list('current (the old default), same six questions', cur, qs);
+list('current, all ten pilot questions', cur, [...new Set(cur.map(qOf))]);
