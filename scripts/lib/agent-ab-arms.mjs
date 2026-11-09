@@ -25,7 +25,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
-import { SIGMAP_SERVER, SIGMAP_CLI } from './agent-ab.mjs';
+import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, LEAN_SECTION } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -83,9 +83,13 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @param {'without'|'with'} p.arm
  * @param {string} p.tmpRoot directory to build the copy in
  * @param {string} [p.codeRoot] checkout whose gen-context.js generates the SigMap arm
+ * @param {'current'|'lean'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same
  * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
  */
-export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
+export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current' }) {
+  if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, variant)) {
+    throw new Error(`unknown SigMap variant "${variant}" (one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')})`);
+  }
   // `benchmarks/repos/<name>` may be a symlink (a worktree that borrows the shared
   // clones). `cpSync` with `verbatimSymlinks` copies a link AS a link, so the arm
   // would BE the shared clone: reset and clean would run in it, and both arms
@@ -108,7 +112,12 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
   if (arm === 'without') return prepared;
 
   const cfg = path.join(dest, 'gen-context.config.json');
-  if (repo.srcDirs) fs.writeFileSync(cfg, JSON.stringify({ srcDirs: repo.srcDirs }, null, 2) + '\n');
+  const config = {};
+  if (repo.srcDirs) config.srcDirs = repo.srcDirs;
+  // The MCP server reads its tool profile from the config in the directory it runs in, so the
+  // lean arm's 7-tool profile is set here and nowhere else. The index it answers from is unchanged.
+  if (variant === 'lean') config.mcp = { tools: 'core' };
+  if (Object.keys(config).length) fs.writeFileSync(cfg, JSON.stringify(config, null, 2) + '\n');
   execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), '--adapter', 'claude'], {
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
   });
@@ -117,7 +126,9 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
   const shim = sigmapShimDir(tmpRoot, codeRoot);
   return Object.assign(prepared, {
-    sigmapContext: claudeMd.slice(section.index).trim(),
+    // The generated section is still produced and checked above (a run that cannot generate one
+    // is a broken arm); the lean arm just does not hand it to the agent.
+    sigmapContext: variant === 'lean' ? LEAN_SECTION : claudeMd.slice(section.index).trim(),
     mcpConfig: mcpConfigFor(codeRoot),
     binDir: shim,
   });

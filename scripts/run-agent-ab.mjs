@@ -49,7 +49,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
-  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError,
+  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS,
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeMcp } from './lib/agent-ab-arms.mjs';
@@ -65,7 +65,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -110,6 +110,10 @@ const ONLY = val('--repos', null);
 const OUT_DIR = val('--out-dir', path.join(CODE_ROOT, 'benchmarks', 'reports'));
 const RAW_OUT = val('--raw-out', null);
 const MAX_FAILS = intArg('--max-consecutive-failures', 3);
+const VARIANT = val('--sigmap-variant', 'current');
+if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
+  fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
+}
 
 function selectRepos(manifest, tasks) {
   const wanted = ONLY ? ONLY.split(',').map((s) => s.trim()).filter(Boolean) : null;
@@ -136,7 +140,7 @@ function printPlan(plan) {
     `  tasks     ${plan.tasks} (first ${PER_REPO} per repo, by id)`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
     `  budget    <= $${BUDGET} per run -> <= $${(plan.agentRuns * BUDGET).toFixed(2)} worst case; timeout ${Math.round(TIMEOUT / 1000)} s per run`,
-    '  arms      without = no SigMap · with = generated CLAUDE.md section + sigmap CLI + MCP server; identical prompt, model, read-only tools',
+    `  arms      without = no SigMap · with = ${VARIANT === 'current' ? 'generated CLAUDE.md section + sigmap CLI + MCP server' : SIGMAP_VARIANTS[VARIANT]} (variant: ${VARIANT}); identical prompt, model, read-only tools`,
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -176,7 +180,7 @@ async function main() {
     prepared[repo.name] = {};
     for (const arm of ARMS) {
       say(`  preparing ${repo.name} (${arm})`);
-      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT });
+      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT });
     }
     const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
     if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
@@ -203,6 +207,7 @@ async function main() {
     agentVersion: version,
     model: MODEL,
     runs: RUNS,
+    variant: VARIANT,
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,
     timeoutMs: TIMEOUT,

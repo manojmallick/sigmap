@@ -52,6 +52,30 @@ const models = require(path.join(ROOT, 'src/config/models.js'));
 /** `without` = no SigMap; `with` = SigMap's generated context plus its MCP server. */
 export const ARMS = Object.freeze(['without', 'with']);
 
+/**
+ * What the `with` arm is. `current` is what a first-time `sigmap --adapter claude` run hands an
+ * agent (the generated section plus the MCP server on its default 22-tool profile). `lean` keeps the
+ * same index and the same MCP server but hands the agent less on every turn: the 7-tool `core`
+ * profile and a three-line section instead of the generated one. A variant changes how much the
+ * agent is told, never what the index holds, so the two stay comparable on the same questions.
+ */
+export const SIGMAP_VARIANTS = Object.freeze({
+  current: 'SigMap generated context + MCP server',
+  lean: 'SigMap lean: 7-tool core MCP profile + a three-line section',
+});
+
+/**
+ * The lean arm's whole system-prompt addition (about 70 tokens). It names the MCP tool the arm
+ * actually has, where the generated section names a terminal command the agent rarely ran, and it
+ * calls the ranking a lead to confirm: on the labelled corpus the first-ranked file is right about
+ * one time in three, so "answer from this" would be wrong about as often.
+ */
+export const LEAN_SECTION = [
+  '## SigMap',
+  'This repository is indexed by SigMap. Call the MCP tool `query_context` with the question first: it returns the most likely files with line anchors (`:start-end`).',
+  'Treat the ranking as a lead, not an answer: read an anchored range with `get_lines` to confirm before you name a file.',
+].join('\n');
+
 /** Fewer runs per arm than this is a smoke test, not a result. */
 export const MIN_RUNS = 4;
 
@@ -633,7 +657,8 @@ export function buildReport({ entries, tasks, method }) {
     schema: 1,
     kind: 'agent-ab',
     method: Object.assign({}, method, {
-      arms: { without: 'no SigMap', with: 'SigMap generated context + MCP server' },
+      variant: method.variant || 'current',
+      arms: { without: 'no SigMap', with: SIGMAP_VARIANTS[method.variant || 'current'] || SIGMAP_VARIANTS.current },
       tools: [...BUILTIN_TOOLS],
       corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl',
       selection: `first ${method.tasksPerRepo} task(s) by id per repo`,

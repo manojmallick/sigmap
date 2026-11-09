@@ -99,7 +99,7 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 
 What the evidence shows, strongest first:
 
-1. **The agent did not stop when it had the answer.** The MCP `query_context` tool (top 5) returned the expected file, in a roughly 400 to 800 token answer, for 8 of the 10 questions. The runs still averaged 13.8 tool calls: 5.8 `get_lines` and 3.6 `search_signatures` per run, and 4 of 20 runs never called `query_context`. Across the 20 pairs, each extra tool call cost about 13k tokens (the conversation is re-read every turn).
+1. **The agent kept checking after the first answer (but see "Correction": on the harder questions it was right to).** The MCP `query_context` tool (top 5) returned the expected file, in a roughly 400 to 800 token answer, for 8 of the 10 questions. The runs still averaged 13.8 tool calls: 5.8 `get_lines` and 3.6 `search_signatures` per run, and 4 of 20 runs never called `query_context`. Across the 20 pairs, each extra tool call cost about 13k tokens (the conversation is re-read every turn).
 2. **A fixed cost on every question.** At equal tool-call counts the SigMap arm still used about 21k more tokens (least squares, R² 0.79, n=20). Per turn it re-sent the 22 MCP tool definitions (about 2.6k tokens; the 7-tool `core` profile the README recommends is about 1k) plus the generated section (1.5k to 2.1k tokens).
 3. **The always-on section is a thin slice that answers few questions.** It lists 8 to 18 of each repo's files (gin 9 of 118, fastapi 18 of 968) and held the answer file for only 2 of the 10 questions; on express 8 of its 12 entries are `examples/` or `test/` files and `lib/request.js` is absent. The section also tells the agent to run `sigmap ask` in a terminal and never mentions the MCP tools the arm gave it, so the instructions point at the path the agent mostly did not take (the CLI was used in 3 runs).
 4. **Questions the baseline found easy cannot be made cheaper.** Ten of the twelve cases where SigMap cost more were questions the baseline answered in under 90k tokens; all it could add there was overhead.
@@ -110,13 +110,30 @@ What the evidence shows, strongest first:
 
 Each is a hypothesis from 20 paired cases, not a finding, and none has been tried.
 
-1. **Make one call enough.** Have `query_context` end with an explicit stop line when the top match is strong, using the `confidence` the ranker already computes ("answer from this; open code only to quote it"). Expect: fewer `get_lines` and `search_signatures` calls.
+1. ~~**Make one call enough.** Have `query_context` end with an explicit stop line when the top match is strong, using the `confidence` the ranker already computes.~~ **Withdrawn, see "Correction" below:** the premise was wrong, and the data says the agent was right to check.
 2. **Cut the per-turn cost.** Default to the `core` profile or smaller (`query_context` and `get_lines`), and fold `search_signatures` into `query_context`, which removes a second way to search. Expect: about 1.6k fewer tokens per turn from definitions alone.
 3. **Make the section match the tools.** When MCP is configured, name the MCP tool instead of the CLI, in a few lines, and make the signature sample opt-in for question answering. Expect: a few hundred tokens per turn instead of 1.5k to 2k.
 4. **Pay only when asked.** The wins came on questions needing long searches (baseline 84k+ tokens), the losses on easy ones. An always-on tax cannot do that; progressive disclosure (tools on demand, almost nothing always-on) could.
 5. **Keep the injected prefix byte-stable** so provider caching discounts it (the section already carries a `sigmap:volatile` marker), and measure on the real API, where a cached prefix costs a tenth.
 6. **Add the two misses to the retrieval backlog** (gin/x002 `render/json.go`, fastify/x138 `lib/validation.js`).
 7. **Test them as arms**, not by argument: baseline, current, `core` plus no section, and that plus the stop line, on the same 10 tasks × 2 repetitions. At about 130k raw tokens per run that is roughly 2.6M raw tokens per arm; the harness has no arm-variant switch yet.
+
+## Correction, after checking the ideas against all 30 labelled questions
+
+I tested idea 1 before building it (`retrieval-audit.mjs`, free and offline, over every labelled question of gin, flask, express, fastify and fastapi). It does not hold, and it changes how to read point 1 above.
+
+- **The premise was wrong.** The ranker's `confidence` is a relative tier inside the returned results (the top third of the score range is "high"), so the first result is almost always "high", wrong ones included. It cannot be a stop signal.
+- **A score margin does not rescue it.** On the 30 questions `query_context` puts the expected file **first 10 times (33%)**, in the top 3 17 times, in the top 5 20 times (67%) and in the top 10 23 times. A rule "the top file is clearly ahead" fires on 11 of 30 questions at top1/top2 ≥ 1.30 and is right 7 times (64%); at looser margins it is right under half the time. A stop line would be wrong about as often as right.
+- **So point 1 was overstated.** The pilot's ten questions were easier than the thirty (8 of 10 had the file in the top 5, against 20 of 30), and with the first file right a third of the time, the agent's `get_lines` and `search_signatures` calls were partly rational. They are the likely reason SigMap's arm found the file 20 of 20 times where retrieval alone would have placed it in the top 5 only two times in three.
+- **The opt-in ranking settings do not help here either.** `callGraphBoost` 19 of 30 in the top 5, `centralityBlend` 20, `surfaceEnrichment` 20, `minedExpansions` 20, all four together 20 (24 in the top 10); turning `bodyWords` (on by default) off drops it to 16. The default is the best of them, and two of those settings are already deprecated for measuring no net benefit.
+
+**What survives is cutting the fixed cost** (ideas 2 and 3), because that tax is paid on every turn whether or not retrieval is right. It is built as a harness variant, not a product change, so it can be measured before anyone decides to change a default:
+
+```bash
+npm run benchmark:agent-ab -- --sigmap-variant lean ...   # default is "current", what the pilot ran
+```
+
+`lean` keeps the same index and the same MCP server but hands the agent the 7-tool `core` profile (about 1.0k tokens of definitions, against about 2.6k for all 22) and a three-line section (about 70 tokens, against about 1.7k) that names the MCP tools and says to treat the ranking as a lead and confirm. Re-sent on every turn that is about **1.0k tokens instead of about 4.3k (−76%)**, or roughly 46k tokens per question over the pilot's 13.8 turns before any caching discount (the regression above found about 21k at this relay's caching). It removes the fixed cost, not the extra calls: each of those still costs about 13k tokens. It has not been run against a model.
 
 ## What it cost
 
@@ -125,5 +142,6 @@ The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× r
 ## Files
 
 - `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `retrieval-audit.mjs` — how good `query_context` is on all 30 labelled questions, whether a score margin can say "clearly ahead", and the opt-in ranking settings (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/retrieval-audit.mjs`; needs the fetched checkouts).
 - `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).
 - `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.

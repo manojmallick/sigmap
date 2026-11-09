@@ -849,6 +849,69 @@ const treeHash = (dir) => {
     }
   });
 
+  // ── the lean variant: the same index, told less on every turn ──────────────
+
+  await test('the lean variant keeps the index, narrows the MCP server to the 7-tool core profile, and swaps the section for three lines', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    // One directory per variant: an arm's copy is named for its repo and arm, so two variants must not share a tmpRoot.
+    const cur = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-cur-'), codeRoot: ROOT });
+    const lean = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-lean-'), codeRoot: ROOT, variant: 'lean' });
+
+    assert.match(cur.sigmapContext, /SigMap commands/, 'the default is the generated section');
+    assert.strictEqual(lean.sigmapContext, ab.LEAN_SECTION);
+    assert.ok(/query_context/.test(lean.sigmapContext) && /get_lines/.test(lean.sigmapContext), 'it names the MCP tools the arm has');
+    assert.ok(!/sigmap ask/.test(lean.sigmapContext), 'and not a terminal command the agent rarely ran');
+    assert.ok(/lead, not an answer/.test(lean.sigmapContext), 'the ranking is a lead to confirm: top-1 is right about one time in three');
+    assert.ok(lean.sigmapContext.length < 600, 'a few hundred characters');
+    assert.notStrictEqual(lean.sigmapContext, cur.sigmapContext);
+
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(lean.cwd, 'gen-context.config.json'), 'utf8')), { mcp: { tools: 'core' } });
+    assert.ok(fs.existsSync(path.join(lean.cwd, 'CLAUDE.md')), 'the index is still generated: only what the agent is told changes');
+    const tools = (cwd) => {
+      const init = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }];
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'gen-context.js'), '--mcp'], { cwd, input: `${init.map((m) => JSON.stringify(m)).join('\n')}\n`, encoding: 'utf8', timeout: 30000 });
+      for (const line of r.stdout.split('\n')) { try { const m = JSON.parse(line); if (m.id === 2) return m.result.tools.map((t) => t.name).sort(); } catch (_) { /* not a response */ } }
+      return [];
+    };
+    assert.deepStrictEqual(tools(lean.cwd), ['get_callee_signatures', 'get_impact', 'get_lines', 'get_method_impact', 'query_context', 'read_context', 'verify_suggestion']);
+    assert.strictEqual(tools(cur.cwd).length, 22, 'the current variant still advertises every tool');
+    assert.ok(arms.probeMcp({ cwd: lean.cwd, codeRoot: ROOT }).ok, 'the narrowed server still answers');
+  });
+
+  await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean']);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
+    const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
+    assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
+    assert.strictEqual(mk('lean').method.arms.with, ab.SIGMAP_VARIANTS.lean);
+    assert.strictEqual(mk(undefined).method.arms.with, ab.SIGMAP_VARIANTS.current, 'an older caller without a variant is still the current arm');
+    assert.match(ab.renderMarkdown(mk('lean')), /\*\*with\*\* = SigMap lean: 7-tool core MCP profile/);
+  });
+
+  await test('--sigmap-variant reaches the agent: the lean arm gets the three-line section, the other arm none, and the report records it', () => {
+    const f = fixture();
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'lean', '--save', '--allow-unpublishable', '--out-dir', f.out], live(f));
+    assert.strictEqual(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const withArm = calls.filter((c) => c.argv.includes('--mcp-config'));
+    const without = calls.filter((c) => !c.argv.includes('--mcp-config'));
+    assert.strictEqual(withArm.length, 4);
+    assert.ok(withArm.every((c) => c.argv[c.argv.indexOf('--append-system-prompt') + 1] === ab.LEAN_SECTION));
+    assert.ok(without.every((c) => !c.argv.includes('--append-system-prompt')), 'the baseline is told nothing');
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'lean');
+    assert.strictEqual(rep.method.arms.with, ab.SIGMAP_VARIANTS.lean);
+    assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
+    const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bad.status, 2);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean \(got "bogus"\)/);
+    const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(noVal.status, 2);
+    assert.match(noVal.stderr, /--sigmap-variant needs a value/);
+  });
+
   // ── "did it save?": workload total vs typical task, per repetition ─────────
 
   const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
