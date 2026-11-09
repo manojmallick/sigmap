@@ -1,0 +1,614 @@
+[
+  {
+    "repo": "express",
+    "task": "x037",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/application.js",
+      "app.use",
+      "fn.mountpath",
+      "fn.parent"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 997,
+      "cacheRead": 26795,
+      "cacheWrite": 6576
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00208225,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11105,
+    "answer": "`lib/application.js`\n\n`app.use()` (line 190) detects an Express app by its `handle` and `set` methods, sets `fn.mountpath` and `fn.parent`, and routes it under the path with a wrapper. The child's `'mount'` listener (line 109) then points its `request`, `response`, `engines` and `settings` prototypes at the parent's, so it inherits settings, and it also drops its own default trust-proxy setting so the parent's applies."
+  },
+  {
+    "repo": "express",
+    "task": "x037",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/application.js",
+      "app.use",
+      "fn.mountpath",
+      "fn.parent",
+      "Object.setPrototy"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 2,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 979,
+      "cacheRead": 31719,
+      "cacheWrite": 6381
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020834900000000003,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11641,
+    "answer": "`lib/application.js`\n\nThis file implements it: `app.use()` (lines 190–244) sets `fn.mountpath` and `fn.parent` and mounts the child's `handle` on the parent's router under the path prefix, then emits `'mount'`. The `'mount'` listener in `defaultConfiguration()` (lines 109–121) makes the child's `settings`, `engines`, `request` and `response` prototypes inherit from the parent's via `Object.setPrototypeOf`, and `app.use` also restores `req`/`res` prototypes after the child finishes."
+  },
+  {
+    "repo": "express",
+    "task": "x037",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/application.js",
+      "lib/express.js",
+      "app.use",
+      "Object.setPrototy"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 834,
+      "cacheRead": 45969,
+      "cacheWrite": 6065
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00209049,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 13689,
+    "answer": "`lib/application.js`\n`lib/express.js`\n\n`app.use(path, subApp)` in `lib/application.js` (around lines 190-244) sets the child's `mountpath` and `parent`, mounts it on the parent's router under `path`, and emits `'mount'`. The `'mount'` listener in `defaultConfiguration` (lines 59-141) then does the inheritance by calling `Object.setPrototypeOf` on the child's `settings`, `engines`, `request` and `response` to point at the parent's. `lib/express.js` (`createApplication`, lines 36-56) builds the app function and its `request`/`response` prototypes that this chain relies on."
+  },
+  {
+    "repo": "express",
+    "task": "x037",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/application.js",
+      "app.use",
+      "fn.mountpath",
+      "fn.parent",
+      "Object.setPrototy"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 976,
+      "cacheRead": 27354,
+      "cacheWrite": 5702
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019025399999999999,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11790,
+    "answer": "`lib/application.js`\n\nThis file does both parts. `app.use()` (around lines 219-241) sets `fn.mountpath` and `fn.parent`, wraps the child in a `mounted_app` route at the prefix, and emits `'mount'`. The `'mount'` listener (lines 109-122) then uses `Object.setPrototypeOf` to make the child's `settings`, `request`, `response`, and `engines` inherit from the parent's."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/utils.js",
+      "lib/application.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 808,
+      "cacheRead": 28022,
+      "cacheWrite": 6556
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019960200000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10137,
+    "answer": "`lib/request.js`\n`lib/utils.js`\n`lib/application.js`\n\nThe `protocol` getter in `lib/request.js` (line 297) returns `https` if the socket is TLS-encrypted, and otherwise trusts the `X-Forwarded-Proto` header only when the socket's remote address passes the app's `trust proxy fn`, which `compileTrust` in `lib/utils.js` builds from the `trust proxy` setting handled in `lib/application.js` (lines 370-371)."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/application.js",
+      "lib/utils.js",
+      "req.protocol",
+      "socket.encrypted"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 773,
+      "cacheRead": 34113,
+      "cacheWrite": 8191
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00236643,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 10661,
+    "answer": "`lib/request.js`\n`lib/application.js`\n`lib/utils.js`\n\n`req.protocol` in `lib/request.js` starts from the real socket (`socket.encrypted`). It only reads `X-Forwarded-Proto` when the `trust proxy` function, compiled in `lib/utils.js` (`compileTrust`) and stored by `lib/application.js` when the setting is set, accepts the socket's remote address."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/utils.js",
+      "lib/application.js",
+      "req.secure"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 744,
+      "cacheRead": 34731,
+      "cacheWrite": 7227
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00216531,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9823,
+    "answer": "lib/request.js\nlib/utils.js\nlib/application.js\n\n`lib/request.js` is the one that does the work. The `protocol` getter (lines 283–331) starts from the socket's own `encrypted` flag, and only if the socket address is trusted by the `trust proxy` setting does it replace that with the first value of `X-Forwarded-Proto`; `req.secure` is just `protocol === 'https'`. `lib/utils.js` (`compileTrust`, lines 194–214) turns the `trust proxy` setting into the function that decides whether the socket address is trusted. `lib/application.js` (around lines 370–373) is where setting `trust proxy` compiles that function and stores it as `trust proxy fn`."
+  },
+  {
+    "repo": "express",
+    "task": "x038",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "lib/application.js",
+      "lib/utils.js",
+      "socket.encrypted"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 846,
+      "cacheRead": 27689,
+      "cacheWrite": 5249
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017502900000000003,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9463,
+    "answer": "`lib/request.js`\n`lib/application.js`\n`lib/utils.js`\n\nThe `protocol` getter in `lib/request.js` starts from `socket.encrypted` and, only if the socket's remote address is trusted by the `trust proxy` setting, replaces that with the first value of `X-Forwarded-Proto`. `lib/application.js` stores that setting and compiles it, and `lib/utils.js` (`compileTrust`) builds the trust check."
+  },
+  {
+    "repo": "express",
+    "task": "x039",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/response.js",
+      "res.attachment",
+      "res.download",
+      "res.sendFile"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 651,
+      "cacheRead": 26791,
+      "cacheWrite": 5667
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00172741,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 8740,
+    "answer": "`lib/response.js`\n`lib/response.js`\n\nBoth `res.attachment(filename)` and `res.download(path, filename)` set the `Content-Disposition: attachment; filename=...` header (built by the `content-disposition` module), which tells the browser to save the response under that name rather than render it inline. `res.attachment` (line 604) also sets `Content-Type` from the filename's extension, and `res.download` (line 433) sends the file via `res.sendFile` with that header."
+  },
+  {
+    "repo": "express",
+    "task": "x039",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/response.js",
+      "res.download",
+      "res.sendFile"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 679,
+      "cacheRead": 31821,
+      "cacheWrite": 7116
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00208151,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9677,
+    "answer": "`lib/response.js`\n\nThe `res.download(path, filename, options, callback)` method (around lines 433-482) sets `Content-Disposition` through `contentDisposition(name || path)`, so the supplied `filename` becomes the attachment name, and then calls `res.sendFile` to transfer the file. The `sendfile` helper (lines 921-1009) applies those merged headers when the transfer starts.\n\nI only read the relevant ranges and did not modify anything."
+  },
+  {
+    "repo": "express",
+    "task": "x039",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/response.js",
+      "res.attachment",
+      "res.download",
+      "res.sendFile"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 748,
+      "cacheRead": 32445,
+      "cacheWrite": 6048
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019086500000000002,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10041,
+    "answer": "`lib/response.js`\n\nExpress builds the header itself: `res.attachment([filename])` sets `Content-Disposition: attachment; filename=...` via the `content-disposition` package (`lib/response.js:609`), and `res.download(path, filename)` does the same and then streams the file through `res.sendFile` (`lib/response.js:455-457`, `:482`), so the browser saves it under the chosen name rather than rendering it inline."
+  },
+  {
+    "repo": "express",
+    "task": "x039",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/response.js",
+      "lib/application.js",
+      "res.attachment",
+      "res.download"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 763,
+      "cacheRead": 28747,
+      "cacheWrite": 6148
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00189917,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 8787,
+    "answer": "`lib/response.js`\n`lib/application.js`\n\nExpress sets the `Content-Disposition: attachment; filename=\"...\"` header, so the browser downloads the file under that name instead of rendering it inline. `res.attachment(filename)` (`lib/response.js:604`) sets the header directly, and `res.download(path, name)` (`lib/response.js:433`) builds it from the chosen name and then sends the file. `lib/application.js` is listed because it is where the app-level response methods are wired up, but I did not open it to confirm that."
+  },
+  {
+    "repo": "express",
+    "task": "x040",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/view.js",
+      "View.prototype.resolve",
+      "lib/application.js",
+      "application.js",
+      "this.get"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 727,
+      "cacheRead": 27097,
+      "cacheWrite": 6436
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019222700000000002,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9247,
+    "answer": "`lib/view.js` does the work: the `View` constructor appends the default engine extension when the name has none, and `View.prototype.resolve` checks `<dir>/<name><ext>` first, then `<dir>/<name>/index<ext>`. `lib/application.js` supplies the `view engine` default and the `views` root that feed into it.\n\n`lib/view.js`\n`lib/application.js`\n\nThe `View` constructor (lines 55–73) appends `.` plus `defaultEngine` to a bare name, and `resolve` (lines 169–187) tries `<path>.<ext>` and then `<path>/index.<ext>`. `application.js` builds the `View` with `defaultEngine: this.get('view engine')` and `root: this.get('views')` in `app.render`."
+  },
+  {
+    "repo": "express",
+    "task": "x040",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/view.js",
+      "lib/application.js",
+      "View.prototype.resolve",
+      "app.render"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 574,
+      "cacheRead": 31954,
+      "cacheWrite": 6099
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018269400000000002,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9284,
+    "answer": "`lib/view.js`\n`lib/application.js`\n\n`lib/view.js` does the work: the `View` constructor appends the default engine's extension when the name has none, and `View.prototype.resolve` tries `<dir>/<name><ext>` first, then `<dir>/<name>/index<ext>`. `lib/application.js` supplies the `defaultEngine` setting through `app.render`/`tryRender`, which is what makes the bare name resolvable."
+  },
+  {
+    "repo": "express",
+    "task": "x040",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/view.js",
+      "lib/application.js",
+      "app.set"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 526,
+      "cacheRead": 32620,
+      "cacheWrite": 5630
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017158000000000002,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 8796,
+    "answer": "`lib/view.js`\n`lib/application.js`\n\n`lib/view.js` does the whole job: the `View` constructor appends the default engine's extension when the name has none (`:52-95`), `lookup` resolves the name against each root (`:100-200`), and `resolve` tries `<name><ext>` and then `<name>/index<ext>` (`:150-200`). `lib/application.js` is the caller that supplies the default engine and roots through `app.set('view engine')` and `app.set('views')`, and it hands the name to `View` via `tryRender`."
+  },
+  {
+    "repo": "express",
+    "task": "x040",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/view.js",
+      "lib/application.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 813,
+      "cacheRead": 27516,
+      "cacheWrite": 5403
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017628600000000002,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9776,
+    "answer": "`lib/view.js`\n`lib/application.js`\n\n`lib/view.js` does the whole job: the `View` constructor appends the default engine's extension when the name has none, `lookup` tries each configured view root, and `resolve` checks `<name><ext>` first and then `<name>/index<ext>`. `lib/application.js` supplies the `view engine` default and the `views` root when it constructs the `View` (around line 552)."
+  }
+]

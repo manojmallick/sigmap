@@ -8,7 +8,8 @@
 // express, fastify and fastapi, 2 repetitions, SigMap and baseline in the same invocation. Prints, for real cost, total tokens,
 // tool calls and seconds: the per-repetition workload total and typical task (with the bootstrap interval), the pooled estimate
 // over all 60 pairs, the cases where SigMap was cheaper, a per-repo view, the noise, whether the file was found, and how the
-// agent used SigMap's tools.
+// agent used SigMap's tools. If session-auth/lean/ exists it also reports the `lean` variant over the same questions and sets it
+// against `index`, each against its own same-invocation baseline and the two directly.
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
@@ -92,4 +93,27 @@ analyse('30 questions on small and medium repos (gin, flask, express, fastify, f
 if (large.length) {
   analyse('15 questions on large repos (django, rails, laravel)', large);
   analyse('all 45 questions', [...small, ...large]);
+}
+
+// `lean` over the same 45 questions, and against `index`.
+function headToHead(index, lean) {
+  console.log('\n==================== lean against index, same questions and repetitions ====================');
+  const key = (x) => `${x.repo}/${x.task}|${x.run}`;
+  const mapOf = (set, arm) => new Map(set.filter((x) => x.arm === arm).map((x) => [key(x), x]));
+  const iw = mapOf(index, 'with'); const ib = mapOf(index, 'without'); const lw = mapOf(lean, 'with'); const lb = mapOf(lean, 'without');
+  const keys = [...iw.keys()].filter((k) => lw.has(k) && ib.has(k) && lb.has(k));
+  const metrics = [['real cost', (x) => x.cost.usd], ['total tokens', (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite], ['tool calls', (x) => x.toolCalls.total], ['seconds', (x) => x.durationMs / 1000]];
+  const p = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
+  console.log(`${keys.length} paired cases (question × repetition)`);
+  for (const [label, fn] of metrics) {
+    const gi = geometricChange(keys.map((k) => ({ without: fn(ib.get(k)), with: fn(iw.get(k)) })));
+    const gl = geometricChange(keys.map((k) => ({ without: fn(lb.get(k)), with: fn(lw.get(k)) })));
+    const gd = geometricChange(keys.map((k) => ({ without: fn(iw.get(k)), with: fn(lw.get(k)) })));
+    console.log(`  ${label.padEnd(13)} index vs its baseline ${p(gi.change)} [${p(gi.lo)}, ${p(gi.hi)}]; lean vs its baseline ${p(gl.change)} [${p(gl.lo)}, ${p(gl.hi)}]; lean against index directly ${p(gd.change)} [${p(gd.lo)}, ${p(gd.hi)}] ${gd.inNoise ? 'inside the noise' : 'OUTSIDE the noise'}`);
+  }
+}
+const leanRuns = fs.existsSync(path.join(here, 'session-auth', 'lean')) ? load('lean') : [];
+if (leanRuns.length) {
+  analyse('lean: all 45 questions', leanRuns);
+  headToHead([...small, ...large], leanRuns);
 }
