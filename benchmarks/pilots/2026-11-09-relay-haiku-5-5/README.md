@@ -66,6 +66,33 @@ The two misses were the no-SigMap arm on `flask/x032` and `fastapi/x145`, both i
 
 **What this does not say:** nothing about Sonnet or Opus, another agent, other tasks, or edit quality (the harness asks where code lives and grades nothing else). It says nothing about SigMap's other published claims. It rests on the relay serving the model it names.
 
+## Where it helped and where it hurt
+
+Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tokens in 8 and **more** in 12. The effect is bimodal, not a flat overhead:
+
+- **Fewer, −20% to −78%** (8 cases): fastify/x138 R2 (236k → 52k), flask/x032 R1 and R2 (399k → 132k, 360k → 183k), fastapi/x145 R1 and R2, fastify/x137 R1, fastify/x138 R1, gin/x002 R1 (−2%). Seven of the eight were questions where the baseline spent 84k+ tokens, usually 15 to 28 tool calls of searching.
+- **More, +32% to +439%** (12 cases): express/x038 R2 (27k → 146k), fastapi/x146 R2 (83k → 348k), gin/x002 R2 (22k → 73k), flask/x033 R1 and R2, and others. Ten of the twelve were questions the baseline answered in under 90k tokens.
+- **What the agent did:** in all 20 SigMap runs it used SigMap's tools (`get_lines` 115 calls, `search_signatures` 72, `query_context` 22) and read files directly 10 times, against 156 `Read` calls in the baseline. It swapped reading for many small SigMap calls, and carried SigMap's generated section and tool definitions on every turn (this arm uses the default full 22-tool profile, not `mcp.tools: "core"`). Where the baseline needed a long search that swap saved tokens; where it did not, the fixed per-turn cost was larger than anything saved.
+- This is a pattern in 20 cases, offered as a hypothesis (SigMap pays off on questions that are hard to search, costs on easy ones) and not a finding. It was not tested by changing the tool profile or the generated section's budget.
+
+## Against the stet.sh study (indicative only)
+
+[stet.sh's study](https://www.stet.sh/blog/gpt-56-token-saving-modes) ran the same shape of experiment (10 tasks, 2 repetitions, workload total and typical task) on six token-saving modes. **It is not the same experiment:** a different agent (Codex CLI), model (GPT-5.6 Sol) and tasks (ten merged edits in one repo, graded on patch quality), against this run's Claude Code, Haiku 5.5 via a relay, and where-is-this-file questions on five open-source repos. Read the table as "same kind of question, different world", not as a ranking.
+
+| Tool | what it does | total tokens, workload R1 / R2 | typical task R1 / R2 | cut tokens in both repetitions? |
+|---|---|---:|---:|---|
+| Caveman | terse dialogue | +7% / −11% | −5% / −9% | no |
+| Ponytail | write less code | +16% / −1% | +8% / −3% | no |
+| RTK | filter shell output | +18% / −8% | +18% / −5% | no |
+| Terra (cheaper model) | changes model and price | +6% / +5% | −23% / −12% | no (cost −49% both times) |
+| **SigMap (this run)** | **ranked context + MCP tools** | **+12% / +42%** | **+7% / +68%** | **no** |
+| Mandarin | translated prompts | +86% / +15% | +70% / +12% | no, much worse |
+| Context Mode | index and retrieve context | +94% / +46% | +102% / +51% | no, much worse |
+
+- No tool in either study cut tokens in both repetitions. SigMap sits between the four that stay near zero and the two that make things clearly worse, and is the closest in kind to Context Mode, which also adds retrieval; SigMap's increase was smaller.
+- Quality is not comparable. The study graded patches (tests, equivalence, review) and found several modes lost on those. This run grades only whether the right file was named: SigMap 20/20 against 18/20, with no losses. Finding a file is a far easier test than writing a correct patch, so that result does not say SigMap is safer.
+- Dollar cost is missing here on purpose: the relay's pricing is not the agent's arithmetic, and the study's strongest result (a cheaper model cuts the bill) is about price, which this run cannot speak to.
+
 ## What it cost
 
 The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
