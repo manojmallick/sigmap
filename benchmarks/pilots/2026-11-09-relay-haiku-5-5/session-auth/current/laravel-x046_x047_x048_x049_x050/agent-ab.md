@@ -1,0 +1,175 @@
+# Agent-level A/B — measured tool calls, tokens and cost
+
+**claude-code 2.1.321 (Claude Code) · claude-haiku-5-5 · 2026-11-09 · 2 runs per arm · NOT PUBLISHABLE — 2 runs per arm (the minimum is 4)**
+
+- Arms: **without** = no SigMap; **with** = SigMap generated context + MCP server.
+- Both arms: the same prompt, model, tool allowlist (Read, Grep, Glob, Bash), per-run budget cap $0.5 and timeout 420 s; run in a clean copy of the commit pinned in `benchmarks/xrepo-repos.json`.
+- Questions: the task id(s) x046, x047, x048, x049, x050 of `benchmarks/tasks/retrieval-xrepo.jsonl`. Pass = hit@5 on the repository-relative paths the answer names.
+- Statistics: the median over runs per task per arm; the repo row is the median over tasks, with the paired per-task delta (with − without) and how many tasks the SigMap arm used fewer / the same / more.
+- Repetitions: each run index is one repetition, reported on its own in two ways — the workload total and the typical task (paired geometric mean, with a bootstrap interval) — and a saving counts only if it points the same way in every repetition.
+
+## Caveats
+
+- One agent, one model, one date. The result says nothing about another agent or model.
+- The questions ask where code lives, so this measures localisation, not edit or generation quality.
+- Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.
+- Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.
+- Token figures are per-request billing categories summed over the run. They are not the size of the context.
+- The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.
+- Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.
+- The self repo is excluded: its tree holds its own answer key and its own generated context.
+- Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.
+- The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.
+- A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.
+- Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.
+- Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account's plan.
+
+## Outcome
+
+| repo | tasks | pass without | pass with | failed runs (without / with) |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 5 | 10/10 | 10/10 | 0 / 0 |
+| all | 5 | 10/10 | 10/10 | 0 / 0 |
+
+## Repetitions — workload total vs typical task
+
+Each repetition (R1, R2) is one pass over every task in both arms. A task counts in a repetition only when both arms completed it and reported the metric; `n=` marks fewer than all 5. A change is the SigMap arm against the no-SigMap arm: negative means SigMap used less. The repetitions reuse the same tasks, so they measure consistency, not generalisation.
+
+### Workload total
+
+Σ with ÷ Σ without − 1 over the paired tasks: the closest view to the bill for this exact batch, and the largest tasks dominate it.
+
+| metric | R1 | R2 | verdict |
+| --- | ---: | ---: | ---: |
+| Tool calls | −21% | −31% | fewer in every repetition |
+| Input tokens (uncached) | −6% | −30% | fewer in every repetition |
+| Output tokens | −5% | −10% | fewer in every repetition |
+| Cache-read tokens | +54% | +8% | more in every repetition |
+| Cache-write tokens | −10% | −4% | fewer in every repetition |
+| Total tokens (derived) | +40% | +6% | more in every repetition |
+| Cost | −1% | −4% | fewer in every repetition |
+| Wall time | −3% | −12% | fewer in every repetition |
+
+### Typical task
+
+The geometric mean of with ÷ without on each paired task, so every task has equal weight, with a 95% paired-bootstrap interval (10,000 resamples, seed 1). † = the interval includes zero: inside the noise. A pair with a 0 on either side has no ratio and is left out.
+
+| metric | R1 | R2 | verdict |
+| --- | ---: | ---: | ---: |
+| Tool calls | −25% [−54%, +23%] † | −38% [−54%, −7%] | fewer in every repetition, within the noise |
+| Input tokens (uncached) | −6% [−16%, 0%] † | −29% [−43%, −13%] | fewer in every repetition, within the noise |
+| Output tokens | −7% [−32%, +22%] † | −11% [−22%, +1%] † | fewer in every repetition, within the noise |
+| Cache-read tokens | +54% [+36%, +70%] | +12% [−13%, +42%] † | more in every repetition, within the noise |
+| Cache-write tokens | −11% [−34%, +23%] † | −6% [−20%, +10%] † | fewer in every repetition, within the noise |
+| Total tokens (derived) | +39% [+22%, +56%] | +9% [−12%, +36%] † | more in every repetition, within the noise |
+| Cost | −3% [−24%, +23%] † | −5% [−16%, +9%] † | fewer in every repetition, within the noise |
+| Wall time | −5% [−17%, +7%] † | −12% [−21%, −3%] | fewer in every repetition, within the noise |
+
+### Outcome (hit@5), by repetition
+
+Per paired task: **better** = the SigMap arm named the file and the other did not; **worse** = the reverse; **tie** = both found it or both missed. Localisation only.
+
+| repetition | paired tasks | better | worse | tie |
+| --- | ---: | ---: | ---: | ---: |
+| R1 | 5 | 0 | 0 | 5 |
+| R2 | 5 | 0 | 0 | 5 |
+| all | 10 | 0 | 0 | 10 |
+
+## Tool calls
+
+Provenance: agent-reported (main-thread tool_use blocks). Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 5 | 3 | −3 | 4 / 0 / 1 |
+| all | 5 | 3 | −3 | 4 / 0 / 1 |
+
+## Input tokens (uncached)
+
+Provenance: agent-reported. Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 8 | 6 | −2 | 4 / 1 / 0 |
+| all | 8 | 6 | −2 | 4 / 1 / 0 |
+
+## Output tokens
+
+Provenance: agent-reported. Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 1,611 | 1,238 | −150 | 4 / 0 / 1 |
+| all | 1,611 | 1,238 | −150 | 4 / 0 / 1 |
+
+## Cache-read tokens
+
+Provenance: agent-reported. Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 42,554 | 48,560 | +8,348 | 0 / 0 / 5 |
+| all | 42,554 | 48,560 | +8,348 | 0 / 0 / 5 |
+
+## Cache-write tokens
+
+Provenance: agent-reported. Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 8,017 | 6,675 | −170 | 3 / 0 / 2 |
+| all | 8,017 | 6,675 | −170 | 3 / 0 / 2 |
+
+## Total tokens (derived)
+
+Provenance: derived: input + output + cache-read + cache-write, each agent-reported; unweighted, so a cache read counts like a fresh token — Cost is the priced view. Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 53,956 | 56,097 | +6,352 | 0 / 0 / 5 |
+| all | 53,956 | 56,097 | +6,352 | 0 / 0 / 5 |
+
+## Cost
+
+Provenance: agent-reported (the agent's own total_cost_usd). Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | $0.0028 | $0.0024 | +$0.0001 | 2 / 0 / 3 |
+| all | $0.0028 | $0.0024 | +$0.0001 | 2 / 0 / 3 |
+
+## Wall time
+
+Provenance: measured (wall clock of the agent process). Median per task, then median over tasks.
+
+| repo | without | with | Δ median | tasks fewer / tie / more |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | 14.6 s | 11.8 s | −539 ms | 4 / 0 / 1 |
+| all | 14.6 s | 11.8 s | −539 ms | 4 / 0 / 1 |
+
+## Spend
+
+Provenance: agent-reported (the agent's own `total_cost_usd`), or the table floor (as of 2026-10-04: uncached input only) for a run that reported none. Every run counts, completed or not — the medians above leave a failed run out, this does not — and the classes are never added together.
+
+| repo | without | with | of which failed runs, without | of which failed runs, with |
+| --- | ---: | ---: | ---: | ---: |
+| laravel | $0.0281 (10 runs) | $0.0275 (10 runs) | none | none |
+| all | $0.0281 (10 runs) | $0.0275 (10 runs) | none | none |
+
+## Per task
+
+Each figure is `median [min–max]` over the runs that completed and reported it; `n=` marks a shortfall.
+
+| task | arm | pass | tool calls | input | output | cache read | cache write | cost | time |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| laravel/x046 | without | 2/2 | 7 [7–7] | 10 [8–12] | 1,858 [1,796–1,919] | 51,482 [38,801–64,162] | 6,304 [6,140–6,467] | $0.0027 [$0.0026–$0.0028] | 15.7 s [14.6 s–16.8 s] |
+| laravel/x046 | with | 2/2 | 5 [4–5] | 7 [6–8] | 1,708 [1,612–1,804] | 55,826 [49,601–62,051] | 8,463 [6,097–10,829] | $0.0031 [$0.0025–$0.0037] | 15.2 s [13.5 s–16.8 s] |
+| laravel/x047 | without | 2/2 | 5 [4–6] | 8 [6–10] | 1,611 [1,493–1,728] | 42,554 [30,015–55,093] | 9,784 [8,518–11,049] | $0.0032 [$0.0031–$0.0033] | 14.3 s [12.5 s–16.1 s] |
+| laravel/x047 | with | 2/2 | 3 [2–3] | 6 [6–6] | 1,238 [1,218–1,257] | 48,307 [48,135–48,479] | 6,547 [6,345–6,748] | $0.0024 [$0.0024–$0.0025] | 11.6 s [11.4 s–11.7 s] |
+| laravel/x048 | without | 2/2 | 5 [4–6] | 9 [8–10] | 1,614 [1,343–1,885] | 50,700 [44,727–56,672] | 9,121 [8,144–10,098] | $0.0031 [$0.0031–$0.0031] | 14.6 s [13.5 s–15.7 s] |
+| laravel/x048 | with | 2/2 | 7 [6–8] | 8 [8–8] | 2,007 [1,932–2,082] | 69,956 [69,728–70,184] | 9,883 [9,721–10,045] | $0.0037 [$0.0036–$0.0037] | 14.9 s [14.0 s–15.8 s] |
+| laravel/x049 | without | 2/2 | 4 [3–5] | 6 [6–6] | 1,236 [1,072–1,400] | 27,135 [26,758–27,511] | 6,844 [6,213–7,475] | $0.0023 [$0.0022–$0.0023] | 11.8 s [11.6 s–12.0 s] |
+| laravel/x049 | with | 2/2 | 3 [2–4] | 6 [6–6] | 1,155 [1,151–1,158] | 47,958 [47,768–48,148] | 6,675 [6,441–6,908] | $0.0024 [$0.0023–$0.0024] | 11.8 s [11.7 s–11.8 s] |
+| laravel/x050 | without | 2/2 | 6 [5–6] | 8 [8–8] | 1,527 [1,423–1,631] | 40,212 [39,589–40,835] | 8,017 [7,101–8,932] | $0.0028 [$0.0025–$0.0030] | 14.6 s [14.0 s–15.1 s] |
+| laravel/x050 | with | 2/2 | 3 [2–3] | 6 [6–6] | 1,145 [844–1,446] | 48,560 [48,042–49,077] | 5,512 [5,421–5,602] | $0.0022 [$0.0020–$0.0023] | 11.8 s [10.1 s–13.4 s] |
+

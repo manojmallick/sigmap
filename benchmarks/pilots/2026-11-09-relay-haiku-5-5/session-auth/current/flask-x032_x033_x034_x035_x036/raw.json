@@ -1,0 +1,766 @@
+[
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "ctx.pop",
+      "src/flask/app.py",
+      "src/flask/sansio/app.py",
+      "src/flask/ctx.py",
+      "src/flask/wrappers.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 2021,
+      "cacheRead": 44692,
+      "cacheWrite": 11453
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0037488200000000004,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 17234,
+    "answer": "Request flow, in order:\n\n1. `wsgi_app` builds a request context, pushes it, and calls `full_dispatch_request`.\n2. `full_dispatch_request` sends `request_started`, then runs `preprocess_request`. That runs URL value preprocessors (app first, then blueprints), then `before_request` functions. If any returns a non-None value, that value replaces the view's return value and dispatch is skipped.\n3. If preprocessing returned nothing, `dispatch_request` raises any routing exception, answers automatic OPTIONS requests, and otherwise calls the view function.\n4. `finalize_request` converts the return value with `make_response`, then runs `process_response`. That runs `after_request` functions (in reverse registration order, blueprints first), then saves the session. `request_finished` is sent last.\n5. `wsgi_app` calls the response, then in `finally` runs `ctx.pop(error)`, which fires the teardown functions.\n\nUnhandled errors: any exception from steps 2–3 is caught in `full_dispatch_request` and passed to `handle_user_exception`. HTTPExceptions go to `handle_http_exception`, which uses a registered error handler or returns the exception itself as the response. Other exceptions go to a registered handler for their class, or are re-raised if none exists. Anything re-raised, or raised by `full_dispatch_request` itself, reaches `wsgi_app`'s `except Exception`, which calls `handle_exception`. That method sends `got_request_exception`. If `PROPAGATE_EXCEPTIONS` is set (or the app is in testing or debug mode), it re-raises. Otherwise it logs the traceback via `log_exception`, wraps the error in `InternalServerError(original_exception=e)`, and passes it to a 500 handler if one is registered. The result goes through `finalize_request(from_error_handler=True)`, so after-request functions still run, and a failure there is logged rather than raised. The 500 response is then returned to the WSGI server.\n\n`src/flask/app.py` contains all of this logic, so it is the most relevant file.\n\n`src/flask/app.py`\n`src/flask/sansio/app.py`\n`src/flask/ctx.py`\n`src/flask/wrappers.py`\n`src/flask/sansio/scaffold.py`\n\nThe first is the only file I read in full. The others are from memory and the earlier grep, not verified in this session: `sansio/app.py` likely holds the shared hook and error-handler lookup code, and `ctx.py` likely holds the push/pop and teardown logic. I did not open `wrappers.py` or `sansio/scaffold.py` for this answer; `scaffold.py` appeared in the grep only because of a docstring example."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "src/flask/sansio/app.py",
+      "src/flask/sansio/scaffold.py",
+      "app.py",
+      "sansio/app.py"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 5
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 3025,
+      "cacheRead": 66369,
+      "cacheWrite": 15250
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.005226990000000001,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 20432,
+    "answer": "The request steps and the 500 path are both in `src/flask/app.py`, so that file comes first.\n\n`src/flask/app.py`\n`src/flask/sansio/app.py`\n`src/flask/sansio/scaffold.py`\n\n`app.py` holds the whole request pipeline (`wsgi_app`, `full_dispatch_request`, `preprocess_request`, `process_response`, `handle_user_exception`, `handle_exception`), `sansio/app.py` has `_find_error_handler` that chooses which error handler runs, and `sansio/scaffold.py` is where `before_request`, `after_request` and `teardown_request` register their functions.\n\n**Per-request steps** (`wsgi_app`, `app.py:1566`):\n1. Build the request context and push it.\n2. `full_dispatch_request` (`app.py:992`) sends `request_started`, then runs `preprocess_request`.\n3. `preprocess_request` (`app.py:1366`) runs URL value preprocessors, then `before_request` functions for the app and then its blueprints. A non-`None` return value short-circuits the view and is treated as the response.\n4. If no hook short-circuited, `dispatch_request` calls the view.\n5. Any exception goes to `handle_user_exception` (`app.py:865`). HTTP exceptions go to `handle_http_exception`, which uses a registered handler if one matches and otherwise returns the exception as the response. Other exceptions use a registered handler if there is one, and are re-raised if not.\n6. `finalize_request` (`app.py:1021`) converts the value with `make_response`, then calls `process_response` (`app.py:1394`). That runs the `after_request` functions, app and blueprint in reverse registration order, then saves the session. It then sends `request_finished`.\n7. The response is called as a WSGI response. The context pops in `finally`, which runs teardown.\n\n**Unhandled error to 500** (`handle_exception`, `app.py:897`):\n- An exception that escapes `full_dispatch_request` is caught in `wsgi_app` and passed to `handle_exception`.\n- It sends `got_request_exception`. If `PROPAGATE_EXCEPTIONS` is set, or the app is in testing or debug mode, the exception is re-raised so the debugger can show it.\n- Otherwise `log_exception` logs it at error level with the traceback.\n- It builds `InternalServerError(original_exception=e)`. If a handler is registered for 500 or `InternalServerError` (blueprint-aware, via `_find_error_handler`), that handler receives the error object.\n- It calls `finalize_request(..., from_error_handler=True)`, so `after_request` still runs. In that mode, errors raised while finalizing are logged rather than raised.\n\nI did not read the body of `_find_error_handler` or `ctx.pop`, so the teardown timing relies on the `wsgi_app` docstring rather than the code. Nothing was modified."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "ctx.push",
+      "ctx.pop",
+      "src/flask/app.py",
+      "src/flask/sansio/app.py",
+      "src/flask/ctx.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 2604,
+      "cacheRead": 73558,
+      "cacheWrite": 11593
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00435698,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 18178,
+    "answer": "**Per-request steps** (`wsgi_app` → `full_dispatch_request`):\n\n1. `request_context(environ)` builds the context, then `ctx.push()`.\n2. `request_started` signal fires.\n3. `preprocess_request`: URL value preprocessors run (app, then blueprints), then `before_request` functions. The first non-`None` return value short-circuits the view.\n4. `dispatch_request`: handles routing exceptions, answers automatic OPTIONS, or calls the view.\n5. `finalize_request`: `make_response`, then `process_response` runs `after_request` functions in reverse registration order, then `request_finished` fires.\n6. `ctx.pop()` runs teardown handlers. `wsgi_app` calls `response(environ, start_response)`.\n\n**Unhandled errors:**\n\n- Errors in steps 3–4 go to `handle_user_exception`. An `HTTPException` goes to `handle_http_exception`, which uses a registered error handler or returns the exception itself. Any other exception goes to a registered handler, and if none exists it is re-raised.\n- Anything that escapes reaches `wsgi_app`'s `except`, which calls `handle_exception`. That sends `got_request_exception` and re-raises if `PROPAGATE_EXCEPTIONS` is set (or in testing/debug). Otherwise it logs via `log_exception` and builds `InternalServerError(original_exception=e)`. A 500 handler, if registered, is called with that object. The result goes through `finalize_request(from_error_handler=True)`, so `after_request` still runs and failures there are only logged.\n\n**Files, most relevant first:**\n\n`src/flask/app.py`\nThis file holds the whole pipeline: `wsgi_app`, `full_dispatch_request`, `handle_user_exception`, `handle_exception`, `finalize_request`, `preprocess_request` and `process_response`.\n\n`src/flask/sansio/app.py`\nThis file defines `_find_error_handler` and `trap_http_exception`, which decide which handler, if any, catches an error.\n\n`src/flask/ctx.py`\nThis file has `RequestContext.push` and `pop`, which bracket each request and run teardown.\n\n`src/flask/sansio/scaffold.py`\nThis file stores the `before_request_funcs`, `after_request_funcs` and `teardown_request_funcs` registries that the hooks come from.\n\nCaveat: I confirmed the `ctx.py` role from the `push`/`pop` signatures and the `app.py` teardown loop, not by reading `pop`'s body. I made no changes."
+  },
+  {
+    "repo": "flask",
+    "task": "x032",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "src/flask/sansio/scaffold.py",
+      "src/flask/views.py",
+      "src/flask/wrappers.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1565,
+      "cacheRead": 45074,
+      "cacheWrite": 10384
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00331084,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 14770,
+    "answer": "`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/sansio/scaffold.py`\n`src/flask/views.py`\n`src/flask/wrappers.py`\n\n`src/flask/app.py` contains the whole lifecycle: `wsgi_app` (1566) pushes the context and calls `full_dispatch_request` (992), which runs `request_started`, `preprocess_request` (1366, URL value preprocessors then `before_request` funcs), and `dispatch_request` (966). Any exception goes to `handle_user_exception` (865) for registered handlers, and otherwise to `handle_exception` (897). `finalize_request` (1021) then calls `make_response`, `process_response` (1394, after-request funcs and session save), and `request_finished`. `handle_exception` logs the error, builds `InternalServerError(original_exception=e)`, and runs it through `finalize_request` to produce the 500. The `ctx.py`, `scaffold.py`, `views.py` and `wrappers.py` files are less central: `ctx.py` pushes and pops the request context, which runs teardown, `scaffold.py` holds the decorator registries for hooks and error handlers, `views.py` implements class-based `dispatch_request`, and `wrappers.py` defines the request/response types."
+  },
+  {
+    "repo": "flask",
+    "task": "x033",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sansio/blueprints.py",
+      "src/flask/sansio/app.py",
+      "src/flask/blueprints.py",
+      "Blueprint.register",
+      "app.blueprints"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1164,
+      "cacheRead": 28593,
+      "cacheWrite": 8519
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025723300000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11860,
+    "answer": "`src/flask/sansio/blueprints.py`\n`src/flask/sansio/app.py`\n`src/flask/blueprints.py`\n\nThe first file holds `Blueprint.register_blueprint`, which queues nested groups, and `Blueprint.register`, which joins each nested `url_prefix` onto its parent's, sets `name_prefix` for dotted names, and raises `ValueError` when the name is already in `app.blueprints`. `app.py` has the application-level `register_blueprint` entry point (I saw its signature but did not read the body). `blueprints.py` is the concrete `Blueprint` class that takes `url_prefix` in its constructor."
+  },
+  {
+    "repo": "flask",
+    "task": "x033",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sansio/blueprints.py",
+      "src/flask/sansio/app.py",
+      "src/flask/blueprints.py",
+      "sansio/blueprints.py",
+      "app.blueprints"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 797,
+      "cacheRead": 49331,
+      "cacheWrite": 7699
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00243221,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10732,
+    "answer": "`src/flask/sansio/blueprints.py`\n`src/flask/sansio/app.py`\n`src/flask/blueprints.py`\n\n`sansio/blueprints.py` does the work: `register()` rejects a duplicate dotted name against `app.blueprints` (around line 306), and it joins parent and child `url_prefix` values recursively for nested groups (lines 349–377). `sansio/app.py` holds the public `register_blueprint` entry point, which delegates to that logic. `src/flask/blueprints.py` is the concrete `Blueprint` class that the other two build on."
+  },
+  {
+    "repo": "flask",
+    "task": "x033",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sansio/blueprints.py",
+      "src/flask/sansio/app.py",
+      "src/flask/blueprints.py",
+      "Blueprint.register",
+      "sansio/blueprints.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1062,
+      "cacheRead": 50258,
+      "cacheWrite": 7035
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0024411800000000003,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 12106,
+    "answer": "`src/flask/sansio/blueprints.py`\n`src/flask/sansio/app.py`\n`src/flask/blueprints.py`\n\n`Blueprint.register()` in `sansio/blueprints.py` does the work: it joins each nested blueprint's `url_prefix` onto its parent's, recurses with a dotted `name_prefix`, and raises `ValueError` when the resulting name is already in `app.blueprints`. `sansio/app.py` holds the public `register_blueprint` entry point that delegates to it, and `blueprints.py` is the concrete `Blueprint` class that supplies the `url_prefix` and `name` options."
+  },
+  {
+    "repo": "flask",
+    "task": "x033",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sansio/blueprints.py",
+      "src/flask/sansio/app.py",
+      "src/flask/blueprints.py",
+      "sansio/blueprints.py",
+      "sansio/app.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1134,
+      "cacheRead": 29087,
+      "cacheWrite": 8019
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00246227,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12360,
+    "answer": "`src/flask/sansio/blueprints.py`\n`src/flask/sansio/app.py`\n`src/flask/blueprints.py`\n\n`sansio/blueprints.py` holds the nesting logic: `register_blueprint` queues child blueprints, and `register` joins parent and child `url_prefix` values and builds the dotted name, raising `ValueError` on a duplicate (around lines 302–314, with dotted names rejected in `__init__` around line 198). `sansio/app.py` provides the app-level `register_blueprint` that delegates to `Blueprint.register` (line 592), and `src/flask/blueprints.py` is the concrete `Blueprint` subclass that users import."
+  },
+  {
+    "repo": "flask",
+    "task": "x034",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sessions.py",
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "src/flask/testing.py",
+      "sessions.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1021,
+      "cacheRead": 27134,
+      "cacheWrite": 6795
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00214144,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11012,
+    "answer": "`src/flask/sessions.py`\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/testing.py`\n\n`sessions.py` holds the implementation: `SecureCookieSessionInterface` signs the session dict with itsdangerous and reads it back in `open_session`. It rewrites the cookie in `save_session` only when `should_set_cookie` allows it, and deletes it when the session is empty and was modified. `app.py` calls `save_session` after each request, `ctx.py` calls `open_session` when the request context opens, and `testing.py` uses both for test clients."
+  },
+  {
+    "repo": "flask",
+    "task": "x034",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sessions.py",
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "src/flask/testing.py",
+      "sessions.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1204,
+      "cacheRead": 49109,
+      "cacheWrite": 6448
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00238329,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11416,
+    "answer": "`src/flask/sessions.py`\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/testing.py`\n\n`sessions.py` holds the signed-cookie implementation: `SecureCookieSessionInterface.open_session` verifies the cookie signature and loads the data, and `save_session` rewrites it only when the session was modified, or deletes it when an emptied session was modified. `app.py` calls `save_session` after each request, `ctx.py` calls `open_session` when the request context opens, and `testing.py` uses both when the test client manages cookies."
+  },
+  {
+    "repo": "flask",
+    "task": "x034",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sessions.py",
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "sessions.py",
+      "SecureCookieSessionInterface.open"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 920,
+      "cacheRead": 49464,
+      "cacheWrite": 6762
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00230764,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11265,
+    "answer": "Most relevant first:\n\n`src/flask/sessions.py`\n`src/flask/app.py`\n`src/flask/ctx.py`\n\n`sessions.py` holds the signing and cookie logic: `SecureCookieSessionInterface.open_session` loads and verifies the signed cookie, and `save_session` decides whether to rewrite it, delete it, or leave it alone. `app.py` calls `save_session` from `process_response` after the after-request hooks run, skipping null sessions. `ctx.py` lazily opens the session on first access via `_get_session`. `src/flask/testing.py` also calls these hooks directly, so it is a useful fifth, but I kept to the three that implement the behavior."
+  },
+  {
+    "repo": "flask",
+    "task": "x034",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/sessions.py",
+      "src/flask/app.py",
+      "src/flask/ctx.py",
+      "src/flask/json/tag.py",
+      "sessions.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 868,
+      "cacheRead": 27835,
+      "cacheWrite": 5732
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00185935,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11116,
+    "answer": "`src/flask/sessions.py`\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/json/tag.py`\n\n`sessions.py` holds the cookie logic: `SecureCookieSessionInterface.open_session` loads and verifies the signed payload, and `save_session` decides whether to rewrite it (`should_set_cookie`, which fires on modification or a permanent session refresh) or delete it (when the session is empty and modified). `app.py` wires this interface in and calls `save_session` from `process_response`, `ctx.py` calls `open_session` when the request context is pushed, and `json/tag.py` supplies the serializer that encodes the session's Python types into the cookie payload."
+  },
+  {
+    "repo": "flask",
+    "task": "x035",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/ctx.py",
+      "src/flask/globals.py",
+      "src/flask/helpers.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 844,
+      "cacheRead": 39035,
+      "cacheWrite": 6683
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00214975,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10615,
+    "answer": "`src/flask/ctx.py`\n`src/flask/globals.py`\n`src/flask/helpers.py`\n\n`src/flask/ctx.py` holds `copy_current_request_context`, which copies the active request context and re-pushes that copy inside the wrapped function, so a background thread or greenlet sees the same `request` and `session`. `src/flask/globals.py` stores the active context in a `ContextVar` (`_cv_app`) that the `request`, `session`, `g`, and `current_app` proxies read from. `src/flask/helpers.py` provides `stream_with_context`, which applies the same idea to generators that run after the view returns."
+  },
+  {
+    "repo": "flask",
+    "task": "x035",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/ctx.py",
+      "src/flask/globals.py",
+      "contextvars.ContextVar",
+      "globals.py",
+      "ctx.py"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 579,
+      "cacheRead": 30490,
+      "cacheWrite": 5111
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001617,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 9257,
+    "answer": "`src/flask/ctx.py`\n`src/flask/globals.py`\n\nFlask stores the active request context in a `contextvars.ContextVar` (`_cv_app` in `globals.py`), and `copy_current_request_context` in `ctx.py` wraps a function so it runs with a copy of that context pushed. The copy is what makes the request data available in the background thread or greenlet."
+  },
+  {
+    "repo": "flask",
+    "task": "x035",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/ctx.py",
+      "src/flask/globals.py",
+      "src/flask/__init__.py",
+      "globals.py",
+      "__init__.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 678,
+      "cacheRead": 49599,
+      "cacheWrite": 5140
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00186359,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10528,
+    "answer": "`src/flask/ctx.py`\n`src/flask/globals.py`\n`src/flask/__init__.py`\n\n`copy_current_request_context` in `src/flask/ctx.py` (line 154) snapshots the active `AppContext` from the `_cv_app` contextvar, then re-pushes a copy of it inside the wrapped function, so a background thread or greenlet sees the same `request`, `session` and `g`. `globals.py` defines `_cv_app` and the `request`/`session`/`g` proxies that read from it, and `__init__.py` exports the decorator as the public `flask.copy_current_request_context`."
+  },
+  {
+    "repo": "flask",
+    "task": "x035",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/ctx.py",
+      "src/flask/globals.py",
+      "ctx.py",
+      "globals.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 788,
+      "cacheRead": 27930,
+      "cacheWrite": 6427
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019593,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9452,
+    "answer": "`src/flask/ctx.py`\n`src/flask/globals.py`\n\n`copy_current_request_context` in `ctx.py` copies the active `AppContext`, which holds the request, and re-pushes that copy when the wrapped function runs in another thread or greenlet. This works because `globals.py` stores the active context in a `ContextVar` (`_cv_app`), and the `request`, `session`, `g` and `current_app` proxies read from it."
+  },
+  {
+    "repo": "flask",
+    "task": "x036",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/cli.py",
+      "src/flask/testing.py",
+      "cli.py",
+      "testing.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 751,
+      "cacheRead": 16132,
+      "cacheWrite": 4701
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0014774200000000001,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8708,
+    "answer": "`src/flask/cli.py`\n`src/flask/testing.py`\n\n`cli.py` holds the whole lookup: `locate_app` splits the `module:name` string, `prepare_import` resolves the module, `find_app_by_string` handles an explicit name or a `name(args)` call, and `find_best_app` falls back to a `create_app`/`make_app` factory (line 67) or a lone `Flask` instance. `testing.py` is second only because its CLI runner injects a `ScriptInfo` with a `create_app` callback (line 296), which feeds the same factory path."
+  },
+  {
+    "repo": "flask",
+    "task": "x036",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/cli.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 725,
+      "cacheRead": 48498,
+      "cacheWrite": 8412
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00253048,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9405,
+    "answer": "`src/flask/cli.py`\n\nThis file implements the whole lookup: `locate_app` imports the module, then `find_best_app` tries `app`/`application`, then a single Flask instance, then `create_app`/`make_app` factories (line 66-85), and `find_app_by_string` handles explicit `module:name(args)` forms."
+  },
+  {
+    "repo": "flask",
+    "task": "x036",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/cli.py",
+      "src/flask/testing.py",
+      "ScriptInfo.load"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 801,
+      "cacheRead": 71243,
+      "cacheWrite": 8898
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0028933300000000004,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10955,
+    "answer": "`src/flask/cli.py`\n`src/flask/testing.py`\n\n`src/flask/cli.py` holds the whole lookup: `ScriptInfo.load_app` splits the `module:name` string and calls `prepare_import` and `locate_app`, which imports the module and then either `find_app_by_string` (explicit name, including `factory(args)` calls parsed with `ast`) or `find_best_app` (tries `app`/`application`, then a single `Flask` instance, then `create_app`/`make_app` with no arguments). `src/flask/testing.py` is second because it injects a `ScriptInfo(create_app=...)` to bypass that path when running the CLI under test."
+  },
+  {
+    "repo": "flask",
+    "task": "x036",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/flask/cli.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 680,
+      "cacheRead": 27735,
+      "cacheWrite": 7563
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00213055,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10720,
+    "answer": "`src/flask/cli.py`\n\nThis one file holds the whole path. `locate_app` imports the module, then either `find_app_by_string` handles an explicit `module:name` or `find_best_app` searches the module for an app. `find_best_app` checks the names `app` and `application`, then any single `Flask` instance, then calls the `create_app` or `make_app` factory functions."
+  }
+]

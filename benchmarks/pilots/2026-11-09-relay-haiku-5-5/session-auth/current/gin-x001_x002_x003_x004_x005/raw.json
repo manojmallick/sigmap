@@ -1,0 +1,772 @@
+[
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/multipart_form_mapping.go",
+      "binding/header.go",
+      "binding/form.go",
+      "binding/form_mapping_test.go"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 965,
+      "cacheRead": 26349,
+      "cacheWrite": 5917
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00192999,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11863,
+    "answer": "`binding/form_mapping.go`\n`binding/multipart_form_mapping.go`\n`binding/header.go`\n`binding/form.go`\n`binding/form_mapping_test.go`\n\n`form_mapping.go` holds the core logic: `mapFormByTag` walks struct fields and reads each tag name, `tryToSetValue` parses `default=` options, `trySplit` splits values on the delimiter, and `setByForm` assigns the result. The other files are supporting: `multipart_form_mapping.go` handles file fields, `header.go` reuses the same mapping with the `header` tag, `form.go` supplies the parsed request form, and the test file exercises the behavior."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "form_mapping.go",
+      "form.go"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1092,
+      "cacheRead": 35478,
+      "cacheWrite": 19739
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004849180000000001,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11500,
+    "answer": "`binding/form_mapping.go` is the core: `mapFormByTag` walks struct fields by tag, `setByForm` applies the `default` fallback, and `trySplit` splits values on the `collection_format` delimiter (`csv`, `ssv`, `tsv`, `pipes`, or `multi`).\n`binding/form.go`\n\nThis is a first-pass answer from grep hits, not a full read: I confirmed the functions and line numbers in `form_mapping.go` and the entry points in `form.go`, but did not open the function bodies or check the other binding files."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/header.go",
+      "binding/multipart_form_mapping.go",
+      "binding/form_mapping_test.go"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 894,
+      "cacheRead": 32042,
+      "cacheWrite": 7341
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00223602,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9233,
+    "answer": "`binding/form_mapping.go`\n`binding/form.go`\n`binding/header.go`\n`binding/multipart_form_mapping.go`\n`binding/form_mapping_test.go`\n\n`form_mapping.go` holds the core logic: it walks struct fields, reads each `form`/`uri`/`header` tag name, applies `default=` when a value is missing, and splits values on the delimiter set by `collection_format` (multi, csv, ssv, tsv, pipes). The other files are the callers and specializations, and the test file pins the behavior down. I ranked `form.go` by its position in the query results and did not open it, so its exact role is an inference."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/multipart_form_mapping.go",
+      "binding/header.go",
+      "binding/form_mapping_test.go"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 754,
+      "cacheRead": 16788,
+      "cacheWrite": 7154
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019760800000000003,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 9224,
+    "answer": "`binding/form_mapping.go` is the core. It reads the `form` tag name, parses `default=` fallbacks, and splits values by `collection_format` (multi, csv, ssv, tsv, pipes) in `setByForm`, `tryToSetValue` and `setByForm`'s slice path. Its file is the main implementation.\n\n`binding/multipart_form_mapping.go` and `binding/header.go` both delegate to the same `setByForm`, so they cover the multipart and header sources.\n\n`binding/form_mapping_test.go` exercises the default values and delimiter splitting for each `collection_format`.\n\nReasoning: the other files are thin wrappers, and the test file shows the exact behavior the core file implements."
+  },
+  {
+    "repo": "gin",
+    "task": "x002",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "render/json.go",
+      "context.go",
+      "AsciiJSON.Render",
+      "JsonpJSON.Render",
+      "PureJSON.Render"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 784,
+      "cacheRead": 16144,
+      "cacheWrite": 6778
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00190944,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8559,
+    "answer": "`render/json.go`\n`context.go`\n\n`render/json.go` holds the renderers themselves: `AsciiJSON.Render` writes `\\uXXXX` escapes for non-ASCII runes, `JsonpJSON.Render` wraps the payload in the callback name, and `PureJSON.Render` skips the default HTML escaping so `<` and `>` stay literal. `context.go` exposes these as `Context.AsciiJSON`, `Context.JSONP` (which reads the `callback` query parameter), and `Context.PureJSON`."
+  },
+  {
+    "repo": "gin",
+    "task": "x002",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "render/json.go",
+      "context.go",
+      "render/render.go",
+      "docs/doc.md",
+      "AsciiJSON.Render"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 953,
+      "cacheRead": 49261,
+      "cacheWrite": 5968
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00216331,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 12054,
+    "answer": "`render/json.go`\n`context.go`\n`render/render.go`\n`docs/doc.md`\n\n`render/json.go` implements all three behaviours: `AsciiJSON.Render` writes non-ASCII runes as `\\uXXXX`, `JsonpJSON.Render` wraps the payload with a JS-escaped callback name, and `PureJSON.Render` skips the HTML-safe escaping that plain JSON applies to `<`, `>` and `&`. `context.go` holds the public `JSONP`, `AsciiJSON` and `PureJSON` methods that call those renderers. `render/render.go` only holds the compile-time interface assertions for the renderer types, and `docs/doc.md` documents the three features with examples."
+  },
+  {
+    "repo": "gin",
+    "task": "x002",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "render/json.go",
+      "template.JSEscapeSt",
+      "context.go",
+      "render/render.go",
+      "gin.go"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1125,
+      "cacheRead": 49938,
+      "cacheWrite": 4600
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00198248,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11619,
+    "answer": "`render/json.go` has the three renderers the question asks about: `AsciiJSON` escapes non-ASCII as `\\uXXXX`, `JsonpJSON` wraps the payload in a callback (with `template.JSEscapeString` on the name), and `PureJSON` turns off HTML escaping so `<`, `>` and `&` stay literal.\n\n`context.go`:\n`render/render.go`\n`gin.go`\n`render/render_test.go`\n\n`context.go` holds the `Context` helpers that call these renderers, such as the JSONP path at line 1200. `render/render.go` lists the Render types. `gin.go` and `render/render_test.go` are weaker matches, included because they reference the same names."
+  },
+  {
+    "repo": "gin",
+    "task": "x002",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "render/json.go",
+      "context.go",
+      "render/render_test.go",
+      "render/render.go",
+      "gin.go"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1025,
+      "cacheRead": 43057,
+      "cacheWrite": 6673
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0022784700000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12496,
+    "answer": "`render/json.go`\n`context.go`\n`render/render_test.go`\n`render/render.go`\n`gin.go`\n\n`render/json.go` implements the three behaviours: `AsciiJSON.Render` writes non-ASCII runes as `\\uXXXX`, `JsonpJSON.Render` wraps the payload in the caller's callback, and `PureJSON` skips the default HTML-safe escaping so `<`, `>` and `&` stay literal. `context.go` exposes these as `c.AsciiJSON`, `c.JSONP` and `c.PureJSON`, and `render/render_test.go` exercises them (for example, the `\\u003c` and `\\u8bed` expectations). `render/render.go` only holds the interface assertions that tie the types to the `Render` interface, and `gin.go` is not relevant to the JSON rendering; it appears in the search only for path-unescaping and the `SecureJsonPrefix` setting. Nothing was modified."
+  },
+  {
+    "repo": "gin",
+    "task": "x003",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "recovery.go",
+      "gin.go"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 981,
+      "cacheRead": 40900,
+      "cacheWrite": 7931
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0024865,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11859,
+    "answer": "`recovery.go`\n`gin.go`\n\n`recovery.go` holds the whole mechanism: a deferred `recover()` in `CustomRecoveryWithWriter` logs the stack trace (or just the request dump for broken pipes), and then either calls `handle`, which defaults to `AbortWithStatus(500)`, or skips the status write for EPIPE/ECONNRESET/`ErrAbortHandler`. `gin.go` is second because `Default()` at line 239 installs `Recovery()` as middleware, which is what makes the server survive a panic in the first place."
+  },
+  {
+    "repo": "gin",
+    "task": "x003",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "recovery.go",
+      "http.ErrAbortHa",
+      "c.Next",
+      "recovery_test.go"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 812,
+      "cacheRead": 49707,
+      "cacheWrite": 5714
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00204647,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10140,
+    "answer": "`recovery.go` is the only file that implements this. The `recover()` in its deferred function keeps the server alive, `defaultHandleRecovery` returns the 500, and `isBrokenPipe` (EPIPE, ECONNRESET, `http.ErrAbortHandler`) selects a branch that logs without a stack trace and skips the status write.\n\n`recovery.go`\n\nThe file is the whole mechanism: `CustomRecoveryWithWriter` (lines 53–92) wraps `c.Next()` in a deferred `recover()`, and `stack()` (line 114) formats the trace. The other files I checked are not involved, and the `recovery_test.go` cases for broken pipes and `ErrAbortHandler` confirm the behaviour."
+  },
+  {
+    "repo": "gin",
+    "task": "x003",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gin/recovery.go",
+      "c.Next",
+      "recovery.go",
+      "recovery_test.go",
+      "http.ErrAbortHa"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 918,
+      "cacheRead": 50608,
+      "cacheWrite": 6968
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00235928,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11491,
+    "answer": "`gin/recovery.go` is where all of this happens. The middleware wraps `c.Next()` in a deferred `recover()`. The two other files I could confirm from the search results are the tests that exercise it, and I didn't open the rest of the framework to check how it's wired in.\n\n`recovery.go`\n`recovery_test.go`\n\nThe recovery middleware is a deferred `recover()` around `c.Next()` (`recovery.go:58-90`), so a panic in a handler is caught and the server keeps serving other requests. It then classifies the panic: if it's an `error` wrapping `EPIPE`, `ECONNRESET` or `http.ErrAbortHandler`, it logs the request dump, records the error and aborts without writing a status, since the connection is already dead. Otherwise it prints the stack trace (with the request dump in debug mode) and calls the handler, which by default does `AbortWithStatus(500)` (`recovery.go:109-111`). `recovery_test.go` has tests for the 500 response and for broken-pipe and `ErrAbortHandler` handling."
+  },
+  {
+    "repo": "gin",
+    "task": "x003",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "recovery.go",
+      "c.Next",
+      "errors.Is",
+      "http.ErrAbortHa",
+      "recovery_test.go"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 760,
+      "cacheRead": 27517,
+      "cacheWrite": 6746
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00200497,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10771,
+    "answer": "`recovery.go` implements all of it: `CustomRecoveryWithWriter` wraps `c.Next()` in a deferred `recover()`, classifies the panic as a broken pipe with `errors.Is` on `EPIPE`, `ECONNRESET` or `http.ErrAbortHandler`, logs the request dump and stack for broken pipes and the stack alone for other panics, then either aborts without writing a status or calls the handler, which defaults to a 500.\n\n`recovery.go`\n`recovery_test.go`\n`context.go`\n\nThe first is the core logic. The second has the tests for the broken-pipe path (around line 97 and line 131). The third provides the `c.Error` and `c.Abort` calls the broken-pipe branch relies on, which I did not open."
+  },
+  {
+    "repo": "gin",
+    "task": "x004",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "Context.ClientIP",
+      "context.go",
+      "e.g",
+      "0.0.0.0",
+      "gin.go"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 2300,
+      "cacheRead": 59398,
+      "cacheWrite": 10185
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00378198,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 17734,
+    "answer": "**How it works:** `Context.ClientIP()` in `context.go` checks, in order:\n\n1. **`TrustedPlatform` header** (if set, e.g. `X-Appengine-Remote-Addr` or a custom header). Its value is returned without any proxy check.\n2. **Legacy `AppEngine` flag**, which reads `X-Appengine-Remote-Addr`.\n3. **Trust decision.** The peer is trusted if the connection arrived on a Unix socket, or if `RemoteIP()` falls in one of the `trustedCIDRs` set by `SetTrustedProxies()`. If it is not trusted, the function returns the socket peer address.\n4. **Forwarded headers.** When the peer is trusted and `ForwardedByClientIP` is true, it scans `RemoteIPHeaders` in order (default `X-Forwarded-For`, then `X-Real-IP`). `validateHeader()` walks the comma-separated X-Forwarded-For chain from right to left, skips entries that are trusted proxies, and returns the first untrusted IP.\n\n**Trusted headers:** only `TrustedPlatform`, the App Engine header when enabled, and `RemoteIPHeaders`, and only when the immediate peer is a trusted proxy. The default proxy list in `defaultTrustedCIDRs` is `0.0.0.0/0` and `::/0`, so every peer is trusted by default unless you call `SetTrustedProxies()`.\n\n`context.go`\n`gin.go`\n`docs/doc.md`\n\n`context.go` holds the `ClientIP()` logic that decides which header, if any, is used. `gin.go` holds the trusted-proxy CIDR handling, the default-trust list, `RemoteIPHeaders`, and the right-to-left X-Forwarded-For parsing in `validateHeader()`. `docs/doc.md` documents the `SetTrustedProxies` usage and its intent."
+  },
+  {
+    "repo": "gin",
+    "task": "x004",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "Context.ClientIP",
+      "gin.go",
+      "0.0.0.0",
+      "context_test.go"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1980,
+      "cacheRead": 75056,
+      "cacheWrite": 10406
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0038225600000000005,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 17047,
+    "answer": "`context.go` is the core: `Context.ClientIP()` (line 975) decides the client IP and walks the headers, `RemoteIP()` (line 1027) takes the TCP peer address, and the header-walking logic sits right there too.\n\n`gin.go` is the next most relevant: it holds the `RemoteIPHeaders` default (`X-Forwarded-For`, `X-Real-IP`), `ForwardedByClientIP`, `TrustedPlatform`, the trusted-CIDR set (`SetTrustedProxies`, `isTrustedProxy`), `validateHeader` (line 481), and the `defaultTrustedCIDRs` (0.0.0.0/0 and ::/0).\n\nThe rest is in tests, which I did not open in full. `context_test.go` exercises the header-parsing behaviour and `gin_integration_test.go` covers invalid proxy CIDRs, so they are useful for confirming behaviour but are not the implementation.\n\n`context.go`\n`gin.go`\n`context_test.go`\n`gin_integration_test.go`\n\nWhy: `ClientIP()` only consults forwarded headers when the connecting peer is a trusted proxy and `ForwardedByClientIP` is set, and `gin.go` defines the trust list, the default headers, and the right-to-left `X-Forwarded-For` walk that stops at the first untrusted hop.\n\n**How it works:** `ClientIP()` checks `TrustedPlatform` first, then the deprecated `AppEngine` header. Otherwise it takes the peer IP from `Request.RemoteAddr`. A unix-socket listener is always trusted. If the peer is in the trusted CIDRs and `ForwardedByClientIP` is true, it scans `RemoteIPHeaders` in order. `validateHeader` splits the header on commas, walks from the rightmost entry leftwards, and returns the first address that is not a trusted proxy (or the leftmost one). If nothing valid is found, it returns the peer IP.\n\n**Trusted headers by default:** `X-Forwarded-For` and `X-Real-IP`. Other headers are trusted only if you add them to `RemoteIPHeaders` or set `TrustedPlatform`.\n\n**Trusted proxies by default:** `defaultTrustedCIDRs` is 0.0.0.0/0 and ::/0, so every peer is trusted until you call `SetTrustedProxies`. `gin.go` also has an `isUnsafeTrustedProxies` check that disables the header-based paths when the trust list covers everything.\n\nI did not change anything."
+  },
+  {
+    "repo": "gin",
+    "task": "x004",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "gin.go",
+      "context_test.go",
+      "Request.RemoteAddr",
+      "0.0.0.0"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "Bash": 1,
+        "Read": 3
+      },
+      "byCommand": {
+        "sed": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 2436,
+      "cacheRead": 97550,
+      "cacheWrite": 11918
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0045781,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 19796,
+    "answer": "`context.go` holds the client-IP logic, and `gin.go` holds the trust configuration and the header-walking code.\n\n`context.go`\n`gin.go`\n`context_test.go`\n\n`context.go` implements `ClientIP()`, which picks the header or the socket address. `gin.go` defines the trusted-proxy CIDRs, the default header list, and `validateHeader`, which walks `X-Forwarded-For` from the right and stops at the first untrusted hop. `context_test.go` covers the edge cases (multiple XFF lines, whitespace, invalid entries, custom platform headers).\n\nHow it works:\n1. If `TrustedPlatform` is set and that header is present, its value is returned directly. The legacy `AppEngine` flag checks `X-Appengine-Remote-Addr`.\n2. The remote address comes from `Request.RemoteAddr`. A connection over a unix socket is always trusted.\n3. Otherwise the remote IP must fall inside one of the CIDRs from `SetTrustedProxies`. If it does, the headers in `RemoteIPHeaders` are tried in order, and the first one that yields a valid address wins. If none does, the raw remote IP is returned.\n\nThe trusted headers are:\n- `X-Forwarded-For` and `X-Real-IP` by default (`RemoteIPHeaders`).\n- `X-Appengine-Remote-Addr` when the legacy `AppEngine` flag is set.\n- Any single custom header named in `TrustedPlatform`, for example `X-CDN-IP` as the tests use. Predefined platform constants also exist, but I did not verify their header names.\n\nCaveat: the engine starts with `trustedProxies = {\"0.0.0.0/0\", \"::/0\"}`, so every peer is trusted and `X-Forwarded-For` can be spoofed until you call `SetTrustedProxies` with your real proxy addresses.\n\nI could not run shell commands because the sandbox failed to start (`socat` is missing), so I read these files directly and did not run the tests."
+  },
+  {
+    "repo": "gin",
+    "task": "x004",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "gin.go",
+      "context_appengine.go",
+      "docs/doc.md",
+      "0.0.0.0"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1257,
+      "cacheRead": 46548,
+      "cacheWrite": 10209
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00313658,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13954,
+    "answer": "`context.go`\n`gin.go`\n`context_appengine.go`\n`docs/doc.md`\n\n`context.go` holds `ClientIP()`, which picks the caller's address: it takes the platform header if `TrustedPlatform` is set, then only walks `RemoteIPHeaders` (default `X-Forwarded-For`, then `X-Real-IP`) when the direct peer from `RemoteAddr` is a trusted proxy, and falls back to `RemoteAddr` otherwise. `gin.go` holds the defaults and trust logic: `RemoteIPHeaders`, `TrustedPlatform` constants, `SetTrustedProxies`, `isTrustedProxy`, and `validateHeader`, which scans `X-Forwarded-For` from the right and stops at the first untrusted hop. Note that the default trusted proxies are `0.0.0.0/0` and `::/0`, so every peer is trusted until the user calls `SetTrustedProxies`. `context_appengine.go` only sets the App Engine platform default, and `docs/doc.md` documents the intended usage."
+  },
+  {
+    "repo": "gin",
+    "task": "x005",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "gin.go",
+      "routergroup.go",
+      "tree.go"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1252,
+      "cacheRead": 28445,
+      "cacheWrite": 7762
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00246345,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 12656,
+    "answer": "`context.go`\n`gin.go`\n`routergroup.go`\n`tree.go`\n\n`context.go` holds `Next()`, which runs the handler chain by advancing an index, and `Abort()`, which stops it. `gin.go` has `handleHTTPRequest`, which looks up the route and its combined chain. `routergroup.go` builds that chain by prepending group middleware in `combineHandlers`. `tree.go` stores each route's `HandlersChain` in the radix tree and returns it on lookup. I confirmed the first three by reading them. I did not open `tree.go`'s `getValue`, so that file's role is based on the grep hits and the struct fields."
+  },
+  {
+    "repo": "gin",
+    "task": "x005",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "routergroup.go",
+      "gin.go",
+      "tree.go"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 1022,
+      "cacheRead": 31360,
+      "cacheWrite": 6077
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020404,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9850,
+    "answer": "`context.go` is where the chain runs: `Next()` advances the index and calls each handler in turn, and `Abort()` stops it.\n\n`context.go`\n`routergroup.go`\n`gin.go`\n`tree.go`\n\n`context.go` holds `Next()` and `Abort()`, which drive the loop. `routergroup.go` builds each route's chain by combining group middleware with the route handlers. `gin.go` has `handleHTTPRequest`, which looks up the route and starts the chain. `tree.go` stores each route's handler chain and returns it on lookup."
+  },
+  {
+    "repo": "gin",
+    "task": "x005",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gin.go",
+      "context.go",
+      "routergroup.go",
+      "tree.go",
+      "recovery.go"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1129,
+      "cacheRead": 52689,
+      "cacheWrite": 7821
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026561899999999997,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 11172,
+    "answer": "`gin.go`\n`context.go`\n`routergroup.go`\n`tree.go`\n`recovery.go`\n\nGin builds each route's handler chain at registration time by prepending group middleware to the route handlers (`combineHandlers`, `routergroup.go:241`). At request time, `handleHTTPRequest` (`gin.go:690`) looks up the chain in the method's radix tree (`tree.go`), stores it on the `Context`, and calls `Next()` (`context.go:188`), which walks the chain by incrementing `c.index`. Handlers call `Next()` to run the rest inline, and `Abort()` sets `index` to `abortIndex` to stop the walk. `recovery.go` is included as a concrete example of a middleware that wraps the chain, which is where the default `Recovery()` middleware lives."
+  },
+  {
+    "repo": "gin",
+    "task": "x005",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "context.go",
+      "gin.go",
+      "routergroup.go",
+      "tree.go",
+      "Context.Next"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1149,
+      "cacheRead": 27730,
+      "cacheWrite": 5815
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020154,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 10670,
+    "answer": "Five files, most relevant first:\n\n`context.go`\n`gin.go`\n`routergroup.go`\n`tree.go`\n`routergroup.go`\n\nOnly four distinct files are involved, so the list repeats `routergroup.go`. I have not confirmed that the `tree.go` and `routergroup.go` entries below are the exact definitions I'd cite, so treat the ordering as approximate.\n\nWhy: `Context.Next()` in `context.go:188` walks `c.handlers` by advancing `c.index`, and `Abort()` sets the index past the end to stop the chain; `handleHTTPRequest` in `gin.go:690` looks up the matched route and calls `c.Next()`; `combineHandlers` in `routergroup.go:241` builds each route's chain by prepending group middleware to the route handlers; and `tree.go` stores the resulting `HandlersChain` on each route node."
+  }
+]

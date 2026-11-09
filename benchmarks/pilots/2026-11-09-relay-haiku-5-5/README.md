@@ -24,7 +24,29 @@ What it changes:
 - **All 45 questions, 8 repos, 180 runs, $0.44:** file found **90/90 against 90/90**; real cost **+3%** typical [−1%, +8%] (SigMap cheaper in 44 pairs, dearer in 46: a coin flip); tokens **+18%** [+12%, +25%]; tool calls −8% [−17%, +2%]; time 0%; `query_context` asked in 16 of 90 runs.
 - **`lean` on the same 45 questions (180 runs, $0.46, none failed) is worse than `index` and than no SigMap.** File found 90/90 by both arms, but against its own baseline **real cost +16%** [+11%, +20%] (SigMap cheaper in 17 pairs, dearer in 73), **tokens +34%** [+26%, +42%], **tool calls +41%** [+31%, +53%], seconds +13%, every interval clear of zero. Directly against `index`: cost +11% [+6%, +16%], tool calls +47%. The cause is behaviour, not the prompt size: the lean section names `query_context` and says to confirm with `get_lines`, so the agent obeyed (`query_context` in 89 of 90 runs, `get_lines` 179 times) **and also kept grepping** (124 calls). SigMap became an extra step on top of the agent's own search, not a replacement for it.
 - **The earlier projection for `lean` was wrong in sign.** It subtracted the static tokens `lean` drops and held behaviour fixed, and predicted −25% / −6% by workload; measured, tokens are +32% / +34%. Tool definitions and section size were not what decided cost; whether and how the agent is told to use the tool was. The `lean` section is withdrawn as a recommendation.
+- **`current` (the old default: `full` strategy, all 22 tools, the generated section) on the same 45 questions: 178 of 180 runs counted, $0.45.** One run timed out at 420 s (`fastapi/x148`, repetition 2, SigMap arm) and that question × repetition is left out for every variant. File found 89/89 by both arms. Against its baseline: real cost **+9%** [+4%, +14%] (cheaper in 36 of 89 pairs), tokens **+41%** [+31%, +50%], seconds 0%, and **tool calls −17%** [−26%, −7%], the only variant with a clear cut in calls (`Read` 90 against 134 for the baseline). It asked SigMap to retrieve in only 4 of 89 runs, so the cut does not come from retrieval: the generated section lists files and signatures with line anchors, which tells the agent where to look and saves it reads, at the price of carrying that text on every turn.
 - **Not tested, and where it could still pay off:** weaker models, environments with no grep (chat-only LLMs), repos larger than django, other kinds of task (SigMap also offers impact analysis, grounding checks and other tools this test never asked for), and a prompt that makes the agent use SigMap's retrieval (it ignored it here). Only Haiku 5.5 was run.
+
+### The three setups side by side (45 questions × 2 repetitions, 89 paired cases)
+
+Each column is that setup's SigMap arm against its own baseline run in the same invocation: typical task, 95% interval, `~` = the interval includes zero. `session-combined.mjs` prints it.
+
+| | `index` | `lean` | `current` |
+|---|---|---|---|
+| what the agent is given | `index` strategy, 7 core tools, SigMap's own text | 7 core tools, a three-line section | `full` strategy, all 22 tools, the generated section |
+| file found | 90/90 | 90/90 | 89/89 |
+| real cost | **+3% [−1%, +8%] ~** | +15% [+11%, +20%] | +9% [+4%, +14%] |
+| total tokens | +18% [+12%, +26%] | +33% [+26%, +42%] | +41% [+31%, +50%] |
+| tool calls | −8% [−17%, +2%] ~ | +41% [+31%, +53%] | **−17% [−26%, −7%]** |
+| seconds | 0% ~ | +13% [+9%, +17%] | 0% ~ |
+| asked SigMap to retrieve | 16 of 90 runs | 89 of 90 | 4 of 89 |
+| cheaper than its baseline | 43 of 89 pairs | 17 of 89 | 36 of 89 |
+
+Against `index` directly: `lean` costs +10% [+6%, +15%] and makes +47% more calls; `current` costs +5% [0%, +10%] and uses +22% more tokens with −8% calls.
+
+- **No setup was cheaper than no SigMap.** `index` is the closest to neutral and the only one whose cost interval includes zero.
+- **They trade differently.** `current` buys fewer tool calls (its inline signature map saves reads) with a heavier prompt; `lean` makes the agent do extra steps; `index` does little of either. None changed the time, and all found the file every time.
+- **An agent that already finds the file in about 3 calls has little to give up to SigMap and little to gain from it.**
 
 ## How it was produced
 

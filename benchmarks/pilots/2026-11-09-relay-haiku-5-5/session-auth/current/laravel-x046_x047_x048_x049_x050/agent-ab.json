@@ -1,0 +1,1722 @@
+{
+  "schema": 1,
+  "kind": "agent-ab",
+  "method": {
+    "agent": "claude-code",
+    "agentVersion": "2.1.321 (Claude Code)",
+    "model": "claude-haiku-5-5",
+    "runs": 2,
+    "variant": "current",
+    "auth": "session",
+    "taskIds": [
+      "x046",
+      "x047",
+      "x048",
+      "x049",
+      "x050"
+    ],
+    "tasksPerRepo": 1,
+    "budgetUsd": 0.5,
+    "timeoutMs": 420000,
+    "date": "2026-11-09",
+    "repos": [
+      {
+        "name": "laravel",
+        "commit": "635129b24d0d6c5664e4b77f41b1297a2f74c91a"
+      }
+    ],
+    "skippedRepos": [],
+    "arms": {
+      "without": "no SigMap",
+      "with": "SigMap generated context + MCP server"
+    },
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "corpus": "benchmarks/tasks/retrieval-xrepo.jsonl",
+    "selection": "the task id(s) x046, x047, x048, x049, x050",
+    "passDefinition": "hit@5 on the repository-relative paths the answer names",
+    "priceAsOf": "2026-10-04",
+    "publishable": false,
+    "notPublishableBecause": [
+      "2 runs per arm (the minimum is 4)"
+    ]
+  },
+  "caveats": [
+    "One agent, one model, one date. The result says nothing about another agent or model.",
+    "The questions ask where code lives, so this measures localisation, not edit or generation quality.",
+    "Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.",
+    "Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.",
+    "Token figures are per-request billing categories summed over the run. They are not the size of the context.",
+    "The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.",
+    "Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.",
+    "The self repo is excluded: its tree holds its own answer key and its own generated context.",
+    "Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.",
+    "The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.",
+    "A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.",
+    "Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.",
+    "Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account's plan."
+  ],
+  "cells": [
+    {
+      "task": "x046",
+      "repo": "laravel",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+          "src/Illuminate/Database/Eloquent/Model.php",
+          "src/Illuminate/Database/Eloquent/ModelInspector.php",
+          "HasEvents.php",
+          "Model.php"
+        ],
+        [
+          "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+          "src/Illuminate/Database/Eloquent/Model.php",
+          "HasEvents.php",
+          "Model.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00541053,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 7,
+          "min": 7,
+          "max": 7,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 10,
+          "min": 8,
+          "max": 12,
+          "stdev": 2.8284271247461903
+        },
+        "out": {
+          "n": 2,
+          "median": 1857.5,
+          "min": 1796,
+          "max": 1919,
+          "stdev": 86.97413408594535
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 51481.5,
+          "min": 38801,
+          "max": 64162,
+          "stdev": 17932.93507767203
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6303.5,
+          "min": 6140,
+          "max": 6467,
+          "stdev": 231.22391744800103
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 59652.5,
+          "min": 47072,
+          "max": 72233,
+          "stdev": 17791.513721434723
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002705265,
+          "min": 0.0025802100000000003,
+          "max": 0.00283032,
+          "stdev": 0.0001768544770425671
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 15689.5,
+          "min": 14590,
+          "max": 16789,
+          "stdev": 1554.927811829218
+        }
+      }
+    },
+    {
+      "task": "x046",
+      "repo": "laravel",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php"
+        ],
+        [
+          "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+          "src/Illuminate/Database/Eloquent/SoftDeletes.php",
+          "src/Illuminate/Database/Eloquent/ModelInspector.php",
+          "HasEvents.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0062111200000000005,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4.5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1708,
+          "min": 1612,
+          "max": 1804,
+          "stdev": 135.7645019878171
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 55826,
+          "min": 49601,
+          "max": 62051,
+          "stdev": 8803.479425772517
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 8463,
+          "min": 6097,
+          "max": 10829,
+          "stdev": 3346.029288574743
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 66004,
+          "min": 57316,
+          "max": 74692,
+          "stdev": 12286.687429897449
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0031055600000000003,
+          "min": 0.00252201,
+          "max": 0.0036891100000000002,
+          "stdev": 0.0008252643243228198
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 15150.5,
+          "min": 13523,
+          "max": 16778,
+          "stdev": 2301.632572762212
+        }
+      }
+    },
+    {
+      "task": "x047",
+      "repo": "laravel",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Queue/Worker.php",
+          "src/Illuminate/Queue/Jobs/Job.php",
+          "src/Illuminate/Queue/Jobs/RedisJob.php",
+          "src/Illuminate/Queue/Jobs/DatabaseJob.php",
+          "Jobs/Job.php"
+        ],
+        [
+          "src/Illuminate/Queue/Worker.php",
+          "src/Illuminate/Queue/Jobs/Job.php",
+          "Job.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.006376580000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 5,
+          "min": 4,
+          "max": 6,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 8,
+          "min": 6,
+          "max": 10,
+          "stdev": 2.8284271247461903
+        },
+        "out": {
+          "n": 2,
+          "median": 1610.5,
+          "min": 1493,
+          "max": 1728,
+          "stdev": 166.17009357883867
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 42554,
+          "min": 30015,
+          "max": 55093,
+          "stdev": 17732.82385859624
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9783.5,
+          "min": 8518,
+          "max": 11049,
+          "stdev": 1789.6872631831518
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 53956,
+          "min": 42563,
+          "max": 65349,
+          "stdev": 16112.135116116671
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0031882900000000003,
+          "min": 0.0031195300000000006,
+          "max": 0.00325705,
+          "stdev": 0.00009724132454877365
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 14289,
+          "min": 12503,
+          "max": 16075,
+          "stdev": 2525.7854223983477
+        }
+      }
+    },
+    {
+      "task": "x047",
+      "repo": "laravel",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Queue/Worker.php",
+          "src/Illuminate/Queue/Jobs/Job.php",
+          "src/Illuminate/Queue/InteractsWithQueue.php",
+          "src/Illuminate/Queue/Middleware/ThrottlesExceptions.php",
+          "Worker.php"
+        ],
+        [
+          "src/Illuminate/Queue/Worker.php",
+          "src/Illuminate/Queue/Jobs/Job.php",
+          "Job.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00482344,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1237.5,
+          "min": 1218,
+          "max": 1257,
+          "stdev": 27.577164466275352
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 48307,
+          "min": 48135,
+          "max": 48479,
+          "stdev": 243.24473272817235
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6546.5,
+          "min": 6345,
+          "max": 6748,
+          "stdev": 284.9640328181787
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 56097,
+          "min": 56048,
+          "max": 56146,
+          "stdev": 69.29646455628166
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.00241172,
+          "min": 0.00236339,
+          "max": 0.00246005,
+          "stdev": 0.0000683489414694918
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11558,
+          "min": 11380,
+          "max": 11736,
+          "stdev": 251.7300141024109
+        }
+      }
+    },
+    {
+      "task": "x048",
+      "repo": "laravel",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Routing/AbstractRouteCollection.php",
+          "src/Illuminate/Routing/CompiledRouteCollection.php",
+          "src/Illuminate/Routing/RouteCollection.php",
+          "src/Illuminate/Routing/Router.php"
+        ],
+        [
+          "src/Illuminate/Routing/AbstractRouteCollection.php",
+          "src/Illuminate/Routing/CompiledRouteCollection.php",
+          "src/Illuminate/Routing/RouteCollection.php",
+          "src/Illuminate/Routing/Router.php",
+          "Router.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00627819,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 5,
+          "min": 4,
+          "max": 6,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 9,
+          "min": 8,
+          "max": 10,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1614,
+          "min": 1343,
+          "max": 1885,
+          "stdev": 383.2518754031088
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 50699.5,
+          "min": 44727,
+          "max": 56672,
+          "stdev": 8446.39050127331
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9121,
+          "min": 8144,
+          "max": 10098,
+          "stdev": 1381.6866504385139
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 61443.5,
+          "min": 56176,
+          "max": 66711,
+          "stdev": 7449.369939800278
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.003139095,
+          "min": 0.00313902,
+          "max": 0.00313917,
+          "stdev": 1.0606601717796554e-7
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 14604,
+          "min": 13538,
+          "max": 15670,
+          "stdev": 1507.5516574897192
+        }
+      }
+    },
+    {
+      "task": "x048",
+      "repo": "laravel",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Routing/AbstractRouteCollection.php",
+          "src/Illuminate/Routing/RouteCollection.php",
+          "src/Illuminate/Routing/CompiledRouteCollection.php",
+          "src/Illuminate/Routing/Router.php"
+        ],
+        [
+          "src/Illuminate/Routing/AbstractRouteCollection.php",
+          "src/Illuminate/Routing/CompiledRouteCollection.php",
+          "src/Illuminate/Routing/RouteCollection.php",
+          "src/Illuminate/Routing/Router.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.007360920000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 8,
+          "min": 8,
+          "max": 8,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 2007,
+          "min": 1932,
+          "max": 2082,
+          "stdev": 106.06601717798213
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 69956,
+          "min": 69728,
+          "max": 70184,
+          "stdev": 322.44069222106566
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9883,
+          "min": 9721,
+          "max": 10045,
+          "stdev": 229.1025971044414
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 81854,
+          "min": 81845,
+          "max": 81863,
+          "stdev": 12.727922061357855
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0036804600000000004,
+          "min": 0.0036128400000000004,
+          "max": 0.0037480800000000004,
+          "stdev": 0.0000956291210876687
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 14862,
+          "min": 13967,
+          "max": 15757,
+          "stdev": 1265.72113832392
+        }
+      }
+    },
+    {
+      "task": "x049",
+      "repo": "laravel",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "Validator.php",
+          "src/Illuminate/Validation/Validator.php",
+          "src/Illuminate/Validation/Concerns/ValidatesAttributes.php"
+        ],
+        [
+          "Validator.php",
+          "src/Illuminate/Validation/Validator.php",
+          "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+          "ValidatesAttributes.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00451749,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4,
+          "min": 3,
+          "max": 5,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1236,
+          "min": 1072,
+          "max": 1400,
+          "stdev": 231.93102422918759
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 27134.5,
+          "min": 26758,
+          "max": 27511,
+          "stdev": 532.4514062334703
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6844,
+          "min": 6213,
+          "max": 7475,
+          "stdev": 892.368757857423
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 35220.5,
+          "min": 35130,
+          "max": 35311,
+          "stdev": 127.9863273947651
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002258745,
+          "min": 0.0022183100000000002,
+          "max": 0.0022991799999999996,
+          "stdev": 0.00005718372539455566
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11796.5,
+          "min": 11559,
+          "max": 12034,
+          "stdev": 335.87572106361006
+        }
+      }
+    },
+    {
+      "task": "x049",
+      "repo": "laravel",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Validation/Validator.php"
+        ],
+        [
+          "src/Illuminate/Validation/Validator.php",
+          "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+          "Validator.php",
+          "ValidatesAttributes.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00478466,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3,
+          "min": 2,
+          "max": 4,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1154.5,
+          "min": 1151,
+          "max": 1158,
+          "stdev": 4.949747468305833
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 47958,
+          "min": 47768,
+          "max": 48148,
+          "stdev": 268.70057685088807
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6674.5,
+          "min": 6441,
+          "max": 6908,
+          "stdev": 330.2188668141177
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 55793,
+          "min": 55746,
+          "max": 55840,
+          "stdev": 66.46803743153546
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.00239233,
+          "min": 0.00234578,
+          "max": 0.00243888,
+          "stdev": 0.0000658316413284676
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11773,
+          "min": 11730,
+          "max": 11816,
+          "stdev": 60.81118318204309
+        }
+      }
+    },
+    {
+      "task": "x050",
+      "repo": "laravel",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Cache/Repository.php",
+          "src/Illuminate/Cache/DatabaseStore.php",
+          "src/Illuminate/Cache/FileStore.php"
+        ],
+        [
+          "src/Illuminate/Cache/Repository.php",
+          "src/Illuminate/Cache/DatabaseStore.php",
+          "src/Illuminate/Cache/FileStore.php",
+          "src/Illuminate/Foundation/helpers.php",
+          "DatabaseStore.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00553944,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 5.5,
+          "min": 5,
+          "max": 6,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 8,
+          "min": 8,
+          "max": 8,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1527,
+          "min": 1423,
+          "max": 1631,
+          "stdev": 147.07821048680188
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 40212,
+          "min": 39589,
+          "max": 40835,
+          "stdev": 881.0550493584382
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 8016.5,
+          "min": 7101,
+          "max": 8932,
+          "stdev": 1294.7125163525686
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 49763.5,
+          "min": 49367,
+          "max": 50160,
+          "stdev": 560.7356774809322
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.00276972,
+          "min": 0.0025408500000000003,
+          "max": 0.0029985899999999998,
+          "stdev": 0.0003236710580203299
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 14552,
+          "min": 14036,
+          "max": 15068,
+          "stdev": 729.734198184517
+        }
+      }
+    },
+    {
+      "task": "x050",
+      "repo": "laravel",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/Illuminate/Cache/Repository.php",
+          "src/Illuminate/Cache/DatabaseStore.php",
+          "src/Illuminate/Cache/FileStore.php",
+          "src/Illuminate/Support/functions.php",
+          "Support/functions.php"
+        ],
+        [
+          "src/Illuminate/Cache/Repository.php",
+          "src/Illuminate/Cache/DatabaseStore.php",
+          "src/Illuminate/Cache/FileStore.php",
+          "src/Illuminate/Support/functions.php",
+          "src/Illuminate/Foundation/helpers.php"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00432199,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1145,
+          "min": 844,
+          "max": 1446,
+          "stdev": 425.67828227430164
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 48559.5,
+          "min": 48042,
+          "max": 49077,
+          "stdev": 731.8555185280767
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 5511.5,
+          "min": 5421,
+          "max": 5602,
+          "stdev": 127.9863273947651
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 55222,
+          "min": 54313,
+          "max": 56131,
+          "stdev": 1285.5201281971433
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002160995,
+          "min": 0.0019872200000000005,
+          "max": 0.00233477,
+          "stdev": 0.0002457549618013842
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11769,
+          "min": 10122,
+          "max": 13416,
+          "stdev": 2329.2097372284875
+        }
+      }
+    }
+  ],
+  "repos": [
+    {
+      "repo": "laravel",
+      "tasks": 5,
+      "pass": {
+        "without": {
+          "pass": 10,
+          "runs": 10
+        },
+        "with": {
+          "pass": 10,
+          "runs": 10
+        }
+      },
+      "failedRuns": {
+        "without": 0,
+        "with": 0
+      },
+      "cacheGapRuns": 0,
+      "spend": {
+        "without": {
+          "all": {
+            "runs": 10,
+            "agentReportedUsd": 0.028122229999999998,
+            "agentReportedRuns": 10,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        },
+        "with": {
+          "all": {
+            "runs": 10,
+            "agentReportedUsd": 0.027502130000000003,
+            "agentReportedRuns": 10,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "without": 5,
+          "with": 3,
+          "tasks": 5,
+          "medianDelta": -2.5,
+          "fewer": 4,
+          "ties": 0,
+          "more": 1
+        },
+        "in": {
+          "without": 8,
+          "with": 6,
+          "tasks": 5,
+          "medianDelta": -2,
+          "fewer": 4,
+          "ties": 1,
+          "more": 0
+        },
+        "out": {
+          "without": 1610.5,
+          "with": 1237.5,
+          "tasks": 5,
+          "medianDelta": -149.5,
+          "fewer": 4,
+          "ties": 0,
+          "more": 1
+        },
+        "cacheRead": {
+          "without": 42554,
+          "with": 48559.5,
+          "tasks": 5,
+          "medianDelta": 8347.5,
+          "fewer": 0,
+          "ties": 0,
+          "more": 5
+        },
+        "cacheWrite": {
+          "without": 8016.5,
+          "with": 6674.5,
+          "tasks": 5,
+          "medianDelta": -169.5,
+          "fewer": 3,
+          "ties": 0,
+          "more": 2
+        },
+        "totalTokens": {
+          "without": 53956,
+          "with": 56097,
+          "tasks": 5,
+          "medianDelta": 6351.5,
+          "fewer": 0,
+          "ties": 0,
+          "more": 5
+        },
+        "costUsd": {
+          "without": 0.00276972,
+          "with": 0.00241172,
+          "tasks": 5,
+          "medianDelta": 0.00013358499999999987,
+          "fewer": 2,
+          "ties": 0,
+          "more": 3
+        },
+        "costFloorUsd": {
+          "without": null,
+          "with": null,
+          "tasks": 0,
+          "medianDelta": null,
+          "fewer": 0,
+          "ties": 0,
+          "more": 0
+        },
+        "durationMs": {
+          "without": 14552,
+          "with": 11773,
+          "tasks": 5,
+          "medianDelta": -539,
+          "fewer": 4,
+          "ties": 0,
+          "more": 1
+        }
+      }
+    }
+  ],
+  "total": {
+    "tasks": 5,
+    "pass": {
+      "without": {
+        "pass": 10,
+        "runs": 10
+      },
+      "with": {
+        "pass": 10,
+        "runs": 10
+      }
+    },
+    "failedRuns": {
+      "without": 0,
+      "with": 0
+    },
+    "cacheGapRuns": 0,
+    "spend": {
+      "without": {
+        "all": {
+          "runs": 10,
+          "agentReportedUsd": 0.028122229999999998,
+          "agentReportedRuns": 10,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "with": {
+        "all": {
+          "runs": 10,
+          "agentReportedUsd": 0.027502130000000003,
+          "agentReportedRuns": 10,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      }
+    },
+    "metrics": {
+      "toolCalls": {
+        "without": 5,
+        "with": 3,
+        "tasks": 5,
+        "medianDelta": -2.5,
+        "fewer": 4,
+        "ties": 0,
+        "more": 1
+      },
+      "in": {
+        "without": 8,
+        "with": 6,
+        "tasks": 5,
+        "medianDelta": -2,
+        "fewer": 4,
+        "ties": 1,
+        "more": 0
+      },
+      "out": {
+        "without": 1610.5,
+        "with": 1237.5,
+        "tasks": 5,
+        "medianDelta": -149.5,
+        "fewer": 4,
+        "ties": 0,
+        "more": 1
+      },
+      "cacheRead": {
+        "without": 42554,
+        "with": 48559.5,
+        "tasks": 5,
+        "medianDelta": 8347.5,
+        "fewer": 0,
+        "ties": 0,
+        "more": 5
+      },
+      "cacheWrite": {
+        "without": 8016.5,
+        "with": 6674.5,
+        "tasks": 5,
+        "medianDelta": -169.5,
+        "fewer": 3,
+        "ties": 0,
+        "more": 2
+      },
+      "totalTokens": {
+        "without": 53956,
+        "with": 56097,
+        "tasks": 5,
+        "medianDelta": 6351.5,
+        "fewer": 0,
+        "ties": 0,
+        "more": 5
+      },
+      "costUsd": {
+        "without": 0.00276972,
+        "with": 0.00241172,
+        "tasks": 5,
+        "medianDelta": 0.00013358499999999987,
+        "fewer": 2,
+        "ties": 0,
+        "more": 3
+      },
+      "costFloorUsd": {
+        "without": null,
+        "with": null,
+        "tasks": 0,
+        "medianDelta": null,
+        "fewer": 0,
+        "ties": 0,
+        "more": 0
+      },
+      "durationMs": {
+        "without": 14552,
+        "with": 11773,
+        "tasks": 5,
+        "medianDelta": -539,
+        "fewer": 4,
+        "ties": 0,
+        "more": 1
+      }
+    }
+  },
+  "repetitions": {
+    "runs": [
+      1,
+      2
+    ],
+    "taskCount": 5,
+    "bootstrap": {
+      "iterations": 10000,
+      "seed": 1,
+      "level": 0.95
+    },
+    "metrics": {
+      "toolCalls": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 24,
+              "with": 19,
+              "change": -0.20833333333333337
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.24950095849989562,
+              "lo": -0.5434231445263074,
+              "hi": 0.2336341725167208,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 29,
+              "with": 20,
+              "change": -0.31034482758620685
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.38025021212174004,
+              "lo": -0.5386603568872588,
+              "hi": -0.06591264509773154,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "in": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 36,
+              "with": 34,
+              "change": -0.05555555555555558
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.05591248870509802,
+              "lo": -0.15853364091535038,
+              "hi": 0,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 46,
+              "with": 32,
+              "change": -0.30434782608695654
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.29033317923744484,
+              "lo": -0.43032094797164877,
+              "hi": -0.12944943670387588,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "out": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 7335,
+              "with": 6995,
+              "change": -0.04635310156782546
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.07421997087136689,
+              "lo": -0.31542365818726803,
+              "hi": 0.22044022821981546,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 8355,
+              "with": 7509,
+              "change": -0.1012567324955117
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.11387552333823714,
+              "lo": -0.22361283385673014,
+              "hi": 0.011372447125412632,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "cacheRead": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 179890,
+              "with": 276180,
+              "change": 0.5352715548390683
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": 0.5420035001009302,
+              "lo": 0.3551590656687569,
+              "hi": 0.701864142114784,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 244273,
+              "with": 265033,
+              "change": 0.08498687943407579
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": 0.11976052273080717,
+              "lo": -0.12938388092716102,
+              "hi": 0.4214850778046362,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "cacheWrite": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 44021,
+              "with": 39627,
+              "change": -0.09981599691056542
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.11199175339084766,
+              "lo": -0.33817778059381,
+              "hi": 0.2251713459989484,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 36116,
+              "with": 34530,
+              "change": -0.0439140547125928
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.05688227819732239,
+              "lo": -0.1950081158185517,
+              "hi": 0.1017808342164479,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "totalTokens": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 231282,
+              "with": 322836,
+              "change": 0.3958544114976523
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": 0.3917595341572482,
+              "lo": 0.2158706188328079,
+              "hi": 0.5577831441277952,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 288790,
+              "with": 307104,
+              "change": 0.06341632327989188
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": 0.0854520442295501,
+              "lo": -0.12064060336010995,
+              "hi": 0.3600295587972271,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costUsd": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 0.0142742,
+              "with": 0.014188100000000002,
+              "change": -0.006031861680514394
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.02664053884494766,
+              "lo": -0.24032471578822212,
+              "hi": 0.234933777726134,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 0.01384803,
+              "with": 0.013314030000000001,
+              "change": -0.038561441591331014
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.047685326813312834,
+              "lo": -0.16342863026432308,
+              "hi": 0.0901871552550344,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costFloorUsd": null,
+      "durationMs": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 66226,
+              "with": 63977,
+              "change": -0.03395947211065142
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.045991037241352895,
+              "lo": -0.1732677422746165,
+              "hi": 0.07391265044389961,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 75636,
+              "with": 66248,
+              "change": -0.12412078904225499
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.12362504466655466,
+              "lo": -0.20997067819122917,
+              "hi": -0.02792562877681848,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      }
+    },
+    "outcome": {
+      "reps": [
+        {
+          "run": 1,
+          "tasks": 5,
+          "better": 0,
+          "worse": 0,
+          "ties": 5
+        },
+        {
+          "run": 2,
+          "tasks": 5,
+          "better": 0,
+          "worse": 0,
+          "ties": 5
+        }
+      ],
+      "total": {
+        "tasks": 10,
+        "better": 0,
+        "worse": 0,
+        "ties": 10
+      }
+    }
+  },
+  "version": "8.85.1",
+  "generated": "2026-11-09T22:34:10.425Z"
+}

@@ -22,6 +22,15 @@ const load = (sub) => fs.readdirSync(path.join(here, 'session-auth', sub), { wit
   .filter((e) => e.isDirectory()).sort((a, b) => (a.name < b.name ? -1 : 1))
   .flatMap((e) => require(path.join(here, 'session-auth', sub, e.name, 'raw.json')));
 
+// A failed run (a timeout, say) has unknown usage and cost: that question × repetition, both arms, is left out of every comparison,
+// and the note says which. The harness already records the failure; this only keeps the comparisons to complete pairs.
+function complete(set, label) {
+  const key = (x) => `${x.repo}/${x.task}|${x.run}`;
+  const bad = new Set(set.filter((x) => !x.ok).map(key));
+  if (bad.size) console.log(`note: ${label}: ${set.filter((x) => !x.ok).length} failed run(s) (${[...bad].join(', ')}); that question × repetition is left out of every comparison below`);
+  return set.filter((x) => !bad.has(key(x)));
+}
+
 function analyse(label, raw) {
 console.log(`\n==================== ${label} ====================`);
 const tot = (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite;
@@ -32,15 +41,16 @@ const q = (x) => `${x.repo}/${x.task}`;
 const qs = [...new Set(raw.map(q))];
 const find = (k, r, a) => raw.find((x) => q(x) === k && x.run === r && x.arm === a);
 const pct = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
-const pairs = (fn, set) => set.flatMap((k) => [1, 2].map((r) => ({ q: k, r, without: fn(find(k, r, 'without')), with: fn(find(k, r, 'with')) })));
+const pairs = (fn, set) => set.flatMap((k) => [1, 2].filter((r) => find(k, r, 'with') && find(k, r, 'without')).map((r) => ({ q: k, r, without: fn(find(k, r, 'without')), with: fn(find(k, r, 'with')) })));
 
 console.log(`runs ${raw.length}, failed ${raw.filter((x) => !x.ok).length}, questions ${qs.length}; cost source: ${[...new Set(raw.map((x) => x.cost.source))].join(', ')}`);
 const found = (a) => `${raw.filter((x) => x.arm === a && x.pass).length}/${raw.filter((x) => x.arm === a).length}`;
 let better = 0; let worse = 0;
 for (const k of qs) {
   for (const r of [1, 2]) {
-    const w = find(k, r, 'with').pass; const b = find(k, r, 'without').pass;
-    if (w && !b) better++; else if (b && !w) worse++;
+    const wr = find(k, r, 'with'); const br = find(k, r, 'without');
+    if (!wr || !br) continue;
+    if (wr.pass && !br.pass) better++; else if (br.pass && !wr.pass) worse++;
   }
 }
 console.log(`found the file: SigMap ${found('with')}, baseline ${found('without')}; paired better/worse: ${better}/${worse}`);
@@ -71,7 +81,7 @@ const lr = pairs(cost, qs).map((p) => Math.log(p.with / p.without));
 const mean = lr.reduce((a, b) => a + b) / lr.length;
 const sd = Math.sqrt(lr.reduce((s, x) => s + (x - mean) ** 2, 0) / (lr.length - 1));
 console.log(`\nnoise (real cost): sd of the paired log-ratio ${sd.toFixed(2)} (one pair typically off by a factor of ${Math.exp(sd).toFixed(1)}); paired runs for a 95% interval of about ±10%: ${Math.ceil((1.96 * sd / Math.log(1.1)) ** 2)}, of about ±5%: ${Math.ceil((1.96 * sd / Math.log(1.05)) ** 2)}`);
-const swing = qs.map((k) => { const a = cost(find(k, 1, 'without')); const b = cost(find(k, 2, 'without')); return Math.max(a, b) / Math.min(a, b); }).sort((a, b) => a - b);
+const swing = qs.filter((k) => find(k, 1, 'without') && find(k, 2, 'without')).map((k) => { const a = cost(find(k, 1, 'without')); const b = cost(find(k, 2, 'without')); return Math.max(a, b) / Math.min(a, b); }).sort((a, b) => a - b);
 console.log(`baseline cost, same question, repetition 1 against 2 (larger over smaller): median ${swing[Math.floor(swing.length / 2)].toFixed(2)}x, worst ${swing[swing.length - 1].toFixed(2)}x`);
 
 const m = (a, f) => { const xs = raw.filter((x) => x.arm === a); return xs.reduce((s, x) => s + f(x), 0) / xs.length; };
@@ -87,8 +97,8 @@ console.log(`baseline tool use over ${raw.filter((x) => x.arm === 'without').len
 console.log(`total real cost of these ${raw.length} runs: $${raw.reduce((s, x) => s + cost(x), 0).toFixed(3)}`);
 }
 
-const small = [...load('index-first5'), ...load('index-rest')];
-const large = fs.existsSync(path.join(here, 'session-auth', 'index-large')) ? load('index-large') : [];
+const small = complete([...load('index-first5'), ...load('index-rest')], 'index, small repos');
+const large = fs.existsSync(path.join(here, 'session-auth', 'index-large')) ? complete(load('index-large'), 'index, large repos') : [];
 analyse('30 questions on small and medium repos (gin, flask, express, fastify, fastapi)', small);
 if (large.length) {
   analyse('15 questions on large repos (django, rails, laravel)', large);
@@ -112,8 +122,42 @@ function headToHead(index, lean) {
     console.log(`  ${label.padEnd(13)} index vs its baseline ${p(gi.change)} [${p(gi.lo)}, ${p(gi.hi)}]; lean vs its baseline ${p(gl.change)} [${p(gl.lo)}, ${p(gl.hi)}]; lean against index directly ${p(gd.change)} [${p(gd.lo)}, ${p(gd.hi)}] ${gd.inNoise ? 'inside the noise' : 'OUTSIDE the noise'}`);
   }
 }
-const leanRuns = fs.existsSync(path.join(here, 'session-auth', 'lean')) ? load('lean') : [];
+const leanRuns = fs.existsSync(path.join(here, 'session-auth', 'lean')) ? complete(load('lean'), 'lean') : [];
 if (leanRuns.length) {
   analyse('lean: all 45 questions', leanRuns);
   headToHead([...small, ...large], leanRuns);
+}
+
+// The three variants side by side, once `current` has been run too: each against its own same-invocation baseline, and against `index`.
+function threeWay(sets) {
+  console.log('\n==================== index, lean and current side by side (45 questions, 2 repetitions) ====================');
+  const key = (x) => `${x.repo}/${x.task}|${x.run}`;
+  const mapOf = (set, arm) => new Map(set.filter((x) => x.arm === arm).map((x) => [key(x), x]));
+  const m = Object.fromEntries(Object.entries(sets).map(([n, set]) => [n, { w: mapOf(set, 'with'), b: mapOf(set, 'without'), all: set }]));
+  const keys = [...m.index.w.keys()].filter((k) => Object.values(m).every((v) => v.w.has(k) && v.b.has(k)));
+  const p = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
+  const metrics = [['real cost', (x) => x.cost.usd], ['total tokens', (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite], ['tool calls', (x) => x.toolCalls.total], ['seconds', (x) => x.durationMs / 1000]];
+  console.log(`${keys.length} paired cases per variant. Each column: SigMap arm against ITS OWN baseline from the same invocation, typical task with the 95% interval.`);
+  console.log(`${''.padEnd(13)}${Object.keys(m).map((n) => n.padEnd(26)).join('')}`);
+  for (const [label, fn] of metrics) {
+    const cells = Object.entries(m).map(([, v]) => { const g = geometricChange(keys.map((k) => ({ without: fn(v.b.get(k)), with: fn(v.w.get(k)) }))); return `${p(g.change)} [${p(g.lo)}, ${p(g.hi)}]${g.inNoise ? ' ~' : ''}`.padEnd(26); });
+    console.log(`${label.padEnd(13)}${cells.join('')}`);
+  }
+  console.log('(~ = the interval includes zero: inside the noise)');
+  for (const [a, b] of [['lean', 'index'], ['current', 'index']]) {
+    const parts = metrics.map(([label, fn]) => { const g = geometricChange(keys.map((k) => ({ without: fn(m[b].w.get(k)), with: fn(m[a].w.get(k)) }))); return `${label} ${p(g.change)} [${p(g.lo)}, ${p(g.hi)}]`; });
+    console.log(`${a} against ${b} directly: ${parts.join('; ')}`);
+  }
+  for (const [n, v] of Object.entries(m)) {
+    const w = v.all.filter((x) => x.arm === 'with');
+    const ret = w.filter((x) => Object.keys(x.toolCalls.byTool || {}).some((t) => /query_context|read_context/.test(t))).length;
+    const fnd = `${w.filter((x) => x.pass).length}/${w.length}`;
+    const cheaper = keys.filter((k) => v.w.get(k).cost.usd < v.b.get(k).cost.usd).length;
+    console.log(`${n.padEnd(8)} found ${fnd}; asked SigMap to retrieve in ${ret} of ${w.length} runs; cheaper than its baseline in ${cheaper} of ${keys.length} pairs`);
+  }
+}
+const currentRuns = fs.existsSync(path.join(here, 'session-auth', 'current')) ? complete(load('current'), 'current') : [];
+if (currentRuns.length) {
+  analyse('current (the old default): all 45 questions', currentRuns);
+  threeWay({ index: [...small, ...large], lean: leanRuns, current: currentRuns });
 }
