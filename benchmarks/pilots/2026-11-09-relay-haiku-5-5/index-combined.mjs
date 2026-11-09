@@ -54,3 +54,18 @@ console.log(`mean tool calls: index ${mean(idx, 'with', (x) => x.toolCalls.total
 const sp = {}; for (const x of idx.filter((y) => y.arm === 'with')) for (const [t, n] of Object.entries(x.toolCalls.byTool || {})) sp[t.replace('mcp__sigmap__', '')] = (sp[t.replace('mcp__sigmap__', '')] || 0) + n;
 console.log(`index arm tool use over ${idx.filter((x) => x.arm === 'with').length} runs: ${JSON.stringify(sp)}`);
 console.log(`raw tokens in these ${idx.length} runs: ${idx.reduce((s, x) => s + tot(x), 0)}`);
+
+// Noise and power. The paired log-ratio of SigMap's arm to its same-run baseline, one per question and repetition.
+const lr = [];
+for (const q of qs) for (const r of [1, 2]) lr.push(Math.log(tot(find(idx, q, r, 'with')) / tot(find(idx, q, r, 'without'))));
+const mean2 = lr.reduce((a, b) => a + b) / lr.length;
+const sd = Math.sqrt(lr.reduce((s, x) => s + (x - mean2) ** 2, 0) / (lr.length - 1));
+const se = sd / Math.sqrt(lr.length);
+console.log(`\nnoise: sd of the paired log-ratio ${sd.toFixed(2)} (one pair is typically off by a factor of ${Math.exp(sd).toFixed(1)}); ${lr.length} pairs give a pooled interval of ${pct(Math.exp(mean2 - 1.96 * se) - 1)} to ${pct(Math.exp(mean2 + 1.96 * se) - 1)}`);
+for (const hw of [0.2, 0.1]) {
+  const n = Math.ceil((1.96 * sd / Math.log(1 + hw)) ** 2);
+  console.log(`paired runs for a 95% interval of about ±${hw * 100}%: ${n} (${Math.ceil(n / 2)} questions × 2 repetitions)`);
+}
+const n20 = 20; const half = 1.96 * sd / Math.sqrt(n20);
+console.log(`with all 10 pilot questions (${n20} pairs) the interval would still be about ${pct(Math.exp(mean2 - half) - 1)} to ${pct(Math.exp(mean2 + half) - 1)}`);
+console.log(`baseline, same question, repetition 1 against 2 (larger over smaller): ${qs.map((q) => { const a = tot(find(idx, q, 1, 'without')); const b = tot(find(idx, q, 2, 'without')); return (Math.max(a, b) / Math.min(a, b)).toFixed(1) + '×'; }).join(', ')}`);

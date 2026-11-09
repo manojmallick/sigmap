@@ -945,6 +945,54 @@ const treeHash = (dir) => {
     assert.deepStrictEqual(rep.cells.map((c) => c.task), ['x010', 'x010']);
   });
 
+  await test('run-remaining.sh runs one question per invocation, resumes by skipping what is saved, and stops on the first failure', () => {
+    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-remaining.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'test-key', SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', ORDER: 'r2:x010', VARIANTS: 'index', RUNS: '2', CLAUDE_BIN: f.bin }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
+
+    const dry = sh({ DRY: '1', OUT: path.join(f.out, 'dry') });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /run\s+index r2:x010/);
+    assert.match(dry.stdout, /tasks\s+1 \(task id\(s\) x010\)/);
+    assert.ok(!fs.existsSync(path.join(f.out, 'dry')) && !fs.existsSync(f.log), 'a dry run creates nothing and starts nothing');
+
+    const out = path.join(f.out, 'ok');
+    const first = sh({ OUT: out });
+    assert.strictEqual(first.status, 0, first.stderr);
+    assert.ok(fs.existsSync(path.join(out, 'index', 'r2-x010', 'raw.json')) && fs.existsSync(path.join(out, 'index', 'r2-x010', 'agent-ab.json')));
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').length;
+    assert.strictEqual(calls, 4, '1 question x 2 repetitions x 2 arms');
+    const rep = JSON.parse(fs.readFileSync(path.join(out, 'index', 'r2-x010', 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'index');
+    assert.deepStrictEqual(rep.method.taskIds, ['x010']);
+
+    const again = sh({ OUT: out });
+    assert.strictEqual(again.status, 0, again.stderr);
+    assert.match(again.stdout, /skip\s+index r2:x010 \(done:/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, calls, 'nothing was started the second time');
+
+    const done = sh({ OUT: path.join(f.out, 'seeded'), ORDER: 'gin:x001 r2:x010', VARIANTS: 'index lean' });
+    assert.match(done.stdout, /skip\s+index gin:x001 \(already in this directory's saved data\)/, 'a question already saved in the repository is not re-run');
+
+    const bad = sh({ OUT: path.join(f.out, 'bad'), FAKE_MODE: 'error', ORDER: 'r2:x010 r1:x001' });
+    assert.strictEqual(bad.status, 1, 'the first failed question stops the run');
+    assert.match(bad.stderr, /STOPPED at index r2:x010/);
+    assert.match(bad.stderr, /Rerun the same command to resume/);
+    assert.ok(!fs.existsSync(path.join(f.out, 'bad', 'index', 'r2-x010', 'raw.json')), 'a failed question leaves no raw.json, so a rerun redoes it');
+    assert.ok(!fs.existsSync(path.join(f.out, 'bad', 'index', 'r1-x001')), 'and the next question was never started');
+    // A forced rerun over saved data that then fails must not leave the old raw.json behind: a later resume would skip the question as done.
+    const stale = path.join(f.out, 'stale', 'index', 'r2-x010');
+    fs.mkdirSync(stale, { recursive: true });
+    fs.writeFileSync(path.join(stale, 'raw.json'), '[]');
+    const forced = sh({ OUT: path.join(f.out, 'stale'), FORCE: '1', FAKE_MODE: 'error' });
+    assert.strictEqual(forced.status, 1);
+    assert.ok(!fs.existsSync(path.join(stale, 'raw.json')), 'the stale raw.json is removed when the forced rerun fails');
+    const unknown = sh({ VARIANTS: 'bogus', DRY: '1' });
+    assert.strictEqual(unknown.status, 2);
+    assert.match(unknown.stderr, /unknown variant: bogus/);
+  });
+
   await test('--sigmap-variant reaches the agent: the lean arm gets the three-line section, the other arm none, and the report records it', () => {
     const f = fixture();
     const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'lean', '--save', '--allow-unpublishable', '--out-dir', f.out], live(f));

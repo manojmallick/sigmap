@@ -40,6 +40,8 @@ npm run benchmark:agent-ab -- --repos gin,flask,express,fastify,fastapi --tasks-
   --save --allow-unpublishable --out-dir ./ab-out --raw-out ./ab-out/raw.json
 ```
 
+`run-remaining.sh` (see "What would settle it") does the remaining questions one at a time and can be rerun after an interruption.
+
 `GET <relay>/v1/models` lists the model names your key may use. Use `--runs 4` for a report the harness treats as publishable.
 
 The commands above run the `current` arm. Add `--sigmap-variant index` (the docs' setup for an agent that calls the tools) or `--sigmap-variant lean` (the smallest) to run those instead; run one variant per invocation. Do both against a fresh baseline each time.
@@ -219,6 +221,15 @@ Run one question per invocation in an order fixed beforehand, cheapest first by 
 - **How the agent used it:** over the 12 `index` runs, 57 `get_lines`, 22 `query_context`, 6 `read_context`, 21 shell commands and 2 file reads; it still checked what it was told.
 - **Cost:** these 24 runs used 1.44M raw tokens.
 
+### What would settle it, and why running `lean` on the rest would not
+
+The key had no balance left to run anything further (HTTP 402, rechecked after the six questions), so the rest is a plan. `index-combined.mjs` prints the numbers below.
+
+- **The noise sets the size of the experiment.** The log-ratio of SigMap's arm to its same-run baseline has a standard deviation of 1.11, so one paired run is typically off by a factor of about 3. The 12 pairs so far give a pooled interval of −46% to +91%; all 10 pilot questions would still give about −37% to +66%. The baseline alone differed by 1.5×, 1.2×, 1.0×, 3.1×, 3.4× and 19.4× between its two repetitions of the same question.
+- **A result worth the name needs about 144 paired runs for ±20% (72 questions × 2 repetitions) and about 524 for ±10%.** The corpus holds 208 labelled questions across 35 repos, so ±20% is within reach with more checkouts (`npm run fetch:xrepo`); ±10% needs more repetitions per question, which also helps most because most of the noise is the agent's own run-to-run variation.
+- **`lean` against `index` cannot be resolved at any affordable size.** They differ by about 550 static tokens a turn, roughly 5k tokens a question, against a single-run error of about 3×. Running `lean` on the other nine questions would add runs without being able to say which is cheaper, so the next allowance is better spent on more questions or repetitions of **one** variant, `index` (the docs' setup, no hand-written text), against its baseline.
+- **If you still want both on every question:** `bash benchmarks/pilots/2026-11-09-relay-haiku-5-5/run-remaining.sh` runs the nine questions `lean` has not had and the four `index` has not had (13 questions, 52 agent runs, about 6M raw tokens here), one question per invocation, resumable, stopping at the first failure; `DRY=1` prints every plan first. Questions already saved in this directory are skipped.
+
 ### Verdict, as far as the evidence goes
 
 1. **The pilot's loss was largely a setup problem, not a verdict on SigMap.** It re-sent about 4.3k tokens a turn that the docs' own setup avoids (about 1.6k), and the product's recommended strategy for an agent that calls the tools was not the one run.
@@ -238,6 +249,7 @@ The two later 4-run probes used about 131k (`lean`) and 94k (`index`) raw tokens
 - `index-gin-4runs/` — the same probe for the docs' setup (`--sigmap-variant index`).
 - `strategy-audit.mjs` — what each context strategy injects and that retrieval does not change (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/strategy-audit.mjs`; needs the fetched checkouts).
 - `lean-gin-4runs/` — the lean-variant probe above: report, data, raw records and the shim's stats.
+- `run-remaining.sh` — the resumable, one-question-at-a-time runner for the questions the allowance did not cover; `DRY=1` prints the plans.
 - `retrieval-audit.mjs` — how good `query_context` is on all 30 labelled questions, whether a score margin can say "clearly ahead", and the opt-in ranking settings (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/retrieval-audit.mjs`; needs the fetched checkouts).
 - `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).
 - `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.
