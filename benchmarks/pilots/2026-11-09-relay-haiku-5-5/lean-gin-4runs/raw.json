@@ -1,0 +1,170 @@
+[
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/uri.go",
+      "binding/header.go"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Bash": 3,
+        "Read": 6
+      },
+      "byCommand": {
+        "find": 1,
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 36419,
+      "out": 450,
+      "cacheRead": 7143,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00393833,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 59314,
+    "answer": "The core implementation is in `binding/form_mapping.go`, which contains the generic mapping machinery (`mapping`, `tryToSetValue`, `setByForm`, `setWithProperType`, `trySplit`, `setSlice`, `setArray`) that copies request parameters onto struct members by tag name with default/fallback handling and delimiter-splitting of lists.\n\n`binding/form_mapping.go`\n`binding/form.go`\n`binding/query.go`\n`binding/uri.go`\n`binding/header.go`\n\nThe first file implements the tag-driven reflection mapping, fallback `default` values, and `collection_format` delimiter splitting; the other four invoke that machinery for specific request sources (form/multipart, query, URI, and headers)."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "e.g",
+      "binding/header.go",
+      "binding/query.go",
+      "req.URL.Query"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Bash": 1,
+        "mcp__sigmap__read_context": 1,
+        "mcp__sigmap__get_lines": 4
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 22300,
+      "out": 508,
+      "cacheRead": 5583,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025398300000000003,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 49882,
+    "answer": "\n\n`binding/form_mapping.go` — the `mapFormByTag`/`mapping`/`tryToSetValue`/`setByForm` chain walks struct fields, reads the configured tag (e.g. `form`/`uri`/`header`), falls back to the field name when the tag is empty, applies `default=...` options, and splits list values on the `collection_format` delimiter (`csv`/`ssv`/`tsv`/`pipes`) before assigning to slices/arrays.\n`binding/header.go` — header binding reuses the same `setByForm` machinery via a `headerSource` setter, so tag-name lookup, defaults, and delimiter splitting are shared rather than reimplemented.\n`binding/query.go` — query binding feeds `req.URL.Query()` into `mapForm`/`mapFormByTag`, the same tag-driven mapping entry point.\n`binding/form.go` — the form binding entry point that converts the multipart form into `map[string][]string` and passes it to `mapForm`.\n`binding/binding.go` — declares the `Binding`/`BindingUri` interfaces (`BindUri(map[string][]string, any)`) that the tag-based mappers implement."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/header.go",
+      "binding/form.go",
+      "binding/query.go",
+      "form_mapping.go"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 2,
+        "Bash": 2
+      },
+      "byCommand": {
+        "grep": 2
+      }
+    },
+    "usage": {
+      "in": 21631,
+      "out": 696,
+      "cacheRead": 3820,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025493,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 48452,
+    "answer": "\n\n`binding/form_mapping.go` is the file that implements exactly this: it walks struct fields via reflection, reads the tag name (falling back to the field name when the tag is empty), parses a `default=` option for fallback values, and splits list values on a delimiter chosen by the `collection_format` tag (`csv`/`ssv`/`tsv`/`pipes`, or `multi` for no splitting) in `trySplit`.\n\n`binding/header.go` and `binding/form.go` reuse the same `setter`/`setByForm` machinery for header and form binding, and `binding/query.go` binds query params through the same path — so they're the next most relevant, but `form_mapping.go` is where the tag-name/fallback/delimiter logic actually lives.\n\n```\nbinding/form_mapping.go\nbinding/header.go\nbinding/form.go\nbinding/query.go\ncontext.go\n```"
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/uri.go",
+      "binding/header.go"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Bash": 2,
+        "Read": 7
+      },
+      "byCommand": {
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 24590,
+      "out": 471,
+      "cacheRead": 7566,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027701600000000002,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 51436,
+    "answer": "\n\n`binding/form_mapping.go` — contains the core `mapFormByTag`/`mapping` traversal, `tryToSetValue` (tag-name lookup with field-name fallback and `default=` fallback values), `trySplit` (splits list values on the `collection_format` delimiter), and `setByForm` which applies them. `binding/form.go` — the `formBinding` entry point that parses the request and calls `mapForm`. `binding/query.go` — the `queryBinding` entry point that feeds URL query values into the same mapping. `binding/uri.go` — the `uriBinding` entry point that feeds route params into the same mapping. `binding/header.go` — the `headerBinding` entry point that feeds request headers into the same mapping."
+  }
+]

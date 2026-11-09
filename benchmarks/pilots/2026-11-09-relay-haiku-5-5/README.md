@@ -135,6 +135,21 @@ npm run benchmark:agent-ab -- --sigmap-variant lean ...   # default is "current"
 
 `lean` keeps the same index and the same MCP server but hands the agent the 7-tool `core` profile (about 1.0k tokens of definitions, against about 2.6k for all 22) and a three-line section (about 70 tokens, against about 1.7k) that names the MCP tools and says to treat the ranking as a lead and confirm. Re-sent on every turn that is about **1.0k tokens instead of about 4.3k (−76%)**, or roughly 46k tokens per question over the pilot's 13.8 turns before any caching discount (the regression above found about 21k at this relay's caching). It removes the fixed cost, not the extra calls: each of those still costs about 13k tokens. It has not been run against a model.
 
+### First probe of the lean variant: one question, four runs
+
+`lean-gin-4runs/` is `--sigmap-variant lean` on `gin/x001` only (2 repetitions × 2 arms), through the repo's own shim. Total tokens per run (input + output + cache read):
+
+| | repetition 1 | repetition 2 | tool calls | found the file |
+|---|---:|---:|---:|---|
+| baseline, earlier run | 43.6k | 62.4k | 12, 17 | yes, yes |
+| SigMap `current`, earlier run | 68.3k | 179.9k | 6, 16 | yes, yes |
+| baseline, this run | 44.0k | 32.6k | 9, 9 | yes, yes |
+| **SigMap `lean`, this run** | **28.4k** | **26.1k** | 7, 5 | yes, yes |
+
+Against its own baseline in the same run the lean arm used −36% and −20% of the tokens (mean −29%); the `current` arm on the same question had been +57% and +188% over its baseline. The lean arm called `query_context` twice in all, `get_lines` six times and `read_context` once.
+
+**Read it as a direction and not a result.** It is one question; the baseline alone moved from 62k to 33k in repetition 2 between the two invocations, so a difference of this size is within what a single question swings; there is no interval; and the model is Haiku through a relay. It says the fixed cost was real and removable on this question, and nothing about the other 29. The run used about 131k raw tokens, an estimated 0.4M debited at the relay's 3×.
+
 ## What it cost
 
 The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
@@ -142,6 +157,7 @@ The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× r
 ## Files
 
 - `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `lean-gin-4runs/` — the lean-variant probe above: report, data, raw records and the shim's stats.
 - `retrieval-audit.mjs` — how good `query_context` is on all 30 labelled questions, whether a score margin can say "clearly ahead", and the opt-in ranking settings (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/retrieval-audit.mjs`; needs the fetched checkouts).
 - `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).
 - `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.
