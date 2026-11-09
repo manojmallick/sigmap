@@ -122,19 +122,21 @@ export class IntegrityError extends Error {}
  *
  * @param {Array<{id:string, repo:string, query:string, expected_files:string[]}>} tasks
  * @param {string[]} repoNames manifest order
- * @param {{ perRepo?: number, only?: string[]|null }} [opts]
+ * @param {{ perRepo?: number, only?: string[]|null, ids?: string[]|null }} [opts] `ids` picks exactly those task ids
+ *   (every repo's matches, in id order) and replaces the first-K rule; a targeted re-run, not a sample
  * @returns {Array<{id:string, repo:string, query:string, expected_files:string[]}>}
  */
 export function selectTasks(tasks, repoNames, opts = {}) {
   const perRepo = opts.perRepo === undefined ? DEFAULT_TASKS_PER_REPO : opts.perRepo;
   if (!Number.isInteger(perRepo) || perRepo < 1) throw new Error(`tasks per repo must be a positive integer, got ${perRepo}`);
   const only = opts.only && opts.only.length ? new Set(opts.only) : null;
+  const ids = opts.ids && opts.ids.length ? new Set(opts.ids) : null;
   const out = [];
   for (const repo of repoNames) {
     if (only && !only.has(repo)) continue;
-    const mine = tasks.filter((t) => t.repo === repo)
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-      .slice(0, perRepo);
+    const sorted = tasks.filter((t) => t.repo === repo)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const mine = ids ? sorted.filter((t) => ids.has(t.id)) : sorted.slice(0, perRepo);
     for (const t of mine) out.push({ id: t.id, repo: t.repo, query: t.query, expected_files: [...t.expected_files] });
   }
   return out;
@@ -665,7 +667,7 @@ export function buildReport({ entries, tasks, method }) {
       arms: { without: 'no SigMap', with: SIGMAP_VARIANTS[method.variant || 'current'] || SIGMAP_VARIANTS.current },
       tools: [...BUILTIN_TOOLS],
       corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl',
-      selection: `first ${method.tasksPerRepo} task(s) by id per repo`,
+      selection: method.taskIds && method.taskIds.length ? `the task id(s) ${method.taskIds.join(', ')}` : `first ${method.tasksPerRepo} task(s) by id per repo`,
       passDefinition: `hit@${TOP_K} on the repository-relative paths the answer names`,
       priceAsOf: PRICE_AS_OF,
       publishable: pub.publishable,

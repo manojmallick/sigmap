@@ -147,6 +147,18 @@ const treeHash = (dir) => {
     assert.throws(() => ab.selectTasks(tasks, ['a'], { perRepo: 0 }), /positive integer/);
   });
 
+  await test('selectTasks with ids picks exactly those ids in every repo and ignores the first-K rule', () => {
+    const tasks = [
+      { id: 'x003', repo: 'b', query: 'q', expected_files: ['b3'] }, { id: 'x001', repo: 'a', query: 'q', expected_files: ['a1'] },
+      { id: 'x002', repo: 'a', query: 'q', expected_files: ['a2'] }, { id: 'x004', repo: 'b', query: 'q', expected_files: ['b4'] },
+    ];
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002', 'x003'] }).map((t) => `${t.repo}/${t.id}`), ['a/x002', 'b/x003']);
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x004'], perRepo: 1 }).map((t) => t.id), ['x004'], 'a repo\'s first task is not added');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002', 'x001'] }).map((t) => t.id), ['x001', 'x002'], 'id order, whatever order they were asked in');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: [] }).map((t) => t.id), ['x001', 'x003'], 'an empty list is no filter');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002'], only: ['b'] }), [], 'a repo filter still applies');
+  });
+
   await test('the prompt carries the question and names neither the answer nor SigMap', () => {
     const p = ab.buildPrompt({ query: 'how are widgets frobbed', expected_files: ['src/secret/frob.js'] });
     assert.ok(p.includes('how are widgets frobbed'));
@@ -902,6 +914,35 @@ const treeHash = (dir) => {
     assert.strictEqual(mk('lean').method.arms.with, ab.SIGMAP_VARIANTS.lean);
     assert.strictEqual(mk(undefined).method.arms.with, ab.SIGMAP_VARIANTS.current, 'an older caller without a variant is still the current arm');
     assert.match(ab.renderMarkdown(mk('lean')), /\*\*with\*\* = SigMap lean: 7-tool core MCP profile/);
+  });
+
+  await test('--task-ids runs exactly those questions, says so in the plan and the report, and refuses an id that does not exist', () => {
+    const f = fixture();
+    const dry = runCli(['--dry-run', '--task-ids', 'x010'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /tasks\s+1 \(task id\(s\) x010\)/);
+    assert.match(dry.stdout, /4 per arm × 2 arms = 8 agent runs/, 'one task, the default 4 repetitions, both arms');
+    const two = runCli(['--dry-run', '--task-ids', 'x002,x010'], { SIGMAP_XREPO_DATA: f.root });
+    assert.match(two.stdout, /tasks\s+2 \(task id\(s\) x002, x010\)/);
+    const bad = runCli(['--dry-run', '--task-ids', 'x999'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bad.status, 2);
+    assert.match(bad.stderr, /--task-ids: "x999" is not a task id/);
+    const none = runCli(['--dry-run', '--task-ids', 'x010', '--repos', 'r1'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(none.status, 2);
+    assert.match(none.stderr, /no task to run: none of x010 is in a repo/);
+    const noVal = runCli(['--dry-run', '--task-ids'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(noVal.status, 2);
+    assert.match(noVal.stderr, /--task-ids needs a value/);
+
+    const live1 = runCli(['--claude', f.bin, '--runs', '2', '--task-ids', 'x010', '--save', '--allow-unpublishable', '--out-dir', f.out], live(f));
+    assert.strictEqual(live1.status, 0, live1.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 4, '1 task × 2 repetitions × 2 arms');
+    assert.ok(calls.every((c) => /r2-(with|without)$/.test(c.cwd)), 'only the repo that holds x010 ran');
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.deepStrictEqual(rep.method.taskIds, ['x010']);
+    assert.strictEqual(rep.method.selection, 'the task id(s) x010');
+    assert.deepStrictEqual(rep.cells.map((c) => c.task), ['x010', 'x010']);
   });
 
   await test('--sigmap-variant reaches the agent: the lean arm gets the three-line section, the other arm none, and the report records it', () => {

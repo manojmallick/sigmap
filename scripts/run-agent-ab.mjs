@@ -65,7 +65,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -110,6 +110,7 @@ const ONLY = val('--repos', null);
 const OUT_DIR = val('--out-dir', path.join(CODE_ROOT, 'benchmarks', 'reports'));
 const RAW_OUT = val('--raw-out', null);
 const MAX_FAILS = intArg('--max-consecutive-failures', 3);
+const TASK_IDS = val('--task-ids', null) ? val('--task-ids', null).split(',').map((x) => x.trim()).filter(Boolean) : null;
 const VARIANT = val('--sigmap-variant', 'current');
 if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
   fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
@@ -137,7 +138,7 @@ function printPlan(plan) {
     '',
     `  agent     claude (--bare), model ${MODEL}`,
     `  repos     ${plan.repos.length}${plan.skipped.length ? ` (${plan.skipped.length} skipped: ${plan.skipped.map((s) => `${s.name} ${s.why}`).join(', ')})` : ''}`,
-    `  tasks     ${plan.tasks} (first ${PER_REPO} per repo, by id)`,
+    `  tasks     ${plan.tasks} (${TASK_IDS ? `task id(s) ${TASK_IDS.join(', ')}` : `first ${PER_REPO} per repo, by id`})`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
     `  budget    <= $${BUDGET} per run -> <= $${(plan.agentRuns * BUDGET).toFixed(2)} worst case; timeout ${Math.round(TIMEOUT / 1000)} s per run`,
     `  arms      without = no SigMap · with = ${VARIANT === 'current' ? 'generated CLAUDE.md section + sigmap CLI + MCP server' : SIGMAP_VARIANTS[VARIANT]} (variant: ${VARIANT}); identical prompt, model, read-only tools`,
@@ -149,8 +150,12 @@ async function main() {
   const manifest = loadManifest(DATA);
   const corpus = readTasks(path.join(DATA, TASKS_REL));
   const { present, skipped } = selectRepos(manifest, corpus);
-  const tasks = selectTasks(corpus, present.map((r) => r.name), { perRepo: PER_REPO });
-  if (!tasks.length) fail('no task to run: no pinned checkout is present (npm run fetch:xrepo)', 2);
+  if (TASK_IDS) {
+    const known = new Set(corpus.map((t) => t.id));
+    for (const id of TASK_IDS) if (!known.has(id)) fail(`--task-ids: "${id}" is not a task id in benchmarks/tasks/retrieval-xrepo.jsonl`, 2);
+  }
+  const tasks = selectTasks(corpus, present.map((r) => r.name), { perRepo: PER_REPO, ids: TASK_IDS });
+  if (!tasks.length) fail(TASK_IDS ? `no task to run: none of ${TASK_IDS.join(', ')} is in a repo with a pinned checkout (npm run fetch:xrepo)` : 'no task to run: no pinned checkout is present (npm run fetch:xrepo)', 2);
 
   const plan = { repos: present, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
   if (DRY) { writeAll(1, printPlan(plan)); return; }
@@ -208,6 +213,7 @@ async function main() {
     model: MODEL,
     runs: RUNS,
     variant: VARIANT,
+    taskIds: TASK_IDS,
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,
     timeoutMs: TIMEOUT,
