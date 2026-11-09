@@ -42,6 +42,8 @@ npm run benchmark:agent-ab -- --repos gin,flask,express,fastify,fastapi --tasks-
 
 `GET <relay>/v1/models` lists the model names your key may use. Use `--runs 4` for a report the harness treats as publishable.
 
+The commands above run the `current` arm. Add `--sigmap-variant index` (the docs' setup for an agent that calls the tools) or `--sigmap-variant lean` (the smallest) to run those instead; run one variant per invocation. Do both against a fresh baseline each time.
+
 ## Result: 10 tasks × 2 repetitions × 2 arms = 40 agent runs, none failed
 
 `full-40runs/agent-ab.md` is the report. Both estimates are per repetition; a change is SigMap's arm against the no-SigMap arm, so negative means SigMap used less. `†` = the 95% interval includes zero.
@@ -88,6 +90,8 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 | **SigMap `current` (measured, 10 tasks)** | **ranked context + MCP tools** | **+12% / +42%** | **+7% / +68%** | **no** |
 | *SigMap `lean`, modelled on the same 40 runs* | *the static prompt it no longer sends, subtracted* | *−25% / −6%* | *−36% / +2%, intervals include zero* | *workload yes, typical task no; **not a measurement*** |
 | *SigMap `lean`, measured, 1 task (gin/x001)* | *same index, 7 tools, 3-line section* | *−36% / −20%* | *one task, no interval* | *a direction only* |
+| *SigMap `index` (the docs' setup), modelled on the same 40 runs* | *index strategy + 7 tools, product's own text* | *−19% / +2%* | *−28% / +14%, intervals include zero* | *no (second repetition flat); **not a measurement*** |
+| *SigMap `index`, measured, 1 task (gin/x001)* | *same* | *−30% / −1%* | *one task, no interval* | *a direction only* |
 | Mandarin | translated prompts | +86% / +15% | +70% / +12% | no, much worse |
 | Context Mode | index and retrieve context | +94% / +46% | +102% / +51% | no, much worse |
 
@@ -153,13 +157,60 @@ Against its own baseline in the same run the lean arm used −36% and −20% of 
 
 **Read it as a direction and not a result.** It is one question; the baseline alone moved from 62k to 33k in repetition 2 between the two invocations, so a difference of this size is within what a single question swings; there is no interval; and the model is Haiku through a relay. It says the fixed cost was real and removable on this question, and nothing about the other 29. The run used about 131k raw tokens, an estimated 0.4M debited at the relay's 3×.
 
+## Using SigMap efficiently: strategies, tool sets, and the verdict so far
+
+The question was fair: **the pilot did not use SigMap the way its own docs say to use it with an agent that calls the tools.** It ran the default `full` strategy and all 22 MCP tools. The strategies guide recommends `index` (an always-on map, every signature still in the index) for exactly this case, and `hot-cold` or `per-module` for others. Checked offline (`strategy-audit.mjs`, free):
+
+| strategy | always-on section, tokens (mean of 5 repos) | retrieval, first / top 5 of 30 | usable in this harness? |
+|---|---:|---|---|
+| `full` (the pilot) | 1,747 | 10 / 20 | yes |
+| `index` | **622** (−64%) | 10 / 20 | **yes: the docs' choice for tool-calling agents** |
+| `per-module` | 557 (gin 1,131, the others about 400) | 10 / 20 | yes, but no smaller than `index` here, and the agent must pick a module file |
+| `hot-cold` | 28,469 | 10 / 20 | **no.** "Recently changed files" needs git history, the pinned checkouts hold one commit, so every file is hot (fastapi: 99,804 tokens). It would be a harness artefact, not a result |
+
+Retrieval is identical under every strategy, as the docs say, so a cheaper strategy cannot cost accuracy. What is re-sent on every turn, in tokens:
+
+| setup | tool definitions | section | per turn |
+|---|---:|---:|---:|
+| `current`: `full` + all 22 tools (the pilot) | 2,568 | 1,747 | **4,315** |
+| `index` + 7-tool `core` (the docs' setup; variant `index`) | 955 | 622 | **1,577** |
+| `lean`: `core` + a three-line section (variant `lean`) | 955 | 73 | **1,028** |
+
+**Measured so far, on one question (`gin/x001`, 4 runs per variant, the same questions the old arm lost):**
+
+| | repetition 1 | repetition 2 | vs its own same-run baseline |
+|---|---:|---:|---|
+| `current` (earlier run) | 68.3k (baseline 43.6k) | 179.9k (baseline 62.4k) | +134% |
+| `lean` | 28.4k (baseline 44.0k) | 26.1k (baseline 32.6k) | −29% |
+| `index` | 21.6k (baseline 30.8k) | 20.8k (baseline 21.1k) | −18% |
+
+All three found the file every time. `index` made 6 and 2 tool calls and called `query_context` twice, `get_lines` three times and `read_context` once, and no `sigmap` command in a terminal. The baseline itself ranged from 21k to 62k tokens across the three invocations, so the gap between `lean` and `index` is noise and the gap between either and `current` is not.
+
+**Modelled over all 40 pilot runs** (`analysis.mjs` section 4: the current arm minus the static tokens the variant no longer re-sends, behaviour held fixed; not a measurement, and the typical-task intervals include zero):
+
+| | workload R1 / R2 | typical task R1 / R2 |
+|---|---:|---:|
+| `current`, measured | +12% / +42% | +7% / +68% |
+| `index`, modelled | −19% / +2% | −28% / +14% |
+| `lean`, modelled | −25% / −6% | −36% / +2% |
+
+### Verdict, as far as the evidence goes
+
+1. **The pilot's loss was largely a setup problem, not a verdict on SigMap.** It re-sent about 4.3k tokens a turn that the docs' own setup avoids (about 1.6k), and the product's recommended strategy for an agent that calls the tools was not the one run.
+2. **Used efficiently, SigMap probably lands near break-even on this slice, not at a clear saving.** The arithmetic and the one measured question say the fixed tax is mostly removable; they do not say the agent then needs fewer calls. `query_context` puts the right file first only a third of the time on these questions, so the agent still has to verify, and each extra call still costs about 13k tokens. A saving shows up where the baseline needed a long search (the pilot's eight wins, −20% to −78%) and a cost where it did not.
+3. **Accuracy was not the problem:** the file was found 20 of 20 times in the 40-run pilot (18 of 20 for the baseline) and 6 of 6 in the SigMap arms of the three 4-run probes (6 of 6 for their baselines).
+4. **Against the other tools:** if the modelled rows hold, an efficiently set-up SigMap would sit with Caveman, Ponytail and RTK (near zero, noisy) and not with Context Mode and Mandarin. That is a projection.
+5. **What is not done, and what would settle it:** the 10-task × 2-repetition run of `index` (the docs' setup) and `lean`, each against a baseline. About 5M raw tokens per variant here (an estimated 15M at this relay's 3×), which the key cannot cover; the exact commands are in "Reproduce it", with `--sigmap-variant index` and `--sigmap-variant lean`. Until that is run, the honest statement is: not shown to save tokens, shown not to lose accuracy, and the pilot's +12% / +42% should not be quoted as SigMap's efficiency.
+
 ## What it cost
 
-The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
+The two later 4-run probes used about 131k (`lean`) and 94k (`index`) raw tokens. The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
 
 ## Files
 
 - `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `index-gin-4runs/` — the same probe for the docs' setup (`--sigmap-variant index`).
+- `strategy-audit.mjs` — what each context strategy injects and that retrieval does not change (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/strategy-audit.mjs`; needs the fetched checkouts).
 - `lean-gin-4runs/` — the lean-variant probe above: report, data, raw records and the shim's stats.
 - `retrieval-audit.mjs` — how good `query_context` is on all 30 labelled questions, whether a score margin can say "clearly ahead", and the opt-in ranking settings (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/retrieval-audit.mjs`; needs the fetched checkouts).
 - `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).

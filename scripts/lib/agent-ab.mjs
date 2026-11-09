@@ -56,12 +56,16 @@ export const ARMS = Object.freeze(['without', 'with']);
  * What the `with` arm is. `current` is what a first-time `sigmap --adapter claude` run hands an
  * agent (the generated section plus the MCP server on its default 22-tool profile). `lean` keeps the
  * same index and the same MCP server but hands the agent less on every turn: the 7-tool `core`
- * profile and a three-line section instead of the generated one. A variant changes how much the
- * agent is told, never what the index holds, so the two stay comparable on the same questions.
+ * profile and a three-line section instead of the generated one. `index` is the setup the strategies
+ * guide gives for an agent that reliably calls the lookup tools: `strategy: "index"` (an always-on map
+ * of about a third the size, every signature still in the index) with the `core` profile, and the
+ * section SigMap itself writes, nothing hand-written. A variant changes how much the agent is told,
+ * never what the index holds, so they stay comparable on the same questions.
  */
 export const SIGMAP_VARIANTS = Object.freeze({
   current: 'SigMap generated context + MCP server',
   lean: 'SigMap lean: 7-tool core MCP profile + a three-line section',
+  index: 'SigMap index strategy + 7-tool core MCP profile (the docs\' setup for an agent that calls the tools)',
 });
 
 /**

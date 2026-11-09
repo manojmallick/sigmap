@@ -878,10 +878,24 @@ const treeHash = (dir) => {
     assert.ok(arms.probeMcp({ cwd: lean.cwd, codeRoot: ROOT }).ok, 'the narrowed server still answers');
   });
 
+  await test('the index variant is the docs\' setup: the index strategy and the core profile, with the section SigMap itself writes', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const idx = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-idx-'), codeRoot: ROOT, variant: 'index' });
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(idx.cwd, 'gen-context.config.json'), 'utf8')), { strategy: 'index', mcp: { tools: 'core' } });
+    assert.notStrictEqual(idx.sigmapContext, ab.LEAN_SECTION, 'nothing hand-written: the section is the one SigMap generated');
+    assert.match(idx.sigmapContext, /SigMap commands/);
+    assert.ok(fs.existsSync(path.join(idx.cwd, '.context')) || fs.existsSync(path.join(idx.cwd, 'CLAUDE.md')), 'the index is generated');
+    const init = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }];
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'gen-context.js'), '--mcp'], { cwd: idx.cwd, input: `${init.map((m) => JSON.stringify(m)).join('\n')}\n`, encoding: 'utf8', timeout: 30000 });
+    let n = 0; for (const line of r.stdout.split('\n')) { try { const m = JSON.parse(line); if (m.id === 2) n = m.result.tools.length; } catch (_) { /* not a response */ } }
+    assert.strictEqual(n, 7, 'the narrowed server');
+    assert.ok(arms.probeMcp({ cwd: idx.cwd, codeRoot: ROOT }).ok);
+  });
+
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -906,7 +920,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);

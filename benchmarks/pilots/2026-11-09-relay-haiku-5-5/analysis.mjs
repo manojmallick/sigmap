@@ -58,18 +58,20 @@ const withs = raw.filter((x) => x.arm === 'with');
 const per = (tool) => (withs.reduce((s, x) => s + ((x.toolCalls.byTool || {})[`mcp__sigmap__${tool}`] || 0), 0) / withs.length).toFixed(1);
 console.log(`3. SigMap runs calling query_context at all: ${withs.filter((x) => (x.toolCalls.byTool || {}).mcp__sigmap__query_context).length} of ${withs.length}; per run: get_lines ${per('get_lines')}, search_signatures ${per('search_signatures')}, query_context ${per('query_context')}; ${(withs.reduce((s, x) => s + x.toolCalls.total, 0) / withs.length).toFixed(1)} tool calls in all`);
 
-// 4. Modelled lean: current arm minus the static tokens per turn that lean drops (arm-audit.mjs: 22 tool definitions plus the
-//    generated section, about 4315 tokens; the 7-tool profile plus the three-line section, about 1028). Not a measurement.
-const TAX = 4315 - 1028;
-const leanTokens = (x) => Math.max(total(x) - TAX * (x.toolCalls.total + 1), 0.2 * total(x));
+// 4. Modelled variants: the current arm minus the static tokens per turn that the variant no longer re-sends
+//    (arm-audit.mjs and strategy-audit.mjs: the current arm re-sends about 4315 tokens a turn, 22 tool definitions plus the
+//    generated section; lean about 1028, 7 tools plus three lines; index about 1577, 7 tools plus the index section).
+//    Not a measurement: behaviour is held fixed.
+const STATIC = { current: 4315, lean: 1028, index: 955 + 622 };
+const modelled = (name) => (x) => Math.max(total(x) - (STATIC.current - STATIC[name]) * (x.toolCalls.total + 1), 0.2 * total(x));
 for (const run of [1, 2]) {
   const ps = pairs.filter((p) => p.with.run === run);
-  const cur = ps.map((p) => ({ without: total(p.without), with: total(p.with) }));
-  const prj = ps.map((p) => ({ without: total(p.without), with: leanTokens(p.with) }));
-  const show = (label, a) => {
+  const show = (label, f) => {
+    const a = ps.map((p) => ({ without: total(p.without), with: f(p.with) }));
     const g = geometricChange(a);
     console.log(`4. ${label} repetition ${run}: workload ${pct(workloadChange(a).change)}, typical task ${pct(g.change)} [${pct(g.lo)}, ${pct(g.hi)}]`);
   };
-  show('measured current ', cur);
-  show('MODELLED lean    ', prj);
+  show('measured current ', total);
+  show('MODELLED lean    ', modelled('lean'));
+  show('MODELLED index   ', modelled('index'));
 }

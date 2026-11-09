@@ -83,7 +83,7 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @param {'without'|'with'} p.arm
  * @param {string} p.tmpRoot directory to build the copy in
  * @param {string} [p.codeRoot] checkout whose gen-context.js generates the SigMap arm
- * @param {'current'|'lean'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same
+ * @param {'current'|'lean'|'index'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same
  * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
  */
 export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current' }) {
@@ -116,7 +116,11 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   if (repo.srcDirs) config.srcDirs = repo.srcDirs;
   // The MCP server reads its tool profile from the config in the directory it runs in, so the
   // lean arm's 7-tool profile is set here and nowhere else. The index it answers from is unchanged.
-  if (variant === 'lean') config.mcp = { tools: 'core' };
+  if (variant === 'lean' || variant === 'index') config.mcp = { tools: 'core' };
+  // `index` is the docs' own setup for an agent that calls the tools: an always-on map instead of a
+  // signature dump. The index the tools answer from is written before the strategy split and is
+  // byte-identical (retrieval is the same under every strategy; checked on the pilot's questions).
+  if (variant === 'index') config.strategy = 'index';
   if (Object.keys(config).length) fs.writeFileSync(cfg, JSON.stringify(config, null, 2) + '\n');
   execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), '--adapter', 'claude'], {
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
