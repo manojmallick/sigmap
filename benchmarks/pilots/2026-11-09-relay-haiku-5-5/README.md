@@ -93,6 +93,31 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 - Quality is not comparable. The study graded patches (tests, equivalence, review) and found several modes lost on those. This run grades only whether the right file was named: SigMap 20/20 against 18/20, with no losses. Finding a file is a far easier test than writing a correct patch, so that result does not say SigMap is safer.
 - Dollar cost is missing here on purpose: the relay's pricing is not the agent's arithmetic, and the study's strongest result (a cheaper model cuts the bill) is about price, which this run cannot speak to.
 
+## Was SigMap set up fairly, and what went wrong?
+
+**The comparison itself was fair.** Both arms got the same prompt, model, read-only tools and a clean copy of the same pinned commit. The SigMap arm got what a first-time user gets (zero-config generation as the xrepo gate does it, the generated section appended to the system prompt, the MCP server), the harness verified each run's own init event, and all 20 SigMap runs used SigMap's tools. **But the arm carried more than it needed, and several things worked against it.** Reproduce the numbers below with `arm-audit.mjs` and `analysis.mjs` in this directory (both offline, no key).
+
+What the evidence shows, strongest first:
+
+1. **The agent did not stop when it had the answer.** The MCP `query_context` tool (top 5) returned the expected file, in a roughly 400 to 800 token answer, for 8 of the 10 questions. The runs still averaged 13.8 tool calls: 5.8 `get_lines` and 3.6 `search_signatures` per run, and 4 of 20 runs never called `query_context`. Across the 20 pairs, each extra tool call cost about 13k tokens (the conversation is re-read every turn).
+2. **A fixed cost on every question.** At equal tool-call counts the SigMap arm still used about 21k more tokens (least squares, R² 0.79, n=20). Per turn it re-sent the 22 MCP tool definitions (about 2.6k tokens; the 7-tool `core` profile the README recommends is about 1k) plus the generated section (1.5k to 2.1k tokens).
+3. **The always-on section is a thin slice that answers few questions.** It lists 8 to 18 of each repo's files (gin 9 of 118, fastapi 18 of 968) and held the answer file for only 2 of the 10 questions; on express 8 of its 12 entries are `examples/` or `test/` files and `lib/request.js` is absent. The section also tells the agent to run `sigmap ask` in a terminal and never mentions the MCP tools the arm gave it, so the instructions point at the path the agent mostly did not take (the CLI was used in 3 runs).
+4. **Questions the baseline found easy cannot be made cheaper.** Ten of the twelve cases where SigMap cost more were questions the baseline answered in under 90k tokens; all it could add there was overhead.
+5. **Retrieval missed twice (gin/x002, fastify/x138)** and the basic ranker alone placed the file in the top 5 for only 4 of 10: these are the paraphrased "hard" questions, where SigMap's published numbers are also lowest.
+6. **The relay confounds the token counts.** It reported no cache writes and served only 14% (without) and 21% (with) of input from cache, where the real API caches a stable prompt prefix heavily. Re-weighting the same runs the way Anthropic prices them (cache read 0.1×, output 5×) gives repetition 1 about break-even (workload +3%, typical task −2%) and repetition 2 still worse (+30%, +58%). That is an estimate, not a bill, and a real-API run is the way to settle it.
+
+### Ideas, in the order I would test them
+
+Each is a hypothesis from 20 paired cases, not a finding, and none has been tried.
+
+1. **Make one call enough.** Have `query_context` end with an explicit stop line when the top match is strong, using the `confidence` the ranker already computes ("answer from this; open code only to quote it"). Expect: fewer `get_lines` and `search_signatures` calls.
+2. **Cut the per-turn cost.** Default to the `core` profile or smaller (`query_context` and `get_lines`), and fold `search_signatures` into `query_context`, which removes a second way to search. Expect: about 1.6k fewer tokens per turn from definitions alone.
+3. **Make the section match the tools.** When MCP is configured, name the MCP tool instead of the CLI, in a few lines, and make the signature sample opt-in for question answering. Expect: a few hundred tokens per turn instead of 1.5k to 2k.
+4. **Pay only when asked.** The wins came on questions needing long searches (baseline 84k+ tokens), the losses on easy ones. An always-on tax cannot do that; progressive disclosure (tools on demand, almost nothing always-on) could.
+5. **Keep the injected prefix byte-stable** so provider caching discounts it (the section already carries a `sigmap:volatile` marker), and measure on the real API, where a cached prefix costs a tenth.
+6. **Add the two misses to the retrieval backlog** (gin/x002 `render/json.go`, fastify/x138 `lib/validation.js`).
+7. **Test them as arms**, not by argument: baseline, current, `core` plus no section, and that plus the stop line, on the same 10 tasks × 2 repetitions. At about 130k raw tokens per run that is roughly 2.6M raw tokens per arm; the harness has no arm-variant switch yet.
+
 ## What it cost
 
 The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
@@ -100,4 +125,5 @@ The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× r
 ## Files
 
 - `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).
 - `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.
