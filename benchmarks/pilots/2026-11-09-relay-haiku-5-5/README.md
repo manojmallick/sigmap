@@ -85,11 +85,14 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 | Ponytail | write less code | +16% / −1% | +8% / −3% | no |
 | RTK | filter shell output | +18% / −8% | +18% / −5% | no |
 | Terra (cheaper model) | changes model and price | +6% / +5% | −23% / −12% | no (cost −49% both times) |
-| **SigMap (this run)** | **ranked context + MCP tools** | **+12% / +42%** | **+7% / +68%** | **no** |
+| **SigMap `current` (measured, 10 tasks)** | **ranked context + MCP tools** | **+12% / +42%** | **+7% / +68%** | **no** |
+| *SigMap `lean`, modelled on the same 40 runs* | *the static prompt it no longer sends, subtracted* | *−25% / −6%* | *−36% / +2%, intervals include zero* | *workload yes, typical task no; **not a measurement*** |
+| *SigMap `lean`, measured, 1 task (gin/x001)* | *same index, 7 tools, 3-line section* | *−36% / −20%* | *one task, no interval* | *a direction only* |
 | Mandarin | translated prompts | +86% / +15% | +70% / +12% | no, much worse |
 | Context Mode | index and retrieve context | +94% / +46% | +102% / +51% | no, much worse |
 
-- No tool in either study cut tokens in both repetitions. SigMap sits between the four that stay near zero and the two that make things clearly worse, and is the closest in kind to Context Mode, which also adds retrieval; SigMap's increase was smaller.
+- **The two italic lean rows are not on the same footing as the rest.** Only `current` was measured over the 10 tasks. The modelled row subtracts the 3.3k static tokens per turn that lean no longer re-sends from every SigMap run and keeps the agent's behaviour exactly as it was (`analysis.mjs`, section 4): it reproduces the measured `current` rows exactly, and on the one question where lean was actually measured it was too pessimistic (model: 45k and 124k; measured: 28k and 26k), but it cannot see the agent behaving differently, which could go either way on other questions. Its typical-task intervals (−59% to +4%, −49% to +89%) include zero, so by the study's own standard they are inside the noise. The measured row is one question over two repetitions.
+- No tool that was actually measured over 10 tasks, in either study, cut tokens in both repetitions. SigMap sits between the four that stay near zero and the two that make things clearly worse, and is the closest in kind to Context Mode, which also adds retrieval; SigMap's increase was smaller.
 - Quality is not comparable. The study graded patches (tests, equivalence, review) and found several modes lost on those. This run grades only whether the right file was named: SigMap 20/20 against 18/20, with no losses. Finding a file is a far easier test than writing a correct patch, so that result does not say SigMap is safer.
 - Dollar cost is missing here on purpose: the relay's pricing is not the agent's arithmetic, and the study's strongest result (a cheaper model cuts the bill) is about price, which this run cannot speak to.
 

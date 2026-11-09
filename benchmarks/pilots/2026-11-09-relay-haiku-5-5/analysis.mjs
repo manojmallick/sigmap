@@ -9,9 +9,14 @@
 //      cache write 1.25). The relay reported no cache writes and served a small share of input from cache, so the
 //      unweighted totals probably overstate what the real API would bill. An estimate, not a bill.
 //   3. How the SigMap arm used its tools.
+//   4. A MODELLED estimate of the lean variant on these 40 runs: subtract, from every SigMap run, the static prompt the
+//      lean arm no longer re-sends on each turn. It assumes the agent behaves exactly as it did (same calls), so it is
+//      arithmetic and not a measurement; the one question where lean was measured (lean-gin-4runs) came out better
+//      than the model says, but that is one case.
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { workloadChange, geometricChange } from '../../../scripts/lib/agent-ab-stats.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -52,3 +57,19 @@ for (const arm of ['without', 'with']) {
 const withs = raw.filter((x) => x.arm === 'with');
 const per = (tool) => (withs.reduce((s, x) => s + ((x.toolCalls.byTool || {})[`mcp__sigmap__${tool}`] || 0), 0) / withs.length).toFixed(1);
 console.log(`3. SigMap runs calling query_context at all: ${withs.filter((x) => (x.toolCalls.byTool || {}).mcp__sigmap__query_context).length} of ${withs.length}; per run: get_lines ${per('get_lines')}, search_signatures ${per('search_signatures')}, query_context ${per('query_context')}; ${(withs.reduce((s, x) => s + x.toolCalls.total, 0) / withs.length).toFixed(1)} tool calls in all`);
+
+// 4. Modelled lean: current arm minus the static tokens per turn that lean drops (arm-audit.mjs: 22 tool definitions plus the
+//    generated section, about 4315 tokens; the 7-tool profile plus the three-line section, about 1028). Not a measurement.
+const TAX = 4315 - 1028;
+const leanTokens = (x) => Math.max(total(x) - TAX * (x.toolCalls.total + 1), 0.2 * total(x));
+for (const run of [1, 2]) {
+  const ps = pairs.filter((p) => p.with.run === run);
+  const cur = ps.map((p) => ({ without: total(p.without), with: total(p.with) }));
+  const prj = ps.map((p) => ({ without: total(p.without), with: leanTokens(p.with) }));
+  const show = (label, a) => {
+    const g = geometricChange(a);
+    console.log(`4. ${label} repetition ${run}: workload ${pct(workloadChange(a).change)}, typical task ${pct(g.change)} [${pct(g.lo)}, ${pct(g.hi)}]`);
+  };
+  show('measured current ', cur);
+  show('MODELLED lean    ', prj);
+}
