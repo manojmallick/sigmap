@@ -2,6 +2,26 @@
 
 **Not a published result.** It is a pilot, run through a third-party Anthropic-compatible relay on a free-tier key, with a different model from the harness default, on very few tasks. The repository publishes no agent-level figure; nothing here changes a number in the README or `benchmarks/latest.json`. It is saved so the run can be repeated and the files read.
 
+## Update: the same test on the real API. Read this first.
+
+Added after a way to run without an API key was built (`--session-auth`: the logged-in Claude Code session, which means real Anthropic Haiku 5.5, real prompt caching and real prices, about $0.002 and 12 seconds a run). **30 labelled questions (gin, flask, express, fastify, fastapi) × 2 repetitions × 2 arms = 120 runs, none failed.** SigMap is the `index` variant (the docs' setup) against no SigMap. `session-combined.mjs` reproduces everything from `session-auth/`.
+
+| | SigMap against no SigMap |
+|---|---|
+| file found | **60/60 against 60/60** |
+| real cost, pooled over 60 pairs | **+5%** typical [−1%, +11%], inside the noise (workload +6%); SigMap cheaper in 28 pairs, dearer in 32 |
+| total tokens | **+19%** [+11%, +27%], outside the noise (SigMap lower in 13 of 60): the section and tool definitions are re-read every turn (cached, so cheap in dollars) |
+| tool calls | −3% [−14%, +9%], inside the noise; 3.2 and 3.2 per run |
+| seconds | no difference (12.5 and 12.5) |
+| by repo, real cost | express +13%, fastapi +11%, fastify +4%, gin 0%, flask −5% (every interval but express's includes zero) |
+
+What it changes:
+
+- **The agent barely used SigMap's retrieval.** In 60 SigMap runs it called `query_context` 11 times, `get_lines` 55 times and `Grep` 97 times: it searched by itself. The baseline finds the file in about 3 calls for about $0.0023, so on these questions **there is nothing for SigMap to save**, and what it adds (a section and seven tool definitions) is pure overhead.
+- **The relay results below describe a different agent.** On the same questions the relay runs took about 10 tool calls and 1 to 2 minutes, against 3 calls and 12 seconds here. I could not separate the causes (the relay's model and caching, or `--bare`'s minimal system prompt against Claude Code's full one); either way, the "long searches where SigMap saves" picture, and the 3× noise, do not transfer to the real agent. The noise is small here (standard deviation of the paired log-ratio 0.22, against 1.11 on the relay), so 60 pairs resolve about ±6%.
+- **Verdict on this evidence:** with a strong agent that greps well, on repos of 53 to 968 files and questions about where code lives, SigMap in the docs' setup **does not save anything, costs about 5% more (at most about 11%), and finds the file just as often**. It was not shown to help.
+- **Not tested, and where it could still pay off:** large repos (grep returns too many hits), weaker models, environments with no grep (chat-only LLMs), and other kinds of task. Only Haiku 5.5 was run.
+
 ## How it was produced
 
 | | |

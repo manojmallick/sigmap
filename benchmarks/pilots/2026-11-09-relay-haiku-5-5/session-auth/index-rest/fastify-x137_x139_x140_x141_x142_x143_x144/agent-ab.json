@@ -1,0 +1,2152 @@
+{
+  "schema": 1,
+  "kind": "agent-ab",
+  "method": {
+    "agent": "claude-code",
+    "agentVersion": "2.1.319 (Claude Code)",
+    "model": "claude-haiku-5-5",
+    "runs": 2,
+    "variant": "index",
+    "auth": "session",
+    "taskIds": [
+      "x137",
+      "x139",
+      "x140",
+      "x141",
+      "x142",
+      "x143",
+      "x144"
+    ],
+    "tasksPerRepo": 1,
+    "budgetUsd": 0.5,
+    "timeoutMs": 420000,
+    "date": "2026-11-09",
+    "repos": [
+      {
+        "name": "fastify",
+        "commit": "890ab7578f14730b2fed6de43acfeee19da1a3e4"
+      }
+    ],
+    "skippedRepos": [],
+    "arms": {
+      "without": "no SigMap",
+      "with": "SigMap index strategy + 7-tool core MCP profile (the docs' setup for an agent that calls the tools)"
+    },
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "corpus": "benchmarks/tasks/retrieval-xrepo.jsonl",
+    "selection": "the task id(s) x137, x139, x140, x141, x142, x143, x144",
+    "passDefinition": "hit@5 on the repository-relative paths the answer names",
+    "priceAsOf": "2026-10-04",
+    "publishable": false,
+    "notPublishableBecause": [
+      "2 runs per arm (the minimum is 4)"
+    ]
+  },
+  "caveats": [
+    "One agent, one model, one date. The result says nothing about another agent or model.",
+    "The questions ask where code lives, so this measures localisation, not edit or generation quality.",
+    "Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.",
+    "Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.",
+    "Token figures are per-request billing categories summed over the run. They are not the size of the context.",
+    "The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.",
+    "Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.",
+    "The self repo is excluded: its tree holds its own answer key and its own generated context.",
+    "Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.",
+    "The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.",
+    "A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.",
+    "Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.",
+    "Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account's plan."
+  ],
+  "cells": [
+    {
+      "task": "x137",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/schemas.js",
+          "lib/validation.js",
+          "lib/reply.js",
+          "lib/error-handler.js",
+          "lib/errors.js"
+        ],
+        [
+          "lib/schemas.js",
+          "lib/validation.js",
+          "lib/reply.js",
+          "lib/error-handler.js",
+          "lib/route.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0047202400000000005,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4.5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1209.5,
+          "min": 1156,
+          "max": 1263,
+          "stdev": 75.66042558696059
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 34437,
+          "min": 27632,
+          "max": 41242,
+          "stdev": 9623.723291948912
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7051.5,
+          "min": 6815,
+          "max": 7288,
+          "stdev": 334.46150750123695
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 42705,
+          "min": 36189,
+          "max": 49221,
+          "stdev": 9215.015572423088
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0023601200000000003,
+          "min": 0.00235422,
+          "max": 0.0023660200000000004,
+          "stdev": 0.000008343860018001387
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 14043.5,
+          "min": 12328,
+          "max": 15759,
+          "stdev": 2426.0833662510445
+        }
+      }
+    },
+    {
+      "task": "x137",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/schemas.js",
+          "lib/validation.js",
+          "lib/reply.js",
+          "lib/error-handler.js"
+        ],
+        [
+          "lib/schemas.js",
+          "lib/validation.js",
+          "lib/reply.js",
+          "lib/error-handler.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00654272,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1507.5,
+          "min": 1070,
+          "max": 1945,
+          "stdev": 618.7184335382291
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 39661,
+          "min": 38827,
+          "max": 40495,
+          "stdev": 1179.4541110191612
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 10602,
+          "min": 10596,
+          "max": 10608,
+          "stdev": 8.48528137423857
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 51776.5,
+          "min": 50499,
+          "max": 53054,
+          "stdev": 1806.6578259316288
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.00327136,
+          "min": 0.00304307,
+          "max": 0.0034996500000000004,
+          "stdev": 0.00032285081415415405
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 13446,
+          "min": 11289,
+          "max": 15603,
+          "stdev": 3050.458654038766
+        }
+      }
+    },
+    {
+      "task": "x139",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/content-type-parser.js",
+          "lib/request.js",
+          "lib/context.js",
+          "lib/route.js",
+          "request.js"
+        ],
+        [
+          "lib/content-type-parser.js",
+          "lib/request.js",
+          "lib/route.js",
+          "lib/context.js",
+          "request.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00448277,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1066.5,
+          "min": 1019,
+          "max": 1114,
+          "stdev": 67.17514421272202
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 28703.5,
+          "min": 28507,
+          "max": 28900,
+          "stdev": 277.8929650063132
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7102.5,
+          "min": 6593,
+          "max": 7612,
+          "stdev": 720.541810029092
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 36878.5,
+          "min": 36220,
+          "max": 37537,
+          "stdev": 931.2596308226831
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002241385,
+          "min": 0.00216127,
+          "max": 0.0023214999999999998,
+          "stdev": 0.00011329971954952046
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11684,
+          "min": 10547,
+          "max": 12821,
+          "stdev": 1607.960820418209
+        }
+      }
+    },
+    {
+      "task": "x139",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/content-type-parser.js",
+          "lib/request.js",
+          "lib/context.js",
+          "lib/route.js",
+          "lib/errors.js"
+        ],
+        [
+          "lib/content-type-parser.js",
+          "lib/request.js",
+          "lib/context.js",
+          "lib/route.js",
+          "lib/errors.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00440821,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 961,
+          "min": 919,
+          "max": 1003,
+          "stdev": 59.39696961966999
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 36150.5,
+          "min": 35660,
+          "max": 36641,
+          "stdev": 693.6717523440032
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6807.5,
+          "min": 6675,
+          "max": 6940,
+          "stdev": 187.3832970144351
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 43925,
+          "min": 43609,
+          "max": 44241,
+          "stdev": 446.89148570989806
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002204105,
+          "min": 0.00216151,
+          "max": 0.0022467,
+          "stdev": 0.0000602384266892818
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 12222.5,
+          "min": 12082,
+          "max": 12363,
+          "stdev": 198.69700551341987
+        }
+      }
+    },
+    {
+      "task": "x140",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/four-oh-four.js",
+          "fastify.js",
+          "lib/plugin-override.js",
+          "lib/route.js",
+          "plugin-override.js"
+        ],
+        [
+          "fourOhFour.router.lookup",
+          "lib/four-oh-four.js",
+          "lib/plugin-override.js",
+          "fastify.js",
+          "lib/route.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00595653,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1373,
+          "min": 1350,
+          "max": 1396,
+          "stdev": 32.526911934581186
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 29506.5,
+          "min": 29198,
+          "max": 29815,
+          "stdev": 436.2848839920998
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9980.5,
+          "min": 9605,
+          "max": 10356,
+          "stdev": 531.0371926710972
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 40866,
+          "min": 40822,
+          "max": 40910,
+          "stdev": 62.22539674441618
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002978265,
+          "min": 0.00291775,
+          "max": 0.00303878,
+          "stdev": 0.00008558113372700773
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 13381,
+          "min": 13190,
+          "max": 13572,
+          "stdev": 270.1147904132612
+        }
+      }
+    },
+    {
+      "task": "x140",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/four-oh-four.js",
+          "fastify.js",
+          "lib/plugin-override.js",
+          "lib/route.js",
+          "lib/reply.js"
+        ],
+        [
+          "lib/four-oh-four.js",
+          "fastify.js",
+          "lib/plugin-override.js",
+          "lib/context.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00661309,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 6,
+          "min": 5,
+          "max": 7,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1841,
+          "min": 1279,
+          "max": 2403,
+          "stdev": 794.7880220536795
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 44744.5,
+          "min": 37976,
+          "max": 51513,
+          "stdev": 9572.104496922293
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9689.5,
+          "min": 8036,
+          "max": 11343,
+          "stdev": 2338.402125383913
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 56282,
+          "min": 50604,
+          "max": 61960,
+          "stdev": 8029.9046071544335
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.003306545,
+          "min": 0.00328846,
+          "max": 0.0033246300000000003,
+          "stdev": 0.000025576052275517635
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 17138,
+          "min": 14312,
+          "max": 19964,
+          "stdev": 3996.5675272663666
+        }
+      }
+    },
+    {
+      "task": "x141",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/plugin-override.js",
+          "lib/hooks.js",
+          "lib/error-handler.js",
+          "lib/route.js",
+          "plugin-override.js"
+        ],
+        [
+          "lib/plugin-override.js",
+          "fastify.js",
+          "lib/hooks.js",
+          "lib/plugin-utils.js",
+          "lib/reply.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00438039,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1150,
+          "min": 1087,
+          "max": 1213,
+          "stdev": 89.09545442950498
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 27189.5,
+          "min": 26744,
+          "max": 27635,
+          "stdev": 630.0321420372138
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6713.5,
+          "min": 6304,
+          "max": 7123,
+          "stdev": 579.1204537917824
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 35059,
+          "min": 35032,
+          "max": 35086,
+          "stdev": 38.18376618407357
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002190195,
+          "min": 0.0020812499999999998,
+          "max": 0.00229914,
+          "stdev": 0.0001540714965527369
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 12298.5,
+          "min": 12115,
+          "max": 12482,
+          "stdev": 259.50818869546293
+        }
+      }
+    },
+    {
+      "task": "x141",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/plugin-override.js",
+          "Object.create",
+          "fastify.js",
+          "avvio.override",
+          "lib/hooks.js"
+        ],
+        [
+          "lib/plugin-override.js",
+          "fastify.js",
+          "lib/plugin-utils.js",
+          "Object.create"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.004112900000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1054.5,
+          "min": 911,
+          "max": 1198,
+          "stdev": 202.93964620053913
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 35080,
+          "min": 34726,
+          "max": 35434,
+          "stdev": 500.63160108007565
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 5889,
+          "min": 5106,
+          "max": 6672,
+          "stdev": 1107.3292193381335
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 42029.5,
+          "min": 41457,
+          "max": 42602,
+          "stdev": 809.6372644585969
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0020564500000000005,
+          "min": 0.0018316400000000003,
+          "max": 0.0022812600000000002,
+          "stdev": 0.00031792935095709547
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 12573.5,
+          "min": 11157,
+          "max": 13990,
+          "stdev": 2003.233511101489
+        }
+      }
+    },
+    {
+      "task": "x142",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/hooks.js",
+          "lib/route.js",
+          "lib/content-type-parser.js",
+          "lib/symbols.js",
+          "request.raw"
+        ],
+        [
+          "lib/hooks.js",
+          "lib/content-type-parser.js",
+          "lib/route.js",
+          "lib/symbols.js",
+          "request.raw"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.005016990000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 5.5,
+          "min": 5,
+          "max": 6,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 8,
+          "min": 8,
+          "max": 8,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1299,
+          "min": 1123,
+          "max": 1475,
+          "stdev": 248.90158697766472
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 40029.5,
+          "min": 39725,
+          "max": 40334,
+          "stdev": 430.62802974260745
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7289.5,
+          "min": 6064,
+          "max": 8515,
+          "stdev": 1733.118720688228
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 48626,
+          "min": 46920,
+          "max": 50332,
+          "stdev": 2412.6483374085
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0025084950000000003,
+          "min": 0.00217235,
+          "max": 0.0028446400000000003,
+          "stdev": 0.00047538081792390424
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 13755,
+          "min": 13035,
+          "max": 14475,
+          "stdev": 1018.2337649086285
+        }
+      }
+    },
+    {
+      "task": "x142",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "request.raw",
+          "lib/hooks.js",
+          "lib/route.js",
+          "lib/content-type-parser.js"
+        ],
+        [
+          "lib/hooks.js",
+          "lib/content-type-parser.js",
+          "lib/route.js",
+          "request.raw"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00434627,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4.5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1078.5,
+          "min": 1054,
+          "max": 1103,
+          "stdev": 34.64823227814083
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 42348.5,
+          "min": 35192,
+          "max": 49505,
+          "stdev": 10120.819359123056
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6048.5,
+          "min": 5270,
+          "max": 6827,
+          "stdev": 1100.9652583074544
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 49482.5,
+          "min": 41522,
+          "max": 57443,
+          "stdev": 11257.847063271023
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002173135,
+          "min": 0.0019335200000000002,
+          "max": 0.00241275,
+          "stdev": 0.000338866782748029
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 12797.5,
+          "min": 12079,
+          "max": 13516,
+          "stdev": 1016.1124445650688
+        }
+      }
+    },
+    {
+      "task": "x143",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/request.js",
+          "docs/Reference/Server.md",
+          "fastify.js",
+          "fastify.d.ts",
+          "docs/Reference/Request.md"
+        ],
+        [
+          "lib/request.js",
+          "fastify.js",
+          "docs/Reference/Server.md",
+          "fastify.d.ts",
+          "docs/Reference/Request.md"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.005083280000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3,
+          "min": 2,
+          "max": 4,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1459.5,
+          "min": 947,
+          "max": 1972,
+          "stdev": 724.7844507162113
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 27819,
+          "min": 27443,
+          "max": 28195,
+          "stdev": 531.7442994522837
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7665.5,
+          "min": 7517,
+          "max": 7814,
+          "stdev": 210.0107140124046
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 36950,
+          "min": 36665,
+          "max": 37235,
+          "stdev": 403.0508652763321
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0025416400000000004,
+          "min": 0.00225945,
+          "max": 0.0028238300000000003,
+          "stdev": 0.0003990769251660638
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 13195,
+          "min": 10912,
+          "max": 15478,
+          "stdev": 3228.649562897776
+        }
+      }
+    },
+    {
+      "task": "x143",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/request.js",
+          "fastify.js",
+          "types/request.d.ts",
+          "Request.buildReque",
+          "options.trustProxy"
+        ],
+        [
+          "lib/request.js",
+          "fastify.js",
+          "proxyAddr.compile",
+          "options.trustProxy",
+          "Request.buildReque"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00536045,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6,
+          "min": 6,
+          "max": 6,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 1885,
+          "min": 1435,
+          "max": 2335,
+          "stdev": 636.3961030678928
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 35572.5,
+          "min": 35434,
+          "max": 35711,
+          "stdev": 195.86857838867365
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6907,
+          "min": 6190,
+          "max": 7624,
+          "stdev": 1013.9911242215092
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 44370.5,
+          "min": 43342,
+          "max": 45399,
+          "stdev": 1454.5186489007283
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.002680225,
+          "min": 0.00231321,
+          "max": 0.00304724,
+          "stdev": 0.0005190375905943616
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 15765.5,
+          "min": 13681,
+          "max": 17850,
+          "stdev": 2947.9281707667164
+        }
+      }
+    },
+    {
+      "task": "x144",
+      "repo": "fastify",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/error-handler.js",
+          "lib/reply.js",
+          "reply.send",
+          "reply.raw"
+        ],
+        [
+          "lib/error-handler.js",
+          "reply.send",
+          "reply.raw.end",
+          "lib/reply.js",
+          "lib/wrap-thenable.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0045782800000000005,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 960,
+          "min": 848,
+          "max": 1072,
+          "stdev": 158.39191898578665
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 33784,
+          "min": 28236,
+          "max": 39332,
+          "stdev": 7846.056844045931
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7353,
+          "min": 7220,
+          "max": 7486,
+          "stdev": 188.09040379562165
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 42104,
+          "min": 36534,
+          "max": 47674,
+          "stdev": 7877.16954241814
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0022891400000000003,
+          "min": 0.0022629600000000005,
+          "max": 0.00231532,
+          "stdev": 0.00003702411106292732
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 11553.5,
+          "min": 11104,
+          "max": 12003,
+          "stdev": 635.6889962867062
+        }
+      }
+    },
+    {
+      "task": "x144",
+      "repo": "fastify",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "lib/error-handler.js",
+          "lib/reply.js",
+          "lib/route.js",
+          "lib/context.js",
+          "Object.getPrototy"
+        ],
+        [
+          "lib/error-handler.js",
+          "lib/reply.js",
+          "lib/route.js",
+          "lib/four-oh-four.js",
+          "lib/context.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.00489378,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 1100.5,
+          "min": 1073,
+          "max": 1128,
+          "stdev": 38.890872965260115
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 43474,
+          "min": 34676,
+          "max": 52272,
+          "stdev": 12442.25092175849
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 7306,
+          "min": 6609,
+          "max": 8003,
+          "stdev": 985.7068529740473
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 51887.5,
+          "min": 42364,
+          "max": 61411,
+          "stdev": 13468.262861260171
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.00244689,
+          "min": 0.00220566,
+          "max": 0.00268812,
+          "stdev": 0.00034115073765126177
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 13749,
+          "min": 12813,
+          "max": 14685,
+          "stdev": 1323.703894381217
+        }
+      }
+    }
+  ],
+  "repos": [
+    {
+      "repo": "fastify",
+      "tasks": 7,
+      "pass": {
+        "without": {
+          "pass": 14,
+          "runs": 14
+        },
+        "with": {
+          "pass": 14,
+          "runs": 14
+        }
+      },
+      "failedRuns": {
+        "without": 0,
+        "with": 0
+      },
+      "cacheGapRuns": 0,
+      "spend": {
+        "without": {
+          "all": {
+            "runs": 14,
+            "agentReportedUsd": 0.03421848000000001,
+            "agentReportedRuns": 14,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        },
+        "with": {
+          "all": {
+            "runs": 14,
+            "agentReportedUsd": 0.036277420000000005,
+            "agentReportedRuns": 14,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "without": 3,
+          "with": 4,
+          "tasks": 7,
+          "medianDelta": -0.5,
+          "fewer": 4,
+          "ties": 1,
+          "more": 2
+        },
+        "in": {
+          "without": 6,
+          "with": 6,
+          "tasks": 7,
+          "medianDelta": 0,
+          "fewer": 2,
+          "ties": 4,
+          "more": 1
+        },
+        "out": {
+          "without": 1209.5,
+          "with": 1100.5,
+          "tasks": 7,
+          "medianDelta": 140.5,
+          "fewer": 3,
+          "ties": 0,
+          "more": 4
+        },
+        "cacheRead": {
+          "without": 29506.5,
+          "with": 39661,
+          "tasks": 7,
+          "medianDelta": 7753.5,
+          "fewer": 0,
+          "ties": 0,
+          "more": 7
+        },
+        "cacheWrite": {
+          "without": 7289.5,
+          "with": 6907,
+          "tasks": 7,
+          "medianDelta": -295,
+          "fewer": 6,
+          "ties": 0,
+          "more": 1
+        },
+        "totalTokens": {
+          "without": 40866,
+          "with": 49482.5,
+          "tasks": 7,
+          "medianDelta": 7420.5,
+          "fewer": 0,
+          "ties": 0,
+          "more": 7
+        },
+        "costUsd": {
+          "without": 0.0023601200000000003,
+          "with": 0.00244689,
+          "tasks": 7,
+          "medianDelta": 0.00013858499999999966,
+          "fewer": 3,
+          "ties": 0,
+          "more": 4
+        },
+        "costFloorUsd": {
+          "without": null,
+          "with": null,
+          "tasks": 0,
+          "medianDelta": null,
+          "fewer": 0,
+          "ties": 0,
+          "more": 0
+        },
+        "durationMs": {
+          "without": 13195,
+          "with": 13446,
+          "tasks": 7,
+          "medianDelta": 538.5,
+          "fewer": 2,
+          "ties": 0,
+          "more": 5
+        }
+      }
+    }
+  ],
+  "total": {
+    "tasks": 7,
+    "pass": {
+      "without": {
+        "pass": 14,
+        "runs": 14
+      },
+      "with": {
+        "pass": 14,
+        "runs": 14
+      }
+    },
+    "failedRuns": {
+      "without": 0,
+      "with": 0
+    },
+    "cacheGapRuns": 0,
+    "spend": {
+      "without": {
+        "all": {
+          "runs": 14,
+          "agentReportedUsd": 0.03421848000000001,
+          "agentReportedRuns": 14,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "with": {
+        "all": {
+          "runs": 14,
+          "agentReportedUsd": 0.036277420000000005,
+          "agentReportedRuns": 14,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      }
+    },
+    "metrics": {
+      "toolCalls": {
+        "without": 3,
+        "with": 4,
+        "tasks": 7,
+        "medianDelta": -0.5,
+        "fewer": 4,
+        "ties": 1,
+        "more": 2
+      },
+      "in": {
+        "without": 6,
+        "with": 6,
+        "tasks": 7,
+        "medianDelta": 0,
+        "fewer": 2,
+        "ties": 4,
+        "more": 1
+      },
+      "out": {
+        "without": 1209.5,
+        "with": 1100.5,
+        "tasks": 7,
+        "medianDelta": 140.5,
+        "fewer": 3,
+        "ties": 0,
+        "more": 4
+      },
+      "cacheRead": {
+        "without": 29506.5,
+        "with": 39661,
+        "tasks": 7,
+        "medianDelta": 7753.5,
+        "fewer": 0,
+        "ties": 0,
+        "more": 7
+      },
+      "cacheWrite": {
+        "without": 7289.5,
+        "with": 6907,
+        "tasks": 7,
+        "medianDelta": -295,
+        "fewer": 6,
+        "ties": 0,
+        "more": 1
+      },
+      "totalTokens": {
+        "without": 40866,
+        "with": 49482.5,
+        "tasks": 7,
+        "medianDelta": 7420.5,
+        "fewer": 0,
+        "ties": 0,
+        "more": 7
+      },
+      "costUsd": {
+        "without": 0.0023601200000000003,
+        "with": 0.00244689,
+        "tasks": 7,
+        "medianDelta": 0.00013858499999999966,
+        "fewer": 3,
+        "ties": 0,
+        "more": 4
+      },
+      "costFloorUsd": {
+        "without": null,
+        "with": null,
+        "tasks": 0,
+        "medianDelta": null,
+        "fewer": 0,
+        "ties": 0,
+        "more": 0
+      },
+      "durationMs": {
+        "without": 13195,
+        "with": 13446,
+        "tasks": 7,
+        "medianDelta": 538.5,
+        "fewer": 2,
+        "ties": 0,
+        "more": 5
+      }
+    }
+  },
+  "repetitions": {
+    "runs": [
+      1,
+      2
+    ],
+    "taskCount": 7,
+    "bootstrap": {
+      "iterations": 10000,
+      "seed": 1,
+      "level": 0.95
+    },
+    "metrics": {
+      "toolCalls": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 27,
+              "with": 25,
+              "change": -0.07407407407407407
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": -0.10417971440920049,
+              "lo": -0.2651269471010076,
+              "hi": 0.14448613258993603,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 24,
+              "with": 26,
+              "change": 0.08333333333333326
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.05895995413116917,
+              "lo": -0.28449911355780044,
+              "hi": 0.5856235128922804,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "mixed",
+        "typical": "mixed",
+        "typicalOutsideNoise": null
+      },
+      "in": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 46,
+              "with": 44,
+              "change": -0.04347826086956519
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": -0.04026439021129735,
+              "lo": -0.11599478475638703,
+              "hi": 0,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 46,
+              "with": 46,
+              "change": 0
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0,
+              "lo": -0.1515887156917779,
+              "hi": 0.17867362032481715,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "mixed",
+        "typical": "mixed",
+        "typicalOutsideNoise": null
+      },
+      "out": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 9140,
+              "with": 9061,
+              "change": -0.008643326039387333
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": -0.019024442305707434,
+              "lo": -0.1329474004615503,
+              "hi": 0.10933070233682751,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 7895,
+              "with": 9795,
+              "change": 0.24065864471184284
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.16974037729006675,
+              "lo": -0.06025927170294121,
+              "hi": 0.47968642763535385,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "mixed",
+        "typical": "mixed",
+        "typicalOutsideNoise": null
+      },
+      "cacheRead": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 219583,
+              "with": 266804,
+              "change": 0.21504852379282546
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.22294112723773973,
+              "lo": 0.08937156669730273,
+              "hi": 0.32303978378098774,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 223355,
+              "with": 287258,
+              "change": 0.2861050793579727
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.28570787526855135,
+              "lo": 0.06784058982300234,
+              "hi": 0.5480257599138179,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "cacheWrite": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 56194,
+              "with": 56611,
+              "change": 0.007420721073424286
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": -0.008919043050635733,
+              "lo": -0.11840495079684743,
+              "hi": 0.14687164838292044,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 50118,
+              "with": 49888,
+              "change": -0.0045891695598387905
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": -0.023419559968894443,
+              "lo": -0.14942114012062158,
+              "hi": 0.1687697715189438,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "mixed",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "totalTokens": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 284963,
+              "with": 332520,
+              "change": 0.16688833287128513
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.1705298608471757,
+              "lo": 0.05559686855116852,
+              "hi": 0.2716650351003653,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 281414,
+              "with": 346987,
+              "change": 0.23301257222455174
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.22579330835943812,
+              "lo": 0.06009844354766236,
+              "hi": 0.41656642818123535,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "costUsd": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 0.01800923,
+              "with": 0.018525140000000002,
+              "change": 0.02864697713339215
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.02209984915309615,
+              "lo": -0.0634646882770652,
+              "hi": 0.12289337893524377,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 0.01620925,
+              "with": 0.01775228,
+              "change": 0.09519441059888623
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.07075820356752094,
+              "lo": -0.04568737099795317,
+              "hi": 0.22124954974801692,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costFloorUsd": null,
+      "durationMs": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 7,
+              "without": 89986,
+              "with": 95852,
+              "change": 0.06518791812059654
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.06368355255021374,
+              "lo": -0.010438943598401917,
+              "hi": 0.1336999067645639,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 7,
+              "without": 89835,
+              "with": 99532,
+              "change": 0.10794233873211989
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 0,
+              "change": 0.09533392701154453,
+              "lo": -0.027790426813377067,
+              "hi": 0.2568805371407237,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "more-every-repetition",
+        "typical": "more-every-repetition",
+        "typicalOutsideNoise": false
+      }
+    },
+    "outcome": {
+      "reps": [
+        {
+          "run": 1,
+          "tasks": 7,
+          "better": 0,
+          "worse": 0,
+          "ties": 7
+        },
+        {
+          "run": 2,
+          "tasks": 7,
+          "better": 0,
+          "worse": 0,
+          "ties": 7
+        }
+      ],
+      "total": {
+        "tasks": 14,
+        "better": 0,
+        "worse": 0,
+        "ties": 14
+      }
+    }
+  },
+  "version": "8.85.1",
+  "generated": "2026-11-09T20:00:35.084Z"
+}
