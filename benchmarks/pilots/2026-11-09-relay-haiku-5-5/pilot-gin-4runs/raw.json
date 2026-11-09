@@ -1,0 +1,167 @@
+[
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/binding.go",
+      "binding/binding_nomsgpack.go"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Bash": 2,
+        "Read": 5
+      },
+      "byCommand": {
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 16423,
+      "out": 378,
+      "cacheRead": 6008,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018913800000000002,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 62186,
+    "answer": "`binding/form_mapping.go`\n`binding/form.go`\n`binding/query.go`\n`binding/binding.go`\n`binding/binding_nomsgpack.go`\n\nWhy: `binding/form_mapping.go` does the actual reflect-based reflection walking of struct fields, parsing the `form`/`uri`/custom tag names and `default=...` options in `tryToSetValue`, and splitting slice/array values by the `collection_format` delimiter (csv/ssv/tsv/pipes) in `trySplit` before assigning via `setByForm`/`setSlice`; `binding/form.go`, `binding/query.go` and the registration files in `binding.go` (and the `nomsgpack` build variant) are the callers that feed request form, multipart and query `map[string][]string` values into that mapper.\n\nNote: I couldn't get a shell in this environment (sandbox couldn't initialize), so I verified the above only by reading those specific files directly; I did not list the directory to confirm `binding.go` / `binding_nomsgpack.go` exist as named."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/uri.go",
+      "binding/header.go"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Bash": 2,
+        "mcp__sigmap__search_signatures": 1,
+        "Read": 3
+      },
+      "byCommand": {
+        "find": 2
+      }
+    },
+    "usage": {
+      "in": 71239,
+      "out": 333,
+      "cacheRead": 24154,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.007531940000000001,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 63302,
+    "answer": "`binding/form_mapping.go`\n`binding/form.go`\n`binding/query.go`\n`binding/uri.go`\n`binding/header.go`\n\n`binding/form_mapping.go` holds the core reflection-based mapper: `mapFormByTag`/`mapping`/`tryToSetValue` walk struct fields and look up values by tag name (defaulting to the field name), apply `default=` fallback options, and `trySplit` splits values on the delimiter chosen by the `collection_format` tag (csv `,`, ssv space, tsv tab, pipes `|`); `binding/form.go` and `binding/query.go` feed form/post-form and query values into that mapper, while `binding/uri.go` and `binding/header.go` reuse it with the `uri` and `header` tags for mapURI/header sources."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/uri.go",
+      "binding/header.go"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "mcp__sigmap__search_signatures": 1,
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 57524,
+      "out": 421,
+      "cacheRead": 19577,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.006158670000000001,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 54529,
+    "answer": "The mechanism lives in the `binding` package, where a shared reflection engine walks struct fields, reads the tag (`form`, `query`, `uri`, `header`), applies `default=` fallbacks and `collection_format` splitting.\n\n`binding/form_mapping.go`\n`binding/form.go`\n`binding/query.go`\n`binding/uri.go`\n`binding/header.go`\n\n`binding/form_mapping.go` is the single generic engine: `mapping`/`tryToSetValue` reflects over struct fields, resolves each field's name from the configured tag (falling back to the Go field name, with `-` ignored), parses `default=` and `parser=` options, and `setByForm`/`trySplit` convert multi-value input into slices/arrays by splitting on `collection_format` delimiters (csv `,`, ssv space, tsv tab, pipes `|`); the thin per-source files (`form.go`, `query.go`, `uri.go`, `header.go`) just supply the `map[string][]string` source and tag name to `mapFormByTag`/`mapForm`/`mapURI`/`mapHeader`."
+  },
+  {
+    "repo": "gin",
+    "task": "x001",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "binding/form_mapping.go",
+      "binding/form.go",
+      "binding/query.go",
+      "binding/uri.go",
+      "binding/multipart_form_mapping.go"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Bash": 3,
+        "Read": 6
+      },
+      "byCommand": {
+        "ls;": 2,
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 20543,
+      "out": 224,
+      "cacheRead": 6971,
+      "cacheWrite": 0
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00223601,
+      "source": "agent-reported"
+    },
+    "turns": 11,
+    "durationMs": 68551,
+    "answer": "`binding/form_mapping.go`\n`binding/form.go`\n`binding/query.go`\n`binding/uri.go`\n`binding/multipart_form_mapping.go`\n\n`binding/form_mapping.go` contains the core machinery (`mapFormByTag` → `tryToSetValue`, which reads the tag name and its `default=` / `parser=` options, and `setByForm`, which falls back to defaults and calls `trySplit` to split raw values on the `collection_format` delimiter — csv `,`, ssv space, tsv `\\t`, pipes `|`), while the per-request entry points in `form.go`, `query.go`, `uri.go` and `multipart_form_mapping.go` just feed `map[string][]string` sources into that engine with the `form`/`uri` tag."
+  }
+]
