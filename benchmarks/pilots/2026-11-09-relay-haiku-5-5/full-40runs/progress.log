@@ -1,0 +1,59 @@
+SigMap agent-level A/B (#812)
+
+  agent     claude (--bare), model claude-haiku-5.5
+  repos     5
+  tasks     10 (first 2 per repo, by id)
+  runs      2 per arm × 2 arms = 40 agent runs  (below the 4 a result needs: NOT PUBLISHABLE)
+  budget    <= $0.3 per run -> <= $12.00 worst case; timeout 420 s per run
+  arms      without = no SigMap · with = generated CLAUDE.md section + sigmap CLI + MCP server; identical prompt, model, read-only tools
+
+  preparing gin (without)
+  preparing gin (with)
+  preparing flask (without)
+  preparing flask (with)
+  preparing express (without)
+  preparing express (with)
+  preparing fastify (without)
+  preparing fastify (with)
+  preparing fastapi (without)
+  preparing fastapi (with)
+  [1/40] gin/x001 run 1 without pass  12 tool calls  $0.0039  122.0 s
+  [2/40] gin/x001 run 1 with    pass  6 tool calls  $0.0054  63.3 s
+  [3/40] gin/x001 run 2 with    pass  16 tool calls  $0.0146  139.2 s
+  [4/40] gin/x001 run 2 without pass  17 tool calls  $0.0057  104.3 s
+  [5/40] gin/x002 run 1 without pass  6 tool calls  $0.0053  44.7 s
+  [6/40] gin/x002 run 1 with    pass  9 tool calls  $0.0052  64.9 s
+  [7/40] gin/x002 run 2 with    pass  9 tool calls  $0.0058  77.7 s
+  [8/40] gin/x002 run 2 without pass  8 tool calls  $0.0019  82.5 s
+  [9/40] flask/x032 run 1 without pass  23 tool calls  $0.0374  221.3 s
+  [10/40] flask/x032 run 1 with    pass  11 tool calls  $0.0107  61.3 s
+  [11/40] flask/x032 run 2 with    pass  13 tool calls  $0.0152  87.1 s
+  [12/40] flask/x032 run 2 without miss  28 tool calls  $0.0342  185.0 s
+  [13/40] flask/x033 run 1 without pass  8 tool calls  $0.0070  79.1 s
+  [14/40] flask/x033 run 1 with    pass  18 tool calls  $0.0188  107.9 s
+  [15/40] flask/x033 run 2 with    pass  19 tool calls  $0.0217  178.3 s
+  [16/40] flask/x033 run 2 without pass  13 tool calls  $0.0074  111.0 s
+  [17/40] express/x037 run 1 without pass  14 tool calls  $0.0065  126.6 s
+  [18/40] express/x037 run 1 with    pass  11 tool calls  $0.0063  74.2 s
+  [19/40] express/x037 run 2 with    pass  5 tool calls  $0.0035  76.6 s
+  [20/40] express/x037 run 2 without pass  8 tool calls  $0.0024  64.2 s
+  [21/40] express/x038 run 1 without pass  11 tool calls  $0.0056  106.4 s
+  [22/40] express/x038 run 1 with    pass  13 tool calls  $0.0070  60.8 s
+  [23/40] express/x038 run 2 with    pass  18 tool calls  $0.0120  114.7 s
+  [24/40] express/x038 run 2 without pass  6 tool calls  $0.0021  58.8 s
+  [25/40] fastify/x137 run 1 without pass  11 tool calls  $0.0101  87.4 s
+  [26/40] fastify/x137 run 1 with    pass  11 tool calls  $0.0063  69.1 s
+  [27/40] fastify/x137 run 2 with    pass  18 tool calls  $0.0188  118.1 s
+  [28/40] fastify/x137 run 2 without pass  9 tool calls  $0.0083  57.7 s
+  [29/40] fastify/x138 run 1 without pass  12 tool calls  $0.0081  81.0 s
+  [30/40] fastify/x138 run 1 with    pass  8 tool calls  $0.0059  52.0 s
+  [31/40] fastify/x138 run 2 with    pass  8 tool calls  $0.0043  68.9 s
+  [32/40] fastify/x138 run 2 without pass  15 tool calls  $0.0211  98.7 s
+  [33/40] fastapi/x145 run 1 without pass  10 tool calls  $0.0071  56.2 s
+  [34/40] fastapi/x145 run 1 with    pass  3 tool calls  $0.0031  41.3 s
+  [35/40] fastapi/x145 run 2 with    pass  10 tool calls  $0.0067  94.9 s
+  [36/40] fastapi/x145 run 2 without miss  20 tool calls  $0.0110  170.5 s
+  [37/40] fastapi/x146 run 1 without pass  15 tool calls  $0.0124  116.7 s
+  [38/40] fastapi/x146 run 1 with    pass  32 tool calls  $0.0353  226.8 s
+  [39/40] fastapi/x146 run 2 with    pass  37 tool calls  $0.0285  180.5 s
+  [40/40] fastapi/x146 run 2 without pass  14 tool calls  $0.0073  95.6 s

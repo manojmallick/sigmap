@@ -42,10 +42,35 @@ npm run benchmark:agent-ab -- --repos gin,flask,express,fastify,fastapi --tasks-
 
 `GET <relay>/v1/models` lists the model names your key may use. Use `--runs 4` for a report the harness treats as publishable.
 
+## Result: 10 tasks × 2 repetitions × 2 arms = 40 agent runs, none failed
+
+`full-40runs/agent-ab.md` is the report. Both estimates are per repetition; a change is SigMap's arm against the no-SigMap arm, so negative means SigMap used less. `†` = the 95% interval includes zero.
+
+| | R1 workload | R2 workload | R1 typical task | R2 typical task | verdict (typical task) |
+|---|---:|---:|---:|---:|---|
+| Tool calls | 0% | +11% | −11% † | +7% † | mixed |
+| Total tokens (derived) | +12% | +42% | +7% † | +68% † | more both times, within the noise |
+| Cache-read tokens | +72% | +126% | +58% | +128% | more both times, **outside** the noise |
+| Input tokens (uncached) | +2% | +29% | −3% † | +59% † | mixed |
+| Output tokens | −22% | +10% | −20% † | +28% † | mixed |
+| Wall time | −21% | +10% | −23% † | +13% † | mixed |
+| Cost (the agent's arithmetic, **not** the relay's bill) | 0% | +29% | −4% † | +57% † | mixed |
+
+| Found the file (hit@5) | without SigMap | with SigMap | better / worse / tie, per paired task |
+|---|---:|---:|---|
+| 10 tasks × 2 repetitions | 18 / 20 | 20 / 20 | 2 / 0 / 18 |
+
+The two misses were the no-SigMap arm on `flask/x032` and `fastapi/x145`, both in repetition 2.
+
+**Read it as:** on this slice SigMap did not reduce tokens, tool calls or time in both repetitions, and it found the file at least as often (2 wins, 0 losses out of 20 pairs, too few to call). Its generated section is read on every turn, which is where the extra cache-read tokens come from. The workload total and the typical task disagree about several rows, which is why both are shown, and with 10 tasks the typical-task intervals are wide (about 70 to 220 percentage points across, e.g. total tokens in R2 is +68% with an interval of −11% to +198%): most of what moved is inside the noise. The baseline's own mean total tokens per task barely changed between repetitions (115.6k → 111.9k, −3%), while SigMap's arm's rose (129.6k → 158.6k, +22%), so repetition 2 is where SigMap looks worse.
+
+**What this does not say:** nothing about Sonnet or Opus, another agent, other tasks, or edit quality (the harness asks where code lives and grades nothing else). It says nothing about SigMap's other published claims. It rests on the relay serving the model it names.
+
+## What it cost
+
+The 40 runs used **5.16M raw tokens** (about 129k per run). At the relay's 3× rate for this model that is an estimated **15.5M** debited from the plan, on top of the smoke tests and the 4-run pilot (about 0.9M). The estimate assumes the relay counts cache-read tokens at 3× too, which was not confirmed: the relay's own dashboard is the record. Plan for roughly 130k raw tokens per run, not the 56k the gin-only pilot suggested; flask and fastapi tasks run much longer.
+
 ## Files
 
-- `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms = 4 agent runs. `agent-ab.md` is the report, `agent-ab.json` the same as data, `raw.json` one record per run.
-
-### What the 4-run pilot showed (one task, so a probe and not a result)
-
-Both arms found the right file in both repetitions. SigMap's arm made fewer tool calls (−14%, −33%) and used more tokens (total +320%, +179%): its generated section is read on every turn. With one task the typical-task intervals are degenerate, so there is no noise band to read.
+- `full-40runs/` — the run above. `agent-ab.md` the report, `agent-ab.json` the same as data, `raw.json` one record per agent run (answers included; the paths in them are the harness's throwaway temp directories), `progress.log` the per-run lines, `shim-stats.json` what the shim did over the whole session: 576 message requests, 504 empty messages dropped (all `role: "system"`), upstream statuses 1006 × 200, 3 × 403 (the Sonnet tier refusal, before switching to Haiku) and 2 × 502.
+- `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.
