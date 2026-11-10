@@ -1,0 +1,319 @@
+[
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "pool.reap",
+      "pool.retire"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Grep": 5,
+        "Read": 3,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 58,
+      "out": 1875,
+      "cacheRead": 101286,
+      "cacheWrite": 9212
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.03798560000000001,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 21080,
+    "answer": "`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n\nThe Reaper class is a singleton background worker thread that periodically invokes `pool.reap()` to reclaim connections leased to dead threads and `pool.retire_old_connections()` to disconnect ones exceeding the timeout, alongside other connection pool maintenance tasks."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "pool.reap",
+      "pool.retire"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "find": 1
+      }
+    },
+    "usage": {
+      "in": 34,
+      "out": 960,
+      "cacheRead": 58775,
+      "cacheWrite": 9358
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0294275,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 13466,
+    "answer": "Based on my search of the Rails codebase, here are the files that implement the scheduled background worker for reclaiming database sessions:\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n\nThe Reaper is a singleton background thread that periodically calls `pool.reap()` to reclaim connections leased to dead threads and `pool.retire_old_connections()` to disconnect idle connections beyond a timeout, ensuring threads don't leak pool slots and stale connections are cleaned up."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "pool.reap",
+      "pool.flush"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Grep": 8,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 66,
+      "out": 2000,
+      "cacheRead": 137571,
+      "cacheWrite": 9596
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0430151,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 21775,
+    "answer": "Based on my search of the Rails codebase, here are the files implementing the scheduled background worker that reclaims database sessions and disconnects idle connections:\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n\nThe Reaper class is a singleton background thread that runs periodically and calls `pool.reap()` to reclaim connections leased to dead threads, and `pool.flush()` to disconnect connections idle beyond the timeout threshold."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "pool.reap",
+      "conn.owner.alive",
+      "conn.steal"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Grep": 6,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 50,
+      "out": 1426,
+      "cacheRead": 89085,
+      "cacheWrite": 12431
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0409505,
+      "source": "agent-reported"
+    },
+    "turns": 9,
+    "durationMs": 17957,
+    "answer": "`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n\nThe Reaper is a background thread worker that periodically calls `pool.reap()` to reclaim connections from dead threads (via `conn.owner.alive?` check and `conn.steal!()`) and `pool.retire_old_connections()` to disconnect idle connections that exceed the timeout threshold."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "actionpack/lib/action_dispatch/http/parameters.rb",
+      "actionpack/lib/action_dispatch/http/request.rb"
+    ],
+    "toolCalls": {
+      "total": 10,
+      "byTool": {
+        "Bash": 1,
+        "Glob": 1,
+        "Read": 5,
+        "Grep": 3
+      },
+      "byCommand": {
+        "find": 1
+      }
+    },
+    "usage": {
+      "in": 74,
+      "out": 2097,
+      "cacheRead": 160058,
+      "cacheWrite": 17464
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.06149279999999999,
+      "source": "agent-reported"
+    },
+    "turns": 11,
+    "durationMs": 22838,
+    "answer": "Based on my analysis of the Rails codebase, here are the files that implement this behavior:\n\n`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_dispatch/http/parameters.rb`\n`actionpack/lib/action_dispatch/http/request.rb`\n\nThe top-level JSON data is wrapped under a resource key because the ParamsWrapper middleware in the first file merges the wrapped parameters back into the request's parameters hash (lines 305-309), making both the flat top-level data and the nested wrapped version available to the application—this allows clients to send unwrapped JSON while controllers can still access the conventionally-wrapped params hash."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb"
+    ],
+    "toolCalls": {
+      "total": 13,
+      "byTool": {
+        "mcp__sigmap__query_context": 3,
+        "Read": 1,
+        "mcp__sigmap__get_lines": 1,
+        "Grep": 6,
+        "Bash": 1,
+        "mcp__sigmap__get_method_impact": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 114,
+      "out": 6197,
+      "cacheRead": 319564,
+      "cacheWrite": 18726
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.10050739999999998,
+      "source": "agent-reported"
+    },
+    "turns": 14,
+    "durationMs": 62923,
+    "answer": "Looking at the code, I can now provide the answer. The behavior where JSON request parameters are both duplicated at the top level AND nested under a resource key (limited to model columns) is implemented in these files:\n\n`actionpack/lib/action_controller/metal/params_wrapper.rb`\n\n**Why:** This file contains the `ParamsWrapper` module that automatically wraps JSON request parameters under a resource-named key (line 273-275), extracts only the model's `attribute_names` to wrap (line 277-286 `_extract_parameters`), then merges both the wrapped and original parameters into the final params hash (line 305-306 `_perform_parameter_wrapping`), creating the dual presence of flat and nested parameters."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "Options.include",
+      "request.parameters"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Read": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 42,
+      "out": 3239,
+      "cacheRead": 89052,
+      "cacheWrite": 12050
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0492422,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 34750,
+    "answer": "Based on the code analysis, here are the files that implement this behavior:\n\n`actionpack/lib/action_controller/metal/params_wrapper.rb`\n\nThe `ParamsWrapper` module automatically wraps incoming JSON request parameters (which have no root element) under a nested key matching the resource name (derived from controller name or explicit model). The wrapping is filtered to only include the model's `attribute_names` (column names) via the `include` property set in the `Options.include` getter (lines 108-139), and the actual wrapping and merging happens in `_perform_parameter_wrapping` (lines 299-310), which adds both the original flat parameters and the filtered nested version under the resource key to `request.parameters`."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "request.parameters"
+    ],
+    "toolCalls": {
+      "total": 12,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 7,
+        "Read": 4
+      },
+      "byCommand": {
+        "find": 1
+      }
+    },
+    "usage": {
+      "in": 106,
+      "out": 4025,
+      "cacheRead": 245807,
+      "cacheWrite": 16869
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.07854969999999999,
+      "source": "agent-reported"
+    },
+    "turns": 13,
+    "durationMs": 42271,
+    "answer": "Based on my investigation of the Rails codebase, here are the files that implement this behavior:\n\n`actionpack/lib/action_controller/metal/params_wrapper.rb`\n\nThe `ParamsWrapper` module implements parameter wrapping by intercepting the request during `process_action`, extracting the top-level JSON parameters, filtering them to only include the model's attribute names (via `_extract_parameters`), and merging a nested version under the resource name back into `request.parameters` alongside the original flat parameters. This allows clients to send unwrapped JSON while the controller receives both the flat and nested versions."
+  }
+]

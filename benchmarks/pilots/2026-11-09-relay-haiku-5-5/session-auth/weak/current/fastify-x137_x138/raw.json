@@ -1,0 +1,331 @@
+[
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "e.g"
+    ],
+    "toolCalls": {
+      "total": 31,
+      "byTool": {
+        "Bash": 2,
+        "Glob": 1,
+        "Read": 15,
+        "Grep": 13
+      },
+      "byCommand": {
+        "find": 1,
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 258,
+      "out": 6029,
+      "cacheRead": 1063682,
+      "cacheWrite": 44591
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.2259532,
+      "source": "agent-reported"
+    },
+    "turns": 32,
+    "durationMs": 65703,
+    "answer": "Based on my investigation of the Fastify repository, I can now provide the answer:\n\n`lib/schemas.js`\n\nThe framework chooses output definitions through the `getSchemaSerializer` function (lines 144-201), which implements a cascading fallback strategy: it first tries the exact status code, then tries the class wildcard (e.g., `2xx` for code `200`), then tries the `default` catch-all. Within each level, if media-type variants exist (checked by `constructor === Object`), it matches the specific media-type from the request, falling back to `*/*` wildcard if available, before proceeding to the next fallback level."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "e.g",
+      "lib/validation.js",
+      "lib/reply.js",
+      "lib/route.js"
+    ],
+    "toolCalls": {
+      "total": 16,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__search_signatures": 1,
+        "Grep": 11,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 122,
+      "out": 3211,
+      "cacheRead": 335367,
+      "cacheWrite": 19066
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0878457,
+      "source": "agent-reported"
+    },
+    "turns": 17,
+    "durationMs": 39044,
+    "answer": "`lib/schemas.js`\n\nThe `getSchemaSerializer` function (lines 144-201) implements the complete priority chain: it first checks for an exact status code match, then tries the wildcard class (e.g., 2xx for 200), then the default catch-all, and within each level handles media-type specificity with a fallback to `*/*`.\n\n`lib/validation.js`\n\nThe `compileSchemasForSerialization` function (lines 18-55) validates response schema codes using the regex `^[1-5](?:\\d{2}|xx)$|^default$` and compiles schemas for both unstructured and content-type-keyed responses.\n\n`lib/reply.js`\n\nCalls `getSchemaSerializer` in the `serialize` function (line 1019) to retrieve the compiled serializer for a given status code and content type.\n\n`lib/route.js`\n\nInvokes `compileSchemasForSerialization` during route setup (line 438) to process all response schemas declared in a route's schema definition.\n\n`lib/error-handler.js`\n\nAlso calls `getSchemaSerializer` when serializing error responses (line 109) to apply the same status-code selection logic."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/validation.js",
+      "lib/reply.js",
+      "lib/error-handler.js"
+    ],
+    "toolCalls": {
+      "total": 13,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 8,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 90,
+      "out": 2730,
+      "cacheRead": 263194,
+      "cacheWrite": 19981
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0800214,
+      "source": "agent-reported"
+    },
+    "turns": 14,
+    "durationMs": 31185,
+    "answer": "Based on my analysis of the codebase, here are the files that implement status code selection for output definitions:\n\n`lib/schemas.js`\nImplements the selection algorithm in `getSchemaSerializer` (lines 144-201) that checks exact status codes first, then wildcard classes (2xx, 3xx, etc.), then default, with media-type fallback logic at each level.\n\n`lib/validation.js`\nBuilds the compiled response schema structure during route registration in `compileSchemasForSerialization` (lines 18-55), organizing schemas by status code and media type.\n\n`lib/reply.js`\nUses `getSchemaSerializer` in the serialize function to resolve and apply the correct schema for responses.\n\n`lib/error-handler.js`\nUses `getSchemaSerializer` to resolve schemas for error response serialization."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/validation.js",
+      "lib/reply.js"
+    ],
+    "toolCalls": {
+      "total": 13,
+      "byTool": {
+        "Bash": 1,
+        "Glob": 2,
+        "Read": 5,
+        "Grep": 5
+      },
+      "byCommand": {
+        "find": 1
+      }
+    },
+    "usage": {
+      "in": 114,
+      "out": 3003,
+      "cacheRead": 331179,
+      "cacheWrite": 28978
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.10620289999999999,
+      "source": "agent-reported"
+    },
+    "turns": 14,
+    "durationMs": 36197,
+    "answer": "Based on my analysis of the codebase, here are the files that implement how the framework chooses which output definition applies to a response:\n\n`lib/schemas.js`\nThis file contains `getSchemaSerializer()` which implements the core selection logic: it tries exact status code match first, then class wildcards (2xx, 3xx, etc.), then a catch-all \"default\", checking for specific media-type variants at each level before falling back to wildcards like `*/*`.\n\n`lib/validation.js`\nThis file contains `compileSchemasForSerialization()` which compiles and organizes response schemas from route definitions into a lookup structure keyed by status code and media type.\n\n`lib/reply.js`\nThis file's `serialize()` function (line 1018) calls `getSchemaSerializer()` to retrieve the appropriate compiled serializer based on the actual response's status code and content type.\n\n**Why:** The framework uses a prioritized selection strategy: exact status codes (200), class wildcards (2xx), catch-all default, with media-type variants considered at each level, enabling routes to declare outputs for multiple scenarios while automatically selecting the correct one at runtime."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "lib/reply.js"
+    ],
+    "toolCalls": {
+      "total": 26,
+      "byTool": {
+        "Bash": 2,
+        "Glob": 3,
+        "Grep": 12,
+        "Read": 9
+      },
+      "byCommand": {
+        "find": 2
+      }
+    },
+    "usage": {
+      "in": 218,
+      "out": 5497,
+      "cacheRead": 1080111,
+      "cacheWrite": 57657
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.25102810000000003,
+      "source": "agent-reported"
+    },
+    "turns": 27,
+    "durationMs": 64935,
+    "answer": "Based on the code, here are the relevant files that implement header case normalization:\n\n`lib/validation.js`\nNormalizes header property names to lowercase when compiling schemas because HTTP headers are case-insensitive per RFC 2616, allowing schema authors to declare headers with mixed-case names that are then matched against Node's lowercase header names.\n\n`lib/reply.js`\nNormalizes header key names to lowercase when accessing or setting reply headers, ensuring consistent case-insensitive handling on the response side."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "lib/request.js",
+      "Node.js"
+    ],
+    "toolCalls": {
+      "total": 13,
+      "byTool": {
+        "Grep": 7,
+        "mcp__sigmap__query_context": 1,
+        "Read": 4,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 106,
+      "out": 3059,
+      "cacheRead": 319521,
+      "cacheWrite": 17397
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0821471,
+      "source": "agent-reported"
+    },
+    "turns": 14,
+    "durationMs": 36595,
+    "answer": "Based on my search through the codebase, here are the files that implement header case-insensitive matching:\n\n`lib/validation.js`\n`lib/request.js`\n\n**Why:** When a route declares expected headers with mixed-case names, `lib/validation.js` (lines 70-84) normalizes all header property names and required field names to lowercase before compiling the validation schema. Meanwhile, `lib/request.js` (lines 276-286) provides a headers getter that returns Node.js's raw headers object, which already has lowercase keys. This ensures the declared schema keys match the lowercase headers that Node.js provides in IncomingMessage."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "types/utils.d.ts",
+      "types/type-provider.d.ts",
+      "lib/handle-request.js",
+      "lib/route.js"
+    ],
+    "toolCalls": {
+      "total": 14,
+      "byTool": {
+        "Grep": 8,
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__search_signatures": 2,
+        "Read": 2,
+        "mcp__sigmap__get_impact": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 66,
+      "out": 2300,
+      "cacheRead": 160574,
+      "cacheWrite": 9271
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0461654,
+      "source": "agent-reported"
+    },
+    "turns": 15,
+    "durationMs": 25765,
+    "answer": "Based on my search, I found how Fastify handles mixed-case header declarations against Node's lowercase headers:\n\n`lib/validation.js`\n`types/utils.d.ts`\n`types/type-provider.d.ts`\n`lib/handle-request.js`\n`lib/route.js`\n\nWhen routes declare headers with mixed-case names, `lib/validation.js:73-84` transforms the schema before validation by converting all header property keys and required header names to lowercase to match what Node.js provides. The TypeScript side mirrors this with the `RecordKeysToLowercase` utility type at the type level."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "lib/request.js",
+      "lib/handle-request.js",
+      "test/internals/validation.test.js",
+      "Node.js"
+    ],
+    "toolCalls": {
+      "total": 22,
+      "byTool": {
+        "Bash": 2,
+        "Read": 9,
+        "Glob": 1,
+        "Grep": 10
+      },
+      "byCommand": {
+        "find": 1,
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 186,
+      "out": 4155,
+      "cacheRead": 464749,
+      "cacheWrite": 23179
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.11379390000000002,
+      "source": "agent-reported"
+    },
+    "turns": 23,
+    "durationMs": 48188,
+    "answer": "Based on my analysis of the Fastify codebase, here are the files that implement header case-insensitivity checking:\n\n`lib/validation.js`\n`lib/request.js`\n`lib/handle-request.js`\n`test/internals/validation.test.js`\n\nThe framework normalizes mixed-case header names in the schema to lowercase during schema compilation so that the validator can match them against the lowercase header names that Node.js provides in `req.headers`."
+  }
+]

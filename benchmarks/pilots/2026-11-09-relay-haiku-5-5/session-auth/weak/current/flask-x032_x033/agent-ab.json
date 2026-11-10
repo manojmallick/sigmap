@@ -1,0 +1,1115 @@
+{
+  "schema": 1,
+  "kind": "agent-ab",
+  "method": {
+    "agent": "claude-code",
+    "agentVersion": "2.1.321 (Claude Code)",
+    "model": "claude-haiku-4-5",
+    "runs": 2,
+    "variant": "current",
+    "auth": "session",
+    "taskIds": [
+      "x032",
+      "x033"
+    ],
+    "tasksPerRepo": 1,
+    "budgetUsd": 1,
+    "timeoutMs": 420000,
+    "date": "2026-11-10",
+    "repos": [
+      {
+        "name": "flask",
+        "commit": "2ac89889f4cc330eabd50f295dcef02828522c69"
+      }
+    ],
+    "skippedRepos": [],
+    "arms": {
+      "without": "no SigMap",
+      "with": "SigMap generated context + MCP server"
+    },
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "corpus": "benchmarks/tasks/retrieval-xrepo.jsonl",
+    "selection": "the task id(s) x032, x033",
+    "passDefinition": "hit@5 on the repository-relative paths the answer names",
+    "priceAsOf": "2026-10-04",
+    "publishable": false,
+    "notPublishableBecause": [
+      "2 runs per arm (the minimum is 4)"
+    ]
+  },
+  "caveats": [
+    "One agent, one model, one date. The result says nothing about another agent or model.",
+    "The questions ask where code lives, so this measures localisation, not edit or generation quality.",
+    "Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.",
+    "Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.",
+    "Token figures are per-request billing categories summed over the run. They are not the size of the context.",
+    "The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.",
+    "Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.",
+    "The self repo is excluded: its tree holds its own answer key and its own generated context.",
+    "Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.",
+    "The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.",
+    "A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.",
+    "Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.",
+    "Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account's plan."
+  ],
+  "cells": [
+    {
+      "task": "x032",
+      "repo": "flask",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/flask/app.py",
+          "src/flask/ctx.py",
+          "AppContext.push"
+        ],
+        [
+          "src/flask/app.py",
+          "src/flask/ctx.py",
+          "AppContext.pop",
+          "src/flask/wrappers.py",
+          "src/flask/signals.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1836583,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 12,
+          "min": 6,
+          "max": 18,
+          "stdev": 8.48528137423857
+        },
+        "in": {
+          "n": 2,
+          "median": 106,
+          "min": 58,
+          "max": 154,
+          "stdev": 67.88225099390856
+        },
+        "out": {
+          "n": 2,
+          "median": 3391.5,
+          "min": 2863,
+          "max": 3920,
+          "stdev": 747.4118677141807
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 254206.5,
+          "min": 159037,
+          "max": 349376,
+          "stdev": 134589.99762426628
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 24672.5,
+          "min": 16548,
+          "max": 32797,
+          "stdev": 11489.77808750021
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 282376.5,
+          "min": 194755,
+          "max": 369998,
+          "stdev": 123915.51365547415
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.09182915,
+          "min": 0.08778759999999998,
+          "max": 0.0958707,
+          "stdev": 0.005715614823008999
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 37745,
+          "min": 31149,
+          "max": 44341,
+          "stdev": 9328.152657412935
+        }
+      }
+    },
+    {
+      "task": "x032",
+      "repo": "flask",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/flask/app.py",
+          "src/flask/ctx.py"
+        ],
+        [
+          "src/flask/app.py",
+          "src/flask/ctx.py",
+          "src/flask/sansio/app.py",
+          "src/flask/wrappers.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1537757,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 14,
+          "min": 14,
+          "max": 14,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 86,
+          "min": 82,
+          "max": 90,
+          "stdev": 5.656854249492381
+        },
+        "out": {
+          "n": 2,
+          "median": 3183.5,
+          "min": 2891,
+          "max": 3476,
+          "stdev": 413.6574669941303
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 243123.5,
+          "min": 211161,
+          "max": 275086,
+          "stdev": 45201.80098735005
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 18286,
+          "min": 12743,
+          "max": 23829,
+          "stdev": 7838.985776234066
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 264679,
+          "min": 226877,
+          "max": 302481,
+          "stdev": 53460.10108482774
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.07688785,
+          "min": 0.0611391,
+          "max": 0.09263659999999999,
+          "stdev": 0.022272095840423268
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 32583.5,
+          "min": 31412,
+          "max": 33755,
+          "stdev": 1656.751188320081
+        }
+      }
+    },
+    {
+      "task": "x033",
+      "repo": "flask",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/flask/sansio/blueprints.py",
+          "src/flask/sansio/app.py",
+          "src/flask/blueprints.py",
+          "tests/test_blueprints.py",
+          "app.blueprints"
+        ],
+        [
+          "src/flask/sansio/blueprints.py",
+          "src/flask/sansio/app.py",
+          "src/flask/blueprints.py",
+          "src/flask/sansio/scaffold.py",
+          "Blueprint.register"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.2081126,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 16.5,
+          "min": 16,
+          "max": 17,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 142,
+          "min": 138,
+          "max": 146,
+          "stdev": 5.656854249492381
+        },
+        "out": {
+          "n": 2,
+          "median": 3420.5,
+          "min": 3287,
+          "max": 3554,
+          "stdev": 188.79751057680818
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 404498,
+          "min": 374573,
+          "max": 434423,
+          "stdev": 42320.34085401487
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 23181,
+          "min": 21999,
+          "max": 24363,
+          "stdev": 1671.6004307249984
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 431241.5,
+          "min": 399997,
+          "max": 462486,
+          "stdev": 44186.39564956617
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.1040563,
+          "min": 0.09802830000000001,
+          "max": 0.1100843,
+          "stdev": 0.008524879353985005
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 38480.5,
+          "min": 35422,
+          "max": 41539,
+          "stdev": 4325.372180518111
+        }
+      }
+    },
+    {
+      "task": "x033",
+      "repo": "flask",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/flask/sansio/blueprints.py",
+          "src/flask/sansio/app.py"
+        ],
+        [
+          "src/flask/sansio/blueprints.py",
+          "src/flask/sansio/app.py",
+          "src/flask/blueprints.py",
+          "blueprints.py",
+          "Blueprint.register"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1065075,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 6.5,
+          "min": 4,
+          "max": 9,
+          "stdev": 3.5355339059327378
+        },
+        "in": {
+          "n": 2,
+          "median": 46,
+          "min": 34,
+          "max": 58,
+          "stdev": 16.97056274847714
+        },
+        "out": {
+          "n": 2,
+          "median": 1550,
+          "min": 1280,
+          "max": 1820,
+          "stdev": 381.8376618407357
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 119347.5,
+          "min": 78569,
+          "max": 160126,
+          "stdev": 57669.50775323126
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 16761.5,
+          "min": 15265,
+          "max": 18258,
+          "stdev": 2116.3705960913367
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 137705,
+          "min": 95148,
+          "max": 180262,
+          "stdev": 60184.68657391181
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.05325375,
+          "min": 0.0448209,
+          "max": 0.06168660000000001,
+          "stdev": 0.011925850839457963
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 19217.5,
+          "min": 16607,
+          "max": 21828,
+          "stdev": 3691.8045045749645
+        }
+      }
+    }
+  ],
+  "repos": [
+    {
+      "repo": "flask",
+      "tasks": 2,
+      "pass": {
+        "without": {
+          "pass": 4,
+          "runs": 4
+        },
+        "with": {
+          "pass": 4,
+          "runs": 4
+        }
+      },
+      "failedRuns": {
+        "without": 0,
+        "with": 0
+      },
+      "cacheGapRuns": 0,
+      "spend": {
+        "without": {
+          "all": {
+            "runs": 4,
+            "agentReportedUsd": 0.39177090000000003,
+            "agentReportedRuns": 4,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        },
+        "with": {
+          "all": {
+            "runs": 4,
+            "agentReportedUsd": 0.2602832,
+            "agentReportedRuns": 4,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "without": 14.25,
+          "with": 10.25,
+          "tasks": 2,
+          "medianDelta": -4,
+          "fewer": 1,
+          "ties": 0,
+          "more": 1
+        },
+        "in": {
+          "without": 124,
+          "with": 66,
+          "tasks": 2,
+          "medianDelta": -58,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "out": {
+          "without": 3406,
+          "with": 2366.75,
+          "tasks": 2,
+          "medianDelta": -1039.25,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "cacheRead": {
+          "without": 329352.25,
+          "with": 181235.5,
+          "tasks": 2,
+          "medianDelta": -148116.75,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "cacheWrite": {
+          "without": 23926.75,
+          "with": 17523.75,
+          "tasks": 2,
+          "medianDelta": -6403,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "totalTokens": {
+          "without": 356809,
+          "with": 201192,
+          "tasks": 2,
+          "medianDelta": -155617,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "costUsd": {
+          "without": 0.09794272500000001,
+          "with": 0.0650708,
+          "tasks": 2,
+          "medianDelta": -0.032871925,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        },
+        "costFloorUsd": {
+          "without": null,
+          "with": null,
+          "tasks": 0,
+          "medianDelta": null,
+          "fewer": 0,
+          "ties": 0,
+          "more": 0
+        },
+        "durationMs": {
+          "without": 38112.75,
+          "with": 25900.5,
+          "tasks": 2,
+          "medianDelta": -12212.25,
+          "fewer": 2,
+          "ties": 0,
+          "more": 0
+        }
+      }
+    }
+  ],
+  "total": {
+    "tasks": 2,
+    "pass": {
+      "without": {
+        "pass": 4,
+        "runs": 4
+      },
+      "with": {
+        "pass": 4,
+        "runs": 4
+      }
+    },
+    "failedRuns": {
+      "without": 0,
+      "with": 0
+    },
+    "cacheGapRuns": 0,
+    "spend": {
+      "without": {
+        "all": {
+          "runs": 4,
+          "agentReportedUsd": 0.39177090000000003,
+          "agentReportedRuns": 4,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "with": {
+        "all": {
+          "runs": 4,
+          "agentReportedUsd": 0.2602832,
+          "agentReportedRuns": 4,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      }
+    },
+    "metrics": {
+      "toolCalls": {
+        "without": 14.25,
+        "with": 10.25,
+        "tasks": 2,
+        "medianDelta": -4,
+        "fewer": 1,
+        "ties": 0,
+        "more": 1
+      },
+      "in": {
+        "without": 124,
+        "with": 66,
+        "tasks": 2,
+        "medianDelta": -58,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "out": {
+        "without": 3406,
+        "with": 2366.75,
+        "tasks": 2,
+        "medianDelta": -1039.25,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "cacheRead": {
+        "without": 329352.25,
+        "with": 181235.5,
+        "tasks": 2,
+        "medianDelta": -148116.75,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "cacheWrite": {
+        "without": 23926.75,
+        "with": 17523.75,
+        "tasks": 2,
+        "medianDelta": -6403,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "totalTokens": {
+        "without": 356809,
+        "with": 201192,
+        "tasks": 2,
+        "medianDelta": -155617,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "costUsd": {
+        "without": 0.09794272500000001,
+        "with": 0.0650708,
+        "tasks": 2,
+        "medianDelta": -0.032871925,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      },
+      "costFloorUsd": {
+        "without": null,
+        "with": null,
+        "tasks": 0,
+        "medianDelta": null,
+        "fewer": 0,
+        "ties": 0,
+        "more": 0
+      },
+      "durationMs": {
+        "without": 38112.75,
+        "with": 25900.5,
+        "tasks": 2,
+        "medianDelta": -12212.25,
+        "fewer": 2,
+        "ties": 0,
+        "more": 0
+      }
+    }
+  },
+  "repetitions": {
+    "runs": [
+      1,
+      2
+    ],
+    "taskCount": 2,
+    "bootstrap": {
+      "iterations": 10000,
+      "seed": 1,
+      "level": 0.95
+    },
+    "metrics": {
+      "toolCalls": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 22,
+              "with": 18,
+              "change": -0.18181818181818177
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.23623738417402662,
+              "lo": -0.75,
+              "hi": 1.3333333333333335,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 35,
+              "with": 23,
+              "change": -0.34285714285714286
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.35831105208025205,
+              "lo": -0.47058823529411764,
+              "hi": -0.2222222222222222,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "in": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 196,
+              "with": 124,
+              "change": -0.36734693877551017
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.38168871466128695,
+              "lo": -0.7536231884057971,
+              "hi": 0.5517241379310345,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 300,
+              "with": 140,
+              "change": -0.5333333333333333
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.5400780524593682,
+              "lo": -0.6027397260273972,
+              "hi": -0.4675324675324676,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "out": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 6150,
+              "with": 4756,
+              "change": -0.22666666666666668
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.3124024150245327,
+              "lo": -0.6105871615454822,
+              "hi": 0.2141110723017814,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 7474,
+              "with": 4711,
+              "change": -0.3696815627508697
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.3854489081801661,
+              "lo": -0.4879009566685425,
+              "hi": -0.26249999999999996,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "cacheRead": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 533610,
+              "with": 353655,
+              "change": -0.3372406813965255
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.3976588484234178,
+              "lo": -0.790243824301271,
+              "hi": 0.7296981205631394,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 783799,
+              "with": 371287,
+              "change": -0.5262981963488088
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.5280077766478737,
+              "lo": -0.6314053353528704,
+              "hi": -0.39560530774867186,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "cacheWrite": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 54796,
+              "with": 39094,
+              "change": -0.28655376304839775
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.2899600525625512,
+              "lo": -0.30610482294649755,
+              "hi": -0.2734396438698662,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 40911,
+              "with": 31001,
+              "change": -0.24223314023123366
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.240331175263653,
+              "lo": -0.25058490333702743,
+              "hi": -0.229937152525985,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "totalTokens": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 594752,
+              "with": 397629,
+              "change": -0.3314373049607231
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.3921782916658053,
+              "lo": -0.7621282159616197,
+              "hi": 0.5531359913737772,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 832484,
+              "with": 407139,
+              "change": -0.5109347446917899
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.5111244197222746,
+              "lo": -0.6102325259575425,
+              "hi": -0.38681560440867246,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costUsd": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 0.19389900000000002,
+              "with": 0.13745749999999998,
+              "change": -0.29108711236262197
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.33531955013667536,
+              "lo": -0.5427759126701168,
+              "hi": -0.03373397711709647,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 0.1978719,
+              "with": 0.12282570000000001,
+              "change": -0.37926658610949804
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.37529402911816057,
+              "lo": -0.43964216514071475,
+              "hi": -0.30355653873667787,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "costFloorUsd": null,
+      "durationMs": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 2,
+              "without": 66571,
+              "with": 50362,
+              "change": -0.24348440011416383
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.28721909731497575,
+              "lo": -0.5311670713116142,
+              "hi": 0.08366239686667298,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 2,
+              "without": 85880,
+              "with": 53240,
+              "change": -0.3800652072659525
+            },
+            "typical": {
+              "n": 2,
+              "dropped": 0,
+              "change": -0.38986771430831824,
+              "lo": -0.47451792291581407,
+              "hi": -0.29158115513858507,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      }
+    },
+    "outcome": {
+      "reps": [
+        {
+          "run": 1,
+          "tasks": 2,
+          "better": 0,
+          "worse": 0,
+          "ties": 2
+        },
+        {
+          "run": 2,
+          "tasks": 2,
+          "better": 0,
+          "worse": 0,
+          "ties": 2
+        }
+      ],
+      "total": {
+        "tasks": 4,
+        "better": 0,
+        "worse": 0,
+        "ties": 4
+      }
+    }
+  },
+  "version": "8.85.1",
+  "generated": "2026-11-10T00:29:29.207Z"
+}

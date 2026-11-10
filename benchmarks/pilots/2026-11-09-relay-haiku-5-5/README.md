@@ -19,7 +19,7 @@ What it changes:
 
 - **The agent barely used SigMap's retrieval.** In 60 SigMap runs it called `query_context` 11 times, `get_lines` 55 times and `Grep` 97 times: it searched by itself. The baseline finds the file in about 3 calls for about $0.0023, so on these questions **there is nothing for SigMap to save**, and what it adds (a section and seven tool definitions) is pure overhead.
 - **The relay results below describe a different agent.** On the same questions the relay runs took about 10 tool calls and 1 to 2 minutes, against 3 calls and 12 seconds here. I could not separate the causes (the relay's model and caching, or `--bare`'s minimal system prompt against Claude Code's full one); either way, the "long searches where SigMap saves" picture, and the 3× noise, do not transfer to the real agent. The noise is small here (standard deviation of the paired log-ratio 0.22, against 1.11 on the relay), so 60 pairs resolve about ±6%.
-- **Verdict on this evidence:** with a strong agent that greps well, on repos of 53 to 7,084 files and questions about where code lives, SigMap in the docs' setup **does not save cost or time, adds about 18% to the token count (cached, so about 3% to the dollar cost, at most about 8%), and finds the file just as often**. It was not shown to help; on large repos it may trim tool calls a little.
+- **Verdict on this evidence:** with a strong agent that greps well, on repos of 53 to 7,084 files and questions about where code lives, SigMap in the docs' setup **does not save cost or time, adds about 18% to the token count (cached, so about 3% to the dollar cost, at most about 8%), and finds the file just as often**. It was not shown to help; on large repos it may trim tool calls a little. **A weaker model reverses this: see the next section.**
 - **Large repos, tested next:** the same run on django (7,084 files), rails (4,901) and laravel (3,179), 15 questions, 60 runs, none failed (`session-auth/index-large/`). File found 30/30 against 30/30; real cost **−1%** workload, **0%** typical [−7%, +9%]; tokens +18% [+6%, +32%]; tool calls **−14%** workload, −17% typical [−31%, +1%] (SigMap lower in 16 pairs, higher in 6, equal in 8: the one hint of a gain, with an interval that just touches zero); seconds unchanged. The agent still asked SigMap to retrieve in only 5 of 30 runs. Size of repo made no visible difference to cost.
 - **All 45 questions, 8 repos, 180 runs, $0.44:** file found **90/90 against 90/90**; real cost **+3%** typical [−1%, +8%] (SigMap cheaper in 44 pairs, dearer in 46: a coin flip); tokens **+18%** [+12%, +25%]; tool calls −8% [−17%, +2%]; time 0%; `query_context` asked in 16 of 90 runs.
 - **`lean` on the same 45 questions (180 runs, $0.46, none failed) is worse than `index` and than no SigMap.** File found 90/90 by both arms, but against its own baseline **real cost +16%** [+11%, +20%] (SigMap cheaper in 17 pairs, dearer in 73), **tokens +34%** [+26%, +42%], **tool calls +41%** [+31%, +53%], seconds +13%, every interval clear of zero. Directly against `index`: cost +11% [+6%, +16%], tool calls +47%. The cause is behaviour, not the prompt size: the lean section names `query_context` and says to confirm with `get_lines`, so the agent obeyed (`query_context` in 89 of 90 runs, `get_lines` 179 times) **and also kept grepping** (124 calls). SigMap became an extra step on top of the agent's own search, not a replacement for it.
@@ -42,8 +42,11 @@ SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetiti
 | **SigMap `index`** (the docs' setup) | index map + 7 tools | **+20% / +16%** | **+21% / +16%** | **+7% / −1%** | **+8% / −1%** | **21 of 89** | **no** |
 | SigMap `current` (old default) | full signature map + 22 tools | +42% / +43% | +39% / +43% | +12% / +10% | +10% / +8% | 10 of 89 | no |
 | SigMap `lean` | 3-line section + 7 tools | +32% / +33% | +30% / +36% | +14% / +13% | +15% / +15% | 9 of 89 | no |
+| **SigMap `index`, weaker model** (Haiku 4.5, 16 questions, 31 cases) | index map + 7 tools | **−37% / −42%** | **−40% / −45%** | **−33% / −35%** | **−34% / −36%** | **25 of 31** | **yes** |
+| SigMap `lean`, weaker model (32 cases) | 3-line section + 7 tools | −40% / −38% | −34% / −40% | −34% / −35% | −29% / −35% | 24 of 32 | yes |
+| SigMap `current`, weaker model (32 cases) | full signature map + 22 tools | −49% / −21% | −43% / −23% | −38% / −22% | −33% / −23% | 20 of 32 | yes |
 
-- **No tool cut tokens in both repetitions, and SigMap is no exception.** The only tool that cut cost in both was Terra, by changing the model and price, not by compressing anything.
+- **No tool cut tokens in both repetitions, and SigMap with Haiku 5.5 is no exception. With the weaker Haiku 4.5 it did, in all three setups (the last three rows).** The only tool that cut cost in both was Terra, by changing the model and price, not by compressing anything.
 - **Where SigMap sits.** On cost, `index` (+7%, then −1%) is in the same neighbourhood as RTK and Ponytail: roughly neutral and noisy. On tokens it is higher than all four of the study's near-zero tools, because its section and tool definitions are re-read each turn (cached, which is why the dollar cost moves much less than the token count), and far better than Mandarin and Context Mode. `current` and `lean` are worse than `index` on cost.
 - **The intervals.** SigMap's token increases are outside the noise in both repetitions; `index`'s cost is outside it in repetition 1 (+8%) and inside it in repetition 2.
 - **Quality is not comparable.** The study graded patches (several tools lost tests, equivalence or review). SigMap's runs only had to name the file, and both arms did that every time (90/90, 90/90, 89/89 for the three setups). Finding a file is a far easier test than writing a correct patch, and SigMap does not change how a patch is written.
@@ -71,6 +74,27 @@ Against `index` directly: `lean` costs +10% [+6%, +15%] and makes +47% more call
 - **They trade differently.** `current` buys fewer tool calls (its inline signature map saves reads) with a heavier prompt; `lean` makes the agent do extra steps; `index` does little of either. None changed the time, and all found the file every time.
 - **An agent that already finds the file in about 3 calls has little to give up to SigMap and little to gain from it.**
 
+### A weaker model (Claude Haiku 4.5): SigMap saves
+
+The same harness and `--session-auth`, model `claude-haiku-4-5` (the previous generation; the older Claude 3 models are not available to this session, and the relay's free non-Claude models were out of balance). A sample, because each run is about 8× the tokens: **the first two question ids of each of the 8 repos (16 questions), fixed before any result, 2 repetitions, three setups, 192 runs** (`weak-combined.mjs`, data in `session-auth/weak/`). Haiku 4.5 is a far less efficient searcher: **13 to 14 tool calls, 34 s, about 300k tokens and about $0.08 a run without SigMap**, against 3.4 calls, 12 s, 42k tokens and $0.0024 for Haiku 5.5.
+
+| each setup against its own baseline, typical task (95% interval) | `index` | `lean` | `current` |
+|---|---:|---:|---:|
+| paired cases | 31 | 32 | 32 |
+| file found | 30/31 (baseline 31/31) | 32/32 (32/32) | 32/32 (32/32) |
+| real cost | **−35%** [−43%, −25%] | **−32%** [−41%, −22%] | **−28%** [−37%, −18%] |
+| total tokens | **−42%** [−53%, −29%] | **−37%** [−49%, −22%] | **−33%** [−47%, −18%] |
+| tool calls | **−41%** [−52%, −28%] | **−31%** [−42%, −17%] | **−28%** [−41%, −13%] |
+| seconds | **−28%** [−37%, −16%] | **−21%** [−30%, −10%] | **−23%** [−31%, −15%] |
+| SigMap cheaper than its baseline | 27 of 31 | 26 of 32 | 26 of 32 |
+| asked SigMap to retrieve | 27 of 31 runs | 28 of 32 | 17 of 32 |
+
+- **Every interval is clear of zero, in each repetition separately,** and the three setups agree: SigMap saves a weak searcher a third of its tokens and cost, and about a quarter of its time. `index` is the best of the three, as it was the closest to neutral with the stronger model.
+- **It saves because the agent uses it and turns fall.** Baseline 13.9 turns, SigMap `index` 9.1 (−34%); the agent called `query_context` in 27 of 31 runs. Break-even needed only about 7% fewer turns (1.6k added to a 21k turn), so the saving is large. This is the mechanism in the *why* section working in the other direction: when grep takes 13 calls, one retrieval turn pays for itself.
+- **One miss:** `index` named five related files but not the expected one on `django/x027`, repetition 2 (30/31). `lean` and `current` found the file 32/32.
+- **The model matters more than SigMap.** Haiku 5.5 with no SigMap costs about $0.0024 a run in 3.4 calls; Haiku 4.5 *with* SigMap costs $0.054 to $0.060 in 8 to 10 calls. SigMap closes part of the gap between a weak and a strong agent, and moving to the stronger model closes about 20 times more of it.
+- **Limits:** one weaker model, 16 questions (not 45), and a usage-limit event during the run: the plan limit hit at the end of the `index` laravel batch (one baseline run failed instantly, so its pair, `laravel/x047` repetition 2, is left out), and the `lean` and `current` laravel batches were re-run from scratch after the reset.
+
 ### Why SigMap saved neither tokens nor time
 
 `why.mjs` prints the numbers below from the saved runs. Read against `llms-full.txt`, which is where the headline claims live.
@@ -95,7 +119,7 @@ Against `index` directly: `lean` costs +10% [+6%, +15%] and makes +47% more call
 
 **5. What this does not rule out (hypotheses, none tested here unless noted).**
 
-- **Weaker models**, which need more turns to find a file: tested next (Haiku 4.5, below).
+- **Weaker models**, which need more turns to find a file: tested, and it reverses the result (Haiku 4.5, *A weaker model* above).
 - **Repositories far larger than django**, where a grep returns more than an agent can read.
 - **Long sessions that ask many questions**, which would amortise the section; every run here is a cold single question.
 - **Tasks where text search fails** (renamed or generated symbols), and **tasks that are not search** (impact analysis, grounding checks): this test asked for neither.
