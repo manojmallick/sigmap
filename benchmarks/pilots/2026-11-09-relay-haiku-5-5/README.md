@@ -25,11 +25,11 @@ What it changes:
 - **`lean` on the same 45 questions (180 runs, $0.46, none failed) is worse than `index` and than no SigMap.** File found 90/90 by both arms, but against its own baseline **real cost +16%** [+11%, +20%] (SigMap cheaper in 17 pairs, dearer in 73), **tokens +34%** [+26%, +42%], **tool calls +41%** [+31%, +53%], seconds +13%, every interval clear of zero. Directly against `index`: cost +11% [+6%, +16%], tool calls +47%. The cause is behaviour, not the prompt size: the lean section names `query_context` and says to confirm with `get_lines`, so the agent obeyed (`query_context` in 89 of 90 runs, `get_lines` 179 times) **and also kept grepping** (124 calls). SigMap became an extra step on top of the agent's own search, not a replacement for it.
 - **The earlier projection for `lean` was wrong in sign.** It subtracted the static tokens `lean` drops and held behaviour fixed, and predicted −25% / −6% by workload; measured, tokens are +32% / +34%. Tool definitions and section size were not what decided cost; whether and how the agent is told to use the tool was. The `lean` section is withdrawn as a recommendation.
 - **`current` (the old default: `full` strategy, all 22 tools, the generated section) on the same 45 questions: 178 of 180 runs counted, $0.45.** One run timed out at 420 s (`fastapi/x148`, repetition 2, SigMap arm) and that question × repetition is left out for every variant. File found 89/89 by both arms. Against its baseline: real cost **+9%** [+4%, +14%] (cheaper in 36 of 89 pairs), tokens **+41%** [+31%, +50%], seconds 0%, and **tool calls −17%** [−26%, −7%], the only variant with a clear cut in calls (`Read` 90 against 134 for the baseline). It asked SigMap to retrieve in only 4 of 89 runs, so the cut does not come from retrieval: the generated section lists files and signatures with line anchors, which tells the agent where to look and saves it reads, at the price of carrying that text on every turn.
-- **Not tested, and where it could still pay off:** weaker models, environments with no grep (chat-only LLMs), repos larger than django, other kinds of task (SigMap also offers impact analysis, grounding checks and other tools this test never asked for), and a prompt that makes the agent use SigMap's retrieval (it ignored it here). Only Haiku 5.5 was run.
+- **Not tested, and where it could still pay off:** other weaker or smaller models (one, Haiku 4.5, was tested and does gain), environments with no grep (chat-only LLMs), repos larger than django, other kinds of task (SigMap also offers impact analysis, grounding checks and other tools this test never asked for), and a prompt that makes the agent use SigMap's retrieval (it ignored it here).
 
 ### Final comparison with the stet.sh study's six tools
 
-SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetitions, the 89 cases every setup completed (`session-combined.mjs`, last block). Study rows: the post's own figures, ten merged-change tasks on Codex with GPT-5.6 Sol. Change is the tool against its own baseline, negative = the tool used less; cost for SigMap is the agent's real-API figure.
+SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetitions, the 89 cases every setup completed (`session-combined.mjs`, last block); the last three rows are the same 45 questions with Haiku 4.5 (`weak-combined.mjs`), each setup against its own baseline, so their case counts differ by one. Study rows: the post's own figures, ten merged-change tasks on Codex with GPT-5.6 Sol. Change is the tool against its own baseline, negative = the tool used less; cost for SigMap is the agent's real-API figure.
 
 | tool | what it does | tokens, whole batch R1 / R2 | tokens, typical task R1 / R2 | cost, whole batch R1 / R2 | cost, typical task R1 / R2 | cases with fewer tokens | saved tokens both times? |
 |---|---|---:|---:|---:|---:|---:|---|
@@ -42,11 +42,11 @@ SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetiti
 | **SigMap `index`** (the docs' setup) | index map + 7 tools | **+20% / +16%** | **+21% / +16%** | **+7% / −1%** | **+8% / −1%** | **21 of 89** | **no** |
 | SigMap `current` (old default) | full signature map + 22 tools | +42% / +43% | +39% / +43% | +12% / +10% | +10% / +8% | 10 of 89 | no |
 | SigMap `lean` | 3-line section + 7 tools | +32% / +33% | +30% / +36% | +14% / +13% | +15% / +15% | 9 of 89 | no |
-| **SigMap `index`, weaker model** (Haiku 4.5, 16 questions, 31 cases) | index map + 7 tools | **−37% / −42%** | **−40% / −45%** | **−33% / −35%** | **−34% / −36%** | **25 of 31** | **yes** |
-| SigMap `lean`, weaker model (32 cases) | 3-line section + 7 tools | −40% / −38% | −34% / −40% | −34% / −35% | −29% / −35% | 24 of 32 | yes |
-| SigMap `current`, weaker model (32 cases) | full signature map + 22 tools | −49% / −21% | −43% / −23% | −38% / −22% | −33% / −23% | 20 of 32 | yes |
+| **SigMap `index`, weaker model** (Haiku 4.5, 45 questions, 89 cases) | index map + 7 tools | **−27% / −38%** | **−31% / −39%** | **−26% / −32%** | **−28% / −31%** | **68 of 89** | **yes** |
+| SigMap `lean`, weaker model (90 cases) | 3-line section + 7 tools | −20% / −17% | −26% / −28% | −22% / −20% | −25% / −25% | 60 of 90 | yes |
+| SigMap `current`, weaker model (90 cases) | full signature map + 22 tools | −36% / −21% | −35% / −20% | −33% / −25% | −31% / −24% | 58 of 90 | yes |
 
-- **No tool cut tokens in both repetitions, and SigMap with Haiku 5.5 is no exception. With the weaker Haiku 4.5 it did, in all three setups (the last three rows).** The only tool that cut cost in both was Terra, by changing the model and price, not by compressing anything.
+- **No tool cut tokens in both repetitions, and SigMap with Haiku 5.5 is no exception. With the weaker Haiku 4.5 it did, in all three setups, over 45 questions and in each repetition separately (the last three rows; every typical-task interval is clear of zero).** The only tool that cut cost in both was Terra, by changing the model and price, not by compressing anything.
 - **Where SigMap sits.** On cost, `index` (+7%, then −1%) is in the same neighbourhood as RTK and Ponytail: roughly neutral and noisy. On tokens it is higher than all four of the study's near-zero tools, because its section and tool definitions are re-read each turn (cached, which is why the dollar cost moves much less than the token count), and far better than Mandarin and Context Mode. `current` and `lean` are worse than `index` on cost.
 - **The intervals.** SigMap's token increases are outside the noise in both repetitions; `index`'s cost is outside it in repetition 1 (+8%) and inside it in repetition 2.
 - **Quality is not comparable.** The study graded patches (several tools lost tests, equivalence or review). SigMap's runs only had to name the file, and both arms did that every time (90/90, 90/90, 89/89 for the three setups). Finding a file is a far easier test than writing a correct patch, and SigMap does not change how a patch is written.
@@ -76,24 +76,32 @@ Against `index` directly: `lean` costs +10% [+6%, +15%] and makes +47% more call
 
 ### A weaker model (Claude Haiku 4.5): SigMap saves
 
-The same harness and `--session-auth`, model `claude-haiku-4-5` (the previous generation; the older Claude 3 models are not available to this session, and the relay's free non-Claude models were out of balance). A sample, because each run is about 8× the tokens: **the first two question ids of each of the 8 repos (16 questions), fixed before any result, 2 repetitions, three setups, 192 runs** (`weak-combined.mjs`, data in `session-auth/weak/`). Haiku 4.5 is a far less efficient searcher: **13 to 14 tool calls, 34 s, about 300k tokens and about $0.08 a run without SigMap**, against 3.4 calls, 12 s, 42k tokens and $0.0024 for Haiku 5.5.
+The same harness and `--session-auth`, model `claude-haiku-4-5` (the previous generation; the older Claude 3 models are not available to this session, and the relay's free non-Claude models were out of balance). **All 45 questions, 8 repos, 2 repetitions, three setups, 540 runs** (`weak-combined.mjs`, data in `session-auth/weak/`; about $41 at list price, paid from the plan, not per call). It was run in two stages: first the first two question ids of each repo (16 questions, fixed before any result), then the other 29. Haiku 4.5 is a far less efficient searcher: **13 to 14 tool calls, 34 to 36 s, 300k to 320k tokens and $0.084 to $0.089 a run without SigMap**, against 3.4 calls, 12 s, 42k tokens and $0.0024 for Haiku 5.5.
 
 | each setup against its own baseline, typical task (95% interval) | `index` | `lean` | `current` |
 |---|---:|---:|---:|
-| paired cases | 31 | 32 | 32 |
-| file found | 30/31 (baseline 31/31) | 32/32 (32/32) | 32/32 (32/32) |
-| real cost | **−35%** [−43%, −25%] | **−32%** [−41%, −22%] | **−28%** [−37%, −18%] |
-| total tokens | **−42%** [−53%, −29%] | **−37%** [−49%, −22%] | **−33%** [−47%, −18%] |
-| tool calls | **−41%** [−52%, −28%] | **−31%** [−42%, −17%] | **−28%** [−41%, −13%] |
-| seconds | **−28%** [−37%, −16%] | **−21%** [−30%, −10%] | **−23%** [−31%, −15%] |
-| SigMap cheaper than its baseline | 27 of 31 | 26 of 32 | 26 of 32 |
-| asked SigMap to retrieve | 27 of 31 runs | 28 of 32 | 17 of 32 |
+| paired cases | 89 | 90 | 90 |
+| file found | 88/89 (baseline 89/89) | 90/90 (90/90) | 90/90 (90/90) |
+| real cost | **−29%** [−35%, −23%] | **−25%** [−31%, −18%] | **−28%** [−34%, −22%] |
+| total tokens | **−35%** [−42%, −26%] | **−27%** [−36%, −17%] | **−28%** [−36%, −18%] |
+| tool calls | **−33%** [−41%, −24%] | **−21%** [−30%, −11%] | **−24%** [−32%, −15%] |
+| seconds | **−20%** [−26%, −13%] | **−13%** [−19%, −6%] | **−21%** [−26%, −15%] |
+| by repetition, real cost (R1 / R2) | −28% / −31% | −25% / −25% | −31% / −24% |
+| by repetition, tokens (R1 / R2) | −31% / −39% | −26% / −28% | −35% / −20% |
+| SigMap cheaper than its baseline | 72 of 89 | 69 of 90 | 74 of 90 |
+| SigMap used fewer tokens | 68 of 89 | 60 of 90 | 58 of 90 |
+| asked SigMap to retrieve | 78 of 89 runs | 78 of 90 | 41 of 90 |
+| turns, baseline → SigMap | 14.2 → 10.5 (−26%) | 13.8 → 12.3 (−11%) | 14.2 → 11.3 (−20%) |
+| turns SigMap had to remove to break even | 7% | 5% | 16% |
 
-- **Every interval is clear of zero, in each repetition separately,** and the three setups agree: SigMap saves a weak searcher a third of its tokens and cost, and about a quarter of its time. `index` is the best of the three, as it was the closest to neutral with the stronger model.
-- **It saves because the agent uses it and turns fall.** Baseline 13.9 turns, SigMap `index` 9.1 (−34%); the agent called `query_context` in 27 of 31 runs. Break-even needed only about 7% fewer turns (1.6k added to a 21k turn), so the saving is large. This is the mechanism in the *why* section working in the other direction: when grep takes 13 calls, one retrieval turn pays for itself.
-- **One miss:** `index` named five related files but not the expected one on `django/x027`, repetition 2 (30/31). `lean` and `current` found the file 32/32.
-- **The model matters more than SigMap.** Haiku 5.5 with no SigMap costs about $0.0024 a run in 3.4 calls; Haiku 4.5 *with* SigMap costs $0.054 to $0.060 in 8 to 10 calls. SigMap closes part of the gap between a weak and a strong agent, and moving to the stronger model closes about 20 times more of it.
-- **Limits:** one weaker model, 16 questions (not 45), and a usage-limit event during the run: the plan limit hit at the end of the `index` laravel batch (one baseline run failed instantly, so its pair, `laravel/x047` repetition 2, is left out), and the `lean` and `current` laravel batches were re-run from scratch after the reset.
+- **Every cost and token interval is clear of zero, in each repetition separately,** and the three setups agree: SigMap saves a weak searcher about a quarter to a third of its tokens and cost, and 13% to 21% of its time. The one interval that includes zero is `lean` seconds in repetition 1 (−8% [−18%, +2%]); pooled it is clear.
+- **The three setups are not separable on cost** (−29%, −25%, −28%, all intervals overlap). `index` leads on tokens and tool calls, `index` and `current` tie on cost and time, and `lean` is the weakest on every row, by 3 to 8 points with overlapping intervals. The 16-question first pass had `index` at −35% and `current` at −28%: the larger sample moved the best case closer to the others, as a larger sample should.
+- **It saves because turns fall by more than the added text costs.** The break-even row is the share of turns SigMap has to remove for its static text (1.6k, 1.0k and 4.3k tokens a turn, from `arm-audit.mjs`) to pay for itself on a 22k-token turn; all three cleared it. `index` removed 26% against 7% needed (`query_context` in 78 of 89 runs). `current` removed 20% against 16% needed, so its margin is thin, which is why its token saving (−28%) is the least stable across repetitions (−35%, then −20%). `current` did it while asking SigMap to retrieve in fewer than half its runs (41 of 90): most of its saving comes from the signature map already in the prompt. This is the mechanism in the *why* section working in the other direction: when grep takes 13 calls, one retrieval turn pays for itself.
+- **It is not uniform by repo.** Real-cost change by repo, `index`: django −19%, express −26%, fastapi −33%, fastify −39%, flask −29%, gin −17%, laravel −43%, rails −16% (rails inside the noise). `current` is inside the noise on django, gin and rails (−16%, −15%, −3%); `lean` on fastapi (−11%). With 4 to 12 cases per interval and 8 repos, do not read the ranking between repos.
+- **One miss:** `index` named five related files but not the expected one on `django/x027`, repetition 2 (88/89). `lean` and `current` found the file 90/90, and so did their baselines; the `index` baseline found it 89/89.
+- **The model matters more than SigMap.** Haiku 5.5 with no SigMap costs about $0.0024 a run in 3.4 calls; Haiku 4.5 *with* SigMap costs $0.063 to $0.066 in 10 to 11 calls. Without SigMap Haiku 4.5 costs about $0.088 a run, so SigMap saves about $0.025 a run and the switch to Haiku 5.5 saves about $0.086: the model change is worth about 3.4 times what SigMap saves here, and Haiku 5.5 alone is about 26 times cheaper than Haiku 4.5 with SigMap.
+- **Limits:** one weaker model (Haiku 4.5); one task type (finding the file a question is about); two repetitions per case. Two usage-limit events on the plan during the runs: the first hit the end of the `index` laravel batch (a baseline run failed instantly, so its pair, `laravel/x047` repetition 2, is left out of `index`, 89 pairs, and the `lean` and `current` laravel batches were re-run from scratch after the reset); the second stopped the `current` phase after the gin and flask batches, and the six batches that failed (a failed batch records nothing) were re-run from scratch after the reset. No result was dropped or selected for its value.
+- **Reproduce (needs a logged-in `claude` session, a plan with room for about 540 Haiku 4.5 runs, and the fetched checkouts from `npm run fetch:xrepo`):** `SESSION_AUTH=1 VARIANTS="index lean current" MODEL=claude-haiku-4-5 RUNS=2 BUDGET=1.0 OUT=./weak-runs ORDER="gin:x001,x002,x003,x004,x005 flask:x032,x033,x034,x035,x036 express:x037,x038,x039,x040 fastify:x137,x138,x139,x140,x141,x142,x143,x144 fastapi:x145,x146,x147,x148,x149,x150,x151,x152 django:x027,x028,x029,x030,x031 rails:x084,x085,x086,x087,x088 laravel:x046,x047,x048,x049,x050" bash benchmarks/pilots/2026-11-09-relay-haiku-5-5/run-remaining.sh`. It is resumable after a usage limit (rerun it; finished batches are skipped, a failed batch records nothing). The saved runs here are in `session-auth/weak/<variant>/<batch>/` (`raw.json`, `agent-ab.json`, `agent-ab.md`), and `node benchmarks/pilots/2026-11-09-relay-haiku-5-5/weak-combined.mjs` reads them offline.
 
 ### Why SigMap saved neither tokens nor time
 
@@ -119,7 +127,7 @@ The same harness and `--session-auth`, model `claude-haiku-4-5` (the previous ge
 
 **5. What this does not rule out (hypotheses, none tested here unless noted).**
 
-- **Weaker models**, which need more turns to find a file: tested, and it reverses the result (Haiku 4.5, *A weaker model* above).
+- **Weaker models**, which need more turns to find a file: tested on all 45 questions, and it reverses the result (Haiku 4.5, *A weaker model* above).
 - **Repositories far larger than django**, where a grep returns more than an agent can read.
 - **Long sessions that ask many questions**, which would amortise the section; every run here is a cold single question.
 - **Tasks where text search fails** (renamed or generated symbols), and **tasks that are not search** (impact analysis, grounding checks): this test asked for neither.
@@ -411,4 +419,5 @@ The two later 4-run probes used about 131k (`lean`) and 94k (`index`) raw tokens
 - `run-remaining.sh` — the resumable, one-question-at-a-time runner for the questions the allowance did not cover; `DRY=1` prints the plans.
 - `retrieval-audit.mjs` — how good `query_context` is on all 30 labelled questions, whether a score margin can say "clearly ahead", and the opt-in ranking settings (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/retrieval-audit.mjs`; needs the fetched checkouts).
 - `arm-audit.mjs` and `analysis.mjs` — the free, offline checks behind the diagnosis above (`node benchmarks/pilots/2026-11-09-relay-haiku-5-5/arm-audit.mjs`; needs the fetched checkouts).
+- `session-auth/` and `session-combined.mjs` — the real-API Haiku 5.5 runs on the logged-in session (`session-auth/weak/`: the Haiku 4.5 runs, read by `weak-combined.mjs`; `why.mjs` prints the arithmetic in *Why SigMap saved neither tokens nor time*).
 - `pilot-gin-4runs/` — one task on gin, 2 repetitions × 2 arms, the first end-to-end check through the shim.
