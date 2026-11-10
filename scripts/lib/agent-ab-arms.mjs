@@ -25,7 +25,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
-import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, LEAN_SECTION } from './agent-ab.mjs';
+import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -60,6 +60,30 @@ export function mcpConfigFor(codeRoot) {
 }
 
 /**
+ * The SigMap arm of a skill variant. The index is generated as in every other variant (`sigmap ask` answers from
+ * `.context/`), then the generated CLAUDE.md is removed (the agent would read it by itself) and the skills are
+ * written into the checkout's `.claude/skills/`, which the agent loads from `--setting-sources project`. `skill`
+ * and `skill-always` write the one SKILL.md the harness owns (the same procedure under two descriptions); `skill-shipped` runs the product's own installer, so it is exactly what
+ * `sigmap skills install --client claude` leaves in a repository. The arm gets the `sigmap` CLI on PATH and nothing
+ * else: no MCP server, no appended section.
+ */
+function prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot }) {
+  fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
+  if (variant === 'skill' || variant === 'skill-always') {
+    const dir = path.join(dest, '.claude', 'skills', 'sigmap-locate');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'SKILL.md'), variant === 'skill' ? LOCATE_SKILL : LOCATE_SKILL_ALWAYS);
+  } else {
+    execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), 'skills', 'install', '--client', 'claude'], {
+      cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
+    });
+  }
+  const missing = SKILL_VARIANTS[variant].filter((n) => !fs.existsSync(path.join(dest, '.claude', 'skills', n, 'SKILL.md')));
+  if (missing.length) throw new Error(`${path.basename(dest)}: the ${variant} arm is missing its skill file(s): ${missing.join(', ')}`);
+  return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), skills: [...SKILL_VARIANTS[variant]] });
+}
+
+/**
  * A directory holding a `sigmap` executable that runs THIS checkout's
  * gen-context.js. The SigMap arm puts it on PATH so `sigmap ask` is the code
  * under test, never whichever release happens to be installed globally.
@@ -85,8 +109,9 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @param {string} [p.codeRoot] checkout whose gen-context.js generates the SigMap arm
  * @param {boolean} [p.sessionAuth] the agent will run without --bare, so it would auto-discover a CLAUDE.md in the checkout: the SigMap
  *   arm's generated one is removed after its section is read, leaving the appended section as the only SigMap text
- * @param {'current'|'lean'|'index'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same
- * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
+ * @param {'current'|'lean'|'index'|'skill'|'skill-shipped'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same.
+ *   A skill variant hands SigMap over as skill files in the checkout and nothing else: no appended section, no MCP config.
+ * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string, skills?: string[] }}
  */
 export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current', sessionAuth = false }) {
   if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, variant)) {
@@ -127,6 +152,7 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), '--adapter', 'claude'], {
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
   });
+  if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
   const claudeMd = fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8');
   const section = findManagedSection(claudeMd);
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
@@ -165,4 +191,17 @@ export function probeMcp({ cwd, codeRoot = CODE_ROOT, timeoutMs = 30000 }) {
     }
   }
   return { ok: false, tools: 0, error: 'the server did not answer tools/list' };
+}
+
+/**
+ * Prove the CLI a skill arm relies on answers in its prepared checkout: `sigmap ask` through the arm's own shim must
+ * exit 0 and name at least one file. Like `probeMcp` it costs no model call and fails before the first paid run.
+ *
+ * @returns {{ ok: boolean, error: string|null }}
+ */
+export function probeCli({ cwd, binDir, timeoutMs = 60000 }) {
+  const r = spawnSync(path.join(binDir, SIGMAP_CLI), ['ask', 'where is the main entry point defined'], { cwd, encoding: 'utf8', timeout: timeoutMs });
+  if (r.error) return { ok: false, error: r.error.message };
+  if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
+  return /\S/.test(r.stdout || '') ? { ok: true, error: null } : { ok: false, error: 'sigmap ask printed nothing' };
 }

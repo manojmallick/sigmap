@@ -906,8 +906,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1059,7 +1059,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1277,6 +1277,118 @@ const treeHash = (dir) => {
     delete old.repetitions;
     const md = ab.renderMarkdown(old);
     assert.ok(!md.includes('## Repetitions') && md.includes('## Outcome'));
+  });
+
+  // ── skill variants: SigMap handed over as Claude Code skills ───────────────────────────────────────────────────
+
+  await test('a skill run keeps the Skill tool in BOTH arms, passes no --disable-slash-commands, adds no MCP and no appended section, and refuses --bare', () => {
+    const base = { model: 'm', budgetUsd: 1, bare: false, skills: true };
+    const without = claude.buildArgs({ arm: 'without', ...base });
+    const withSig = claude.buildArgs({ arm: 'with', ...base });
+    const flag = (a, f) => a[a.indexOf(f) + 1];
+    for (const a of [without, withSig]) {
+      assert.ok(flag(a, '--tools').split(',').includes('Skill'), 'the Skill tool is how a skill is called');
+      assert.ok(!a.includes('--disable-slash-commands'), 'that flag turns skills off');
+      assert.strictEqual(flag(a, '--setting-sources'), 'project');
+      assert.ok(a.includes('--strict-mcp-config') && !a.includes('--mcp-config') && !a.includes('--append-system-prompt'), 'no MCP server and no section in a skill run');
+    }
+    assert.strictEqual(flag(without, '--tools'), flag(withSig, '--tools'), 'the same tools in both arms');
+    const allow = (a) => flag(a, '--allowedTools').split(',');
+    assert.deepStrictEqual(allow(withSig).filter((t) => !allow(without).includes(t)), ['Bash(sigmap:*)'], 'the SigMap arm adds only the CLI');
+    assert.deepStrictEqual(allow(without).filter((t) => !allow(withSig).includes(t)), []);
+    assert.ok(allow(without).includes('Skill'));
+    assert.throws(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, skills: true }), /needs --session-auth/);
+    // a run that is not a skill run is unchanged
+    const plain = claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, bare: false, sigmapContext: 'c', mcpConfig: '{}' });
+    assert.ok(plain.includes('--disable-slash-commands') && !flag(plain, '--tools').includes('Skill'));
+  });
+
+  await test('checkIntegrity for a skill variant wants the skills in the SigMap arm only, the Skill tool in both, and no sigmap MCP server anywhere', () => {
+    const tools = ['Bash', 'Glob', 'Grep', 'Read', 'Skill'];
+    const ok = (init, arm, variant = 'skill') => ab.checkIntegrity(init, arm, { variant });
+    assert.ok(ok({ tools, mcpServers: [], skills: ['sigmap-locate', 'run'] }, 'with').ok);
+    assert.ok(ok({ tools, mcpServers: [], skills: ['run'] }, 'without').ok);
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['run'] }, 'with').ok, 'the skill is missing from its arm');
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['sigmap-locate'] }, 'without').ok, 'the skill leaked into the baseline');
+    assert.ok(!ok({ tools: ['Bash', 'Read'], mcpServers: [], skills: ['sigmap-locate'] }, 'with').ok, 'no Skill tool, so the skill cannot be called');
+    assert.ok(!ok({ tools, mcpServers: [] }, 'with').ok, 'no skill list reported: cannot verify');
+    const sig = { name: 'sigmap', status: 'connected' };
+    assert.ok(!ok({ tools: [...tools, 'mcp__sigmap__query_context'], mcpServers: [sig], skills: ['sigmap-locate'] }, 'with').ok, 'a skill variant carries no MCP server');
+    assert.ok(ok({ tools, mcpServers: [], skills: ['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer'] }, 'with', 'skill-shipped').ok);
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['sigmap-usage-maximizer'] }, 'with', 'skill-shipped').ok, 'all three shipped skills');
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'mcp__sigmap__q'], mcpServers: [sig] }, 'with').ok, 'without a skill variant nothing changed');
+  });
+
+  await test('parseStream keeps the init event\'s skill list, and null when the agent reports none', () => {
+    const p = claude.parseStream(stream([
+      { type: 'system', subtype: 'init', tools: ['Read', 'Skill'], mcp_servers: [], skills: ['sigmap-locate', 'run'], model: 'm' },
+      { type: 'result', subtype: 'success', is_error: false, num_turns: 1, result: 'A', total_cost_usd: 0.01, usage: U(1, 1, 0, 0) },
+    ]));
+    assert.deepStrictEqual(p.init.skills, ['sigmap-locate', 'run']);
+    const q = claude.parseStream(stream([
+      { type: 'system', subtype: 'init', tools: ['Read'], mcp_servers: [], model: 'm' },
+      { type: 'result', subtype: 'success', is_error: false, num_turns: 1, result: 'A', total_cost_usd: 0.01, usage: U(1, 1, 0, 0) },
+    ]));
+    assert.strictEqual(q.init.skills, null);
+  });
+
+  await test('the skill variant writes one SKILL.md into the SigMap arm\'s checkout, removes the generated CLAUDE.md, and hands the agent the CLI and nothing else', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-skill-');
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'skill', sessionAuth: true });
+    const file = path.join(a.cwd, '.claude', 'skills', 'sigmap-locate', 'SKILL.md');
+    assert.strictEqual(fs.readFileSync(file, 'utf8'), ab.LOCATE_SKILL);
+    assert.deepStrictEqual(a.skills, ['sigmap-locate']);
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')), 'the agent would read it by itself');
+    assert.ok(fs.existsSync(path.join(a.cwd, '.context')), '`sigmap ask` answers from the index');
+    assert.strictEqual(a.sigmapContext, undefined);
+    assert.strictEqual(a.mcpConfig, undefined);
+    assert.ok(a.binDir && fs.existsSync(path.join(a.binDir, 'sigmap')), 'the arm\'s own sigmap on PATH');
+    assert.ok(arms.probeCli({ cwd: a.cwd, binDir: a.binDir }).ok, 'and it answers');
+    const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'skill', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(w.cwd, '.claude')), 'the baseline has no skill');
+    assert.ok(!w.binDir && !w.skills);
+    // the skill's own text: when NOT to use it, the ranking is a lead, and a stop rule
+    assert.match(ab.LOCATE_SKILL, /^---\nname: sigmap-locate\ndescription: .*Skip it when/);
+    assert.match(ab.LOCATE_SKILL, /often not the right one/);
+    assert.match(ab.LOCATE_SKILL, /Answer as soon as one file is confirmed/);
+  });
+
+  await test('skill-always is the same skill under a description that asks to be called first, and nothing else differs', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-always-'), codeRoot: ROOT, variant: 'skill-always', sessionAuth: true });
+    const text = fs.readFileSync(path.join(a.cwd, '.claude', 'skills', 'sigmap-locate', 'SKILL.md'), 'utf8');
+    assert.strictEqual(text, ab.LOCATE_SKILL_ALWAYS);
+    assert.match(text, /^description: Use this FIRST, before any Grep, Glob or Read/m);
+    const body = (t) => t.split('\n').filter((l) => !l.startsWith('description:'));
+    assert.deepStrictEqual(body(ab.LOCATE_SKILL_ALWAYS), body(ab.LOCATE_SKILL), 'only the description line differs');
+    assert.notStrictEqual(ab.LOCATE_SKILL_ALWAYS, ab.LOCATE_SKILL);
+    assert.deepStrictEqual(a.skills, ['sigmap-locate']);
+  });
+
+  await test('skill-shipped is exactly what `sigmap skills install --client claude` writes: the three shipped skills, and no section', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-shipped-'), codeRoot: ROOT, variant: 'skill-shipped', sessionAuth: true });
+    assert.deepStrictEqual(a.skills, ['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer']);
+    for (const n of a.skills) assert.ok(fs.existsSync(path.join(a.cwd, '.claude', 'skills', n, 'SKILL.md')), n);
+    assert.strictEqual(a.sigmapContext, undefined);
+    assert.deepStrictEqual(Object.keys(ab.SKILL_VARIANTS), ['skill', 'skill-always', 'skill-shipped']);
+    assert.ok(Object.keys(ab.SKILL_VARIANTS).every((v) => ab.SIGMAP_VARIANTS[v]), 'each skill variant is a variant');
+  });
+
+  await test('a skill variant needs --session-auth, says what it measures in the plan, and the report carries the skill caveat', async () => {
+    const f = fixture();
+    const bare = runCli(['--dry-run', '--sigmap-variant', 'skill'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bare.status, 2, bare.stderr);
+    assert.match(bare.stderr, /hands SigMap over as skills.*add --session-auth/);
+    const ok = runCli(['--dry-run', '--sigmap-variant', 'skill', '--session-auth'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    assert.match(ok.stdout, /one on-demand skill \(sigmap-locate\).*\(variant: skill\)/);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
+    const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-10', variant, auth: 'session' } });
+    assert.ok(mk('skill').caveats.some((c) => /Skill variant: both arms run with skills enabled/.test(c)));
+    assert.ok(!mk('index').caveats.some((c) => /Skill variant/.test(c)), 'only a skill run says it');
+    assert.strictEqual(mk('skill').method.arms.with, ab.SIGMAP_VARIANTS.skill);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

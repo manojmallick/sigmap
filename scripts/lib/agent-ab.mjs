@@ -66,7 +66,44 @@ export const SIGMAP_VARIANTS = Object.freeze({
   current: 'SigMap generated context + MCP server',
   lean: 'SigMap lean: 7-tool core MCP profile + a three-line section',
   index: 'SigMap index strategy + 7-tool core MCP profile (the docs\' setup for an agent that calls the tools)',
+  skill: 'SigMap as one on-demand skill (sigmap-locate) + the sigmap CLI: no MCP server, no always-on section',
+  'skill-always': 'SigMap as one skill (sigmap-locate) whose description tells the agent to call it first on every where-is-it question, + the sigmap CLI: no MCP server, no always-on section',
+  'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });
+
+/**
+ * The variants that hand SigMap over as Claude Code skills. A skill costs the agent its name and
+ * description on every turn and its body only when the agent calls it, so these arms carry no
+ * appended section and no MCP tool definitions at all. Both arms of such a run keep the Skill tool
+ * (and the agent's bundled skills), so they still differ only by what SigMap adds.
+ */
+export const SKILL_VARIANTS = Object.freeze({
+  skill: Object.freeze(['sigmap-locate']),
+  'skill-always': Object.freeze(['sigmap-locate']),
+  'skill-shipped': Object.freeze(['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer']),
+});
+
+/**
+ * The `skill` variant's one SKILL.md. Written from what the earlier runs showed: an instruction to
+ * "always ask SigMap first" made a strong agent do SigMap's step AND its own search (`lean`), so this
+ * one says when NOT to use it, calls the ranking a lead to confirm, and tells the agent to stop once
+ * a file is confirmed. The CLI it names is the one the arm has on PATH.
+ */
+export const LOCATE_SKILL = [
+  '---',
+  'name: sigmap-locate',
+  'description: Find which files implement something in a large, unfamiliar repository using the offline SigMap index. Use when asked where code lives or which files handle a behaviour and no distinctive identifier is known. Skip it when the question names the file or symbol, or one Grep would answer.',
+  '---',
+  '',
+  '# Locate code with SigMap',
+  '',
+  '1. Run `sigmap ask "<the question, in the user\'s words>"` once. It prints the five most likely files, ranked.',
+  '2. Treat the ranking as leads, not an answer: the first file is often not the right one. Signatures with `:start-end` line anchors for the five files are in `.context/query-context.md`.',
+  '3. Confirm before you name a file: `sigmap lines <file> :<line> --context 10`, or Read that range.',
+  '4. If none of the five fits, Grep for a distinctive term from the question. Do not run `sigmap ask` more than twice.',
+  '5. Answer as soon as one file is confirmed. Do not also search the whole repository to be sure.',
+  '',
+].join('\n');
 
 /**
  * The lean arm's whole system-prompt addition (about 70 tokens). It names the MCP tool the arm
@@ -79,6 +116,14 @@ export const LEAN_SECTION = [
   'This repository is indexed by SigMap. Call the MCP tool `query_context` with the question first: it returns the most likely files with line anchors (`:start-end`).',
   'Treat the ranking as a lead, not an answer: read an anchored range with `get_lines` to confirm before you name a file.',
 ].join('\n');
+
+/**
+ * The `skill-always` variant's SKILL.md: the same procedure as LOCATE_SKILL under a description that asks to be called first.
+ * Haiku 5.5 never called the optional `skill` (0 of 180 runs), so this is the version that tests the skill itself: what the
+ * agent does, and what it costs, when it does follow it. The description is the only part that differs.
+ */
+export const LOCATE_SKILL_ALWAYS = LOCATE_SKILL.replace(/^description: .*$/m,
+  'description: Use this FIRST, before any Grep, Glob or Read, for every question about which files implement something or where code lives in this repository. It ranks the likely files from the offline SigMap index.');
 
 /** Fewer runs per arm than this is a smoke test, not a result. */
 export const MIN_RUNS = 4;
@@ -276,11 +321,15 @@ export function costFloor(inTokens, model) {
  * no-SigMap arm must hold no sigmap server or tool, the SigMap arm must hold the
  * server connected, and neither may hold a tool that breaks the comparison.
  *
- * @param {{ tools?: string[], mcpServers?: Array<{name:string,status?:string}> }|null} init
+ * A skill variant has no MCP server in either arm; instead the SigMap arm must list exactly its
+ * skills in the init event and the no-SigMap arm none of them, and both must hold the Skill tool.
+ *
+ * @param {{ tools?: string[], mcpServers?: Array<{name:string,status?:string}>, skills?: string[]|null }|null} init
  * @param {'without'|'with'} arm
+ * @param {{ variant?: string }} [opts]
  * @returns {{ ok: boolean, problems: string[], builtins: string[] }}
  */
-export function checkIntegrity(init, arm) {
+export function checkIntegrity(init, arm, opts = {}) {
   if (!init || !Array.isArray(init.tools)) {
     return { ok: false, builtins: [], problems: ['the run reported no init event with a tool list, so the arm cannot be verified'] };
   }
@@ -299,6 +348,21 @@ export function checkIntegrity(init, arm) {
 
   const sigmap = servers.find((s) => s && s.name === SIGMAP_SERVER);
   const sigmapTools = mcp.filter((t) => t.startsWith(prefix));
+  const wanted = SKILL_VARIANTS[opts.variant];
+  if (wanted) {
+    if (sigmap || sigmapTools.length) problems.push(`a skill variant (${opts.variant}) holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
+    if (!builtins.includes('Skill')) problems.push('the Skill tool is not enabled, so the skill cannot be called');
+    const have = Array.isArray(init.skills) ? init.skills.map(String) : null;
+    if (!have) problems.push('the run reported no skill list, so the skill arm cannot be verified');
+    else if (arm === 'with') {
+      const missing = wanted.filter((n) => !have.includes(n));
+      if (missing.length) problems.push(`the SigMap arm does not list its skill(s): ${missing.join(', ')}`);
+    } else {
+      const leaked = wanted.filter((n) => have.includes(n));
+      if (leaked.length) problems.push(`the no-SigMap arm lists the SigMap skill(s): ${leaked.join(', ')}`);
+    }
+    return { ok: problems.length === 0, problems, builtins };
+  }
   if (arm === 'without') {
     if (sigmap || sigmapTools.length) problems.push('the no-SigMap arm has the sigmap MCP server');
   } else {
@@ -328,9 +392,10 @@ export function checkIntegrity(init, arm) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
+ * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
  * @returns {Promise<Array<{task:object, arm:string, run:number, record:object}>>}
  */
-export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3 }) {
+export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant }) {
   const out = [];
   const builtinsByArm = {};
   let streak = 0;
@@ -341,7 +406,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
       for (const arm of order) {
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm);
+          const chk = checkIntegrity(record.init, arm, { variant });
           if (!chk.ok) {
             throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
           }
@@ -648,6 +713,9 @@ export const CAVEATS = Object.freeze([
   'Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.',
 ]);
 
+/** Added to a report whose SigMap arm is a skill variant. */
+export const SKILL_CAVEAT = 'Skill variant: both arms run with skills enabled (the Skill tool, and the agent\'s own bundled skills listed in the prompt, about 2k tokens), which the earlier no-skill runs did not have, so these figures are against this run\'s own baseline and not comparable cell by cell with the index, lean or current runs. The SigMap arm adds only its skill file(s) and the sigmap CLI: no MCP server and no appended section.';
+
 /** Added to a report produced with `--session-auth`. */
 export const SESSION_CAVEAT = 'Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account\'s plan.';
 
@@ -676,7 +744,7 @@ export function buildReport({ entries, tasks, method }) {
       publishable: pub.publishable,
       notPublishableBecause: pub.reasons,
     }),
-    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : [])],
+    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : []), ...(SKILL_VARIANTS[method.variant] ? [SKILL_CAVEAT] : [])],
     cells,
     ...rollup(cells),
     repetitions: repetitionEstimates(entries, tasks),

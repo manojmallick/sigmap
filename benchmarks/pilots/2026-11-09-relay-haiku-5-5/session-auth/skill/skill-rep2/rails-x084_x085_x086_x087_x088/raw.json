@@ -1,0 +1,784 @@
+[
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_handler.rb",
+      "activerecord/lib/active_record/database_configurations/hash_config.rb",
+      "reaper.rb"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 671,
+      "cacheRead": 22916,
+      "cacheWrite": 10073
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00257966,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8947,
+    "answer": "`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_handler.rb`\n`activerecord/lib/active_record/database_configurations/hash_config.rb`\n\nThe worker is the Active Record connection pool reaper: `Reaper` in `reaper.rb` runs on a timer (its frequency comes from `reaping_frequency` in `hash_config.rb`) and calls the pool's `reap` method, which reclaims connections leased to dead threads. It then calls `flush`, which disconnects connections idle past the timeout (`connection_pool.rb` sets up the reaper at line 306 and defines `reap` and `flush`), and `connection_handler.rb` exposes `flush_idle_connections!` across pools."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "activerecord/lib/active_record/database_configurations/hash_config.rb",
+      "activerecord/lib/active_record/database_configurations/database_config.rb"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1121,
+      "cacheRead": 40390,
+      "cacheWrite": 12978
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0035606000000000006,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11211,
+    "answer": "The worker is the Active Record connection pool reaper, a singleton background thread named \"AR Pool Reaper\". Each pass calls `reap` to reclaim connections leased to dead threads, then `flush` to disconnect connections idle past `idle_timeout`.\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n`activerecord/lib/active_record/database_configurations/hash_config.rb`\n`activerecord/lib/active_record/database_configurations/database_config.rb`\n\nThe reaper file defines the thread loop that runs on each interval, and the pool file holds the `reap` and `flush` logic it calls. The config files supply the `idle_timeout` and `reaping_frequency` defaults."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "activerecord/lib/active_record/database_configurations/hash_config.rb",
+      "hash_config.rb"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 695,
+      "cacheRead": 26515,
+      "cacheWrite": 6578
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019286499999999999,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8406,
+    "answer": "The worker is ActiveRecord's connection pool reaper, `ConnectionPool::Reaper`, which runs on a timer. It calls `reap` to reclaim connections held by dead threads and `flush` to disconnect connections idle longer than `idle_timeout`.\n\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n`activerecord/lib/active_record/database_configurations/hash_config.rb`\n\nThe reaper class defines the periodic loop, the pool's `reap` and `flush` methods do the actual work, and `hash_config.rb` sets the `idle_timeout` default of 300 seconds."
+  },
+  {
+    "repo": "rails",
+    "task": "x084",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+      "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+      "reaper.rb",
+      "pool.reap",
+      "pool.flush"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 807,
+      "cacheRead": 43547,
+      "cacheWrite": 9112
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00266197,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10240,
+    "answer": "`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n\nThe answer is the Active Record connection pool reaper, a background thread named \"AR Pool Reaper\". Its loop in `reaper.rb` calls `pool.reap` to reclaim connections leased to dead threads, then `pool.flush` to disconnect connections idle past `idle_timeout`, which are implemented in `connection_pool.rb` (`reap` around line 703, `flush` around line 726).\n\nI did not modify anything."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "actionpack/lib/action_controller/railtie.rb",
+      "railties/lib/rails/application/configuration.rb"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1577,
+      "cacheRead": 56670,
+      "cacheWrite": 11140
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.003584,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13851,
+    "answer": "`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_controller/railtie.rb`\n`railties/lib/rails/application/configuration.rb`\n\nRails' ParamsWrapper copies JSON request params under a key named after the controller's model (`_wrapper_key`), keeping only the model's `attribute_names` (`include`), and the railtie enables it for JSON by default through `wrap_parameters` in ActionController and `load_defaults`.\n\nI ran this with Grep only, since the Bash sandbox failed to start (`socat` missing), so I did not read the method bodies or run any tests."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "actionpack/lib/action_controller/railtie.rb",
+      "railties/lib/rails/application/configuration.rb",
+      "railtie.rb",
+      "configuration.rb"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 1015,
+      "cacheRead": 23020,
+      "cacheWrite": 11194
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029769,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10670,
+    "answer": "`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_controller/railtie.rb`\n`railties/lib/rails/application/configuration.rb`\n\nRails' `ParamsWrapper` copies the request's JSON body under a key derived from the controller name (`_wrapper_key`). When a model matches that name, it limits the copy to `attribute_names` (lines 118-119, 273-302). The wrapping is switched on for JSON by `wrap_parameters_by_default` (set in `railtie.rb` line 84 and enabled by `load_defaults` in `configuration.rb` line 269)."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "actionpack/lib/action_controller/railtie.rb",
+      "railties/lib/rails/application/configuration.rb",
+      "7.0"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 3,
+        "Bash": 2,
+        "Read": 2
+      },
+      "byCommand": {
+        "git": 1,
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1864,
+      "cacheRead": 105833,
+      "cacheWrite": 12499
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00449133,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 16394,
+    "answer": "`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_controller/railtie.rb`\n`railties/lib/rails/application/configuration.rb`\n\nThis is Action Controller's parameter wrapper: a `process_action` hook copies the JSON body into `params[<key>]`, where the key comes from the controller or model name. For Active Record models with no `include`/`exclude`, the copy is limited to `attribute_names`. It is on for JSON by default because `load_defaults \"7.0\"` sets `wrap_parameters_by_default = true`, which the railtie reads to call `wrap_parameters format: [:json]` on each controller.\n\nI read these files directly. The Bash tool was blocked by a sandbox dependency error (`socat` missing), so I did not run anything."
+  },
+  {
+    "repo": "rails",
+    "task": "x085",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionpack/lib/action_controller/metal/params_wrapper.rb",
+      "actionpack/lib/action_controller/railtie.rb",
+      "railties/lib/rails/application/configuration.rb",
+      "params_wrapper.rb",
+      "configuration.rb"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 934,
+      "cacheRead": 26445,
+      "cacheWrite": 6047
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00194125,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 10240,
+    "answer": "`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_controller/railtie.rb`\n`railties/lib/rails/application/configuration.rb`\n\nRails' ParamsWrapper copies the JSON body into a key named after the controller's model (for example `user` for `UsersController`), filtered to that model's attribute names, when the request is JSON and wrapping is enabled. The wrapping lives in `params_wrapper.rb`, the railtie wires it into controllers, and `configuration.rb` sets whether it is on by default for new apps. I located these by searching for the wrapper names and did not open the files line by line, so the exact method names are unverified."
+  },
+  {
+    "repo": "rails",
+    "task": "x086",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activesupport/lib/active_support/concurrency/share_lock.rb",
+      "activesupport/test/share_lock_test.rb"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 725,
+      "cacheRead": 39959,
+      "cacheWrite": 10723
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029072900000000003,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9204,
+    "answer": "`activesupport/lib/active_support/concurrency/share_lock.rb`\n`activesupport/test/share_lock_test.rb`\n\nThe primitive is `ActiveSupport::Concurrency::ShareLock`. Its `start_exclusive` calls `yield_shares` to temporarily release the caller's share hold (except for compatible purposes) while it waits, so two threads that both hold shares and try to go exclusive can't deadlock each other."
+  },
+  {
+    "repo": "rails",
+    "task": "x086",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activesupport/lib/active_support/concurrency/share_lock.rb",
+      "activesupport/lib/active_support/dependencies/interlock.rb",
+      "share_lock.rb",
+      "interlock.rb"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 916,
+      "cacheRead": 23030,
+      "cacheWrite": 10209
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027305000000000003,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8557,
+    "answer": "The primitive is Active Support's `ShareLock`, a shared/exclusive lock with upgrade support. Its `yield_shares` method lets a thread give up its share hold to compatible activity so an exclusive upgrade can't deadlock.\n\n`activesupport/lib/active_support/concurrency/share_lock.rb`\n`activesupport/lib/active_support/dependencies/interlock.rb`\n\n`share_lock.rb` defines the `ShareLock` class with `start_exclusive` and `yield_shares`, and `interlock.rb` is the Dependencies wrapper that uses it."
+  },
+  {
+    "repo": "rails",
+    "task": "x086",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activesupport/lib/active_support/concurrency/share_lock.rb",
+      "activesupport/test/share_lock_test.rb"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1102,
+      "cacheRead": 61260,
+      "cacheWrite": 7884
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027412,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11702,
+    "answer": "The primitive is `ActiveSupport::Concurrency::ShareLock`.\n\n`activesupport/lib/active_support/concurrency/share_lock.rb`\n\nIt implements the share/exclusive lock with upgrade: `start_exclusive` and `exclusive` wait for sole access, and `yield_shares` temporarily releases the caller's share hold to `compatible` purposes so a pending upgrade can't deadlock. I only verified this one file. `activesupport/test/share_lock_test.rb` exercises it, but I didn't open it."
+  },
+  {
+    "repo": "rails",
+    "task": "x086",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activesupport/lib/active_support/concurrency/share_lock.rb",
+      "activesupport/test/share_lock_test.rb",
+      "activesupport/lib/active_support/concurrency/load_interlock_aware_monitor.rb",
+      "share_lock.rb"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 934,
+      "cacheRead": 43378,
+      "cacheWrite": 8420
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00258538,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11897,
+    "answer": "`activesupport/lib/active_support/concurrency/share_lock.rb`\n`activesupport/test/share_lock_test.rb`\n`activesupport/lib/active_support/concurrency/load_interlock_aware_monitor.rb`\n\nThe primitive is Active Support's `ShareLock`: many threads hold shared access, and `start_exclusive` lets a thread wait for exclusive access, with `yield_shares` releasing its own share so compatible work can proceed and the upgrade cannot deadlock. I verified `share_lock.rb` directly (the `ShareLock` class, `start_exclusive`, and `yield_shares`). The test file and the monitor file are listed from their names and location, and I did not open them."
+  },
+  {
+    "repo": "rails",
+    "task": "x087",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "actionview/lib/action_view/helpers/form_tag_helper.rb",
+      "actionview/lib/action_view/helpers/tags/hidden_field.rb",
+      "actionview/lib/action_view/helpers/url_helper.rb",
+      "actionview/lib/action_view/base.rb",
+      "actionview/lib/action_view/helpers/date_helper.rb"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1500,
+      "cacheRead": 41529,
+      "cacheWrite": 12416
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00364909,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12378,
+    "answer": "`utf8_enforcer_tag` and the hidden authenticity-token input emit `<input type=\"hidden\" ... autocomplete=\"off\">`, placed at the start of each generated form. The `autocomplete=\"off\"` attribute stops browsers from autofilling or capturing these hidden values, which is the defense against dangling-markup data siphoning.\n\n`actionview/lib/action_view/helpers/form_tag_helper.rb`\n`actionview/lib/action_view/helpers/tags/hidden_field.rb`\n`actionview/lib/action_view/helpers/url_helper.rb`\n`actionview/lib/action_view/base.rb`\n`actionview/lib/action_view/helpers/date_helper.rb`\n\nThe `form_tag_helper.rb` file holds the `utf8_enforcer_tag` method (line 981) and the form-tag options logic that adds `autocomplete=\"off\"` (lines 309–310, 988). `hidden_field.rb` adds it to generated hidden inputs, `url_helper.rb` does the same for `button_to` and related forms, and `base.rb` defines the `remove_hidden_field_autocomplete` flag that turns this off. I did not read the surrounding function bodies in `url_helper.rb` or `date_helper.rb`, so those are based on the grep matches alone."
+  },
+  {
+    "repo": "rails",
+    "task": "x087",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb",
+      "actionview/lib/action_view/helpers/form_tag_helper.rb",
+      "actionview/lib/action_view/helpers/url_helper.rb",
+      "actionview/lib/action_view/railtie.rb",
+      "actionview/test/template/form_tag_helper_test.rb"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 2368,
+      "cacheRead": 83484,
+      "cacheWrite": 16798
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.005379440000000001,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 19434,
+    "answer": "`actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb`\n`actionview/lib/action_view/helpers/form_tag_helper.rb`\n`actionview/lib/action_view/helpers/url_helper.rb`\n`actionview/lib/action_view/railtie.rb`\n`actionview/test/template/form_tag_helper_test.rb`\n\nThe helper prepends a fixed string, `<!-- '\"` --><!-- </textarea></xmp> -->...`, to generated form markup. It is `</option></form>` after the comments. Those closers end any open quote, textarea, xmp, option, or form that injected markup left unfinished, so the browser can't capture the form's data up to a later quote or closing tag. The form and URL helpers call it, the railtie controls whether it is on (default `false` in the railtie), and the test file covers it."
+  },
+  {
+    "repo": "rails",
+    "task": "x087",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb",
+      "actionview/lib/action_view/helpers/form_tag_helper.rb",
+      "actionview/lib/action_view/helpers/url_helper.rb"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1741,
+      "cacheRead": 86930,
+      "cacheWrite": 13049
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0043506000000000005,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 15536,
+    "answer": "The markup is a fixed comment-plus-closing-tags prefix, `<!-- '\"` --><!-- </textarea></xmp> --></option></form>`, which Rails prepends to each generated form when `prepend_content_exfiltration_prevention` is enabled. It is off by default.\n\n`actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb`\n`actionview/lib/action_view/helpers/form_tag_helper.rb`\n`actionview/lib/action_view/helpers/url_helper.rb`\n\nThe helper defines the prefix and the `prevent_content_exfiltration` method that prepends it, and the form helpers call that method on the HTML they build, so an attacker's unclosed quote, textarea, option, or form cannot capture the form's data."
+  },
+  {
+    "repo": "rails",
+    "task": "x087",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "config.action_view.prepend",
+      "actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb",
+      "actionview/lib/action_view/helpers/form_tag_helper.rb",
+      "actionview/lib/action_view/helpers/url_helper.rb",
+      "actionview/lib/action_view/railtie.rb"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1883,
+      "cacheRead": 68428,
+      "cacheWrite": 13069
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00424038,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 15894,
+    "answer": "The markup is four comment and closing-tag sequences prepended to each generated form: `<!-- '\"` -->`, `<!-- </textarea></xmp> -->`, `</option>`, and `</form>`. They close any open quote, attribute, textarea, xmp, option, or form that an attacker's injected fragment might have left open. The prepending is opt-in via `config.action_view.prepend_content_exfiltration_prevention`, which defaults to `false` in the railtie.\n\n`actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb`\n`actionview/lib/action_view/helpers/form_tag_helper.rb`\n`actionview/lib/action_view/helpers/url_helper.rb`\n`actionview/lib/action_view/railtie.rb`\n\nThese are ordered by relevance. The first defines the markup and the `prevent_content_exfiltration` method that prepends it. The second and third call that method from `form_tag` and `button_to`. The fourth wires the config flag and its default.\n\nThe helper's comments say the closing sequences stop unclosed tags from capturing the form's contents and sending them to an outside server. I did not run the test suite or render a form with the flag enabled."
+  },
+  {
+    "repo": "rails",
+    "task": "x088",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activejob/lib/active_job/continuable.rb",
+      "activejob/lib/active_job/continuation.rb",
+      "activejob/lib/active_job/continuation/step.rb",
+      "activejob/lib/active_job/exceptions.rb",
+      "activejob/lib/active_job/queue_adapters/abstract_adapter.rb"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Bash": 1,
+        "Read": 4
+      },
+      "byCommand": {
+        "cd": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1696,
+      "cacheRead": 106041,
+      "cacheWrite": 18711
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00565181,
+      "source": "agent-reported"
+    },
+    "turns": 9,
+    "durationMs": 15933,
+    "answer": "This is Active Job's continuation feature, and the flow runs through the files below.\n\n`activejob/lib/active_job/continuable.rb`\n`activejob/lib/active_job/continuation.rb`\n`activejob/lib/active_job/continuation/step.rb`\n`activejob/lib/active_job/exceptions.rb`\n`activejob/lib/active_job/queue_adapters/abstract_adapter.rb`\n\n`continuable.rb` is the core: `checkpoint!` calls `queue_adapter.stopping?` and raises `Continuation::Interrupt` when it is true, and `continue` catches that and calls `retry_job(**resume_options)`, which defaults to `wait: 5.seconds`. `continuation.rb` serializes completed steps into the job data under `continuation`, and `step.rb` holds each step's cursor so the next run restores it. `exceptions.rb` provides `retry_job`, which does the delayed re-enqueue, and `abstract_adapter.rb` defines the `stopping?` hook that signals shutdown.\n\nI read these files directly; the shell was unavailable in this session, so I did not run any tests."
+  },
+  {
+    "repo": "rails",
+    "task": "x088",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activejob/lib/active_job/continuable.rb",
+      "activejob/lib/active_job/continuation.rb",
+      "activejob/lib/active_job/exceptions.rb",
+      "activejob/lib/active_job/queue_adapters/abstract_adapter.rb",
+      "5.seconds"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1,
+        "Bash": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "cd": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 2570,
+      "cacheRead": 99411,
+      "cacheWrite": 19118
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.006103910000000001,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 20232,
+    "answer": "`activejob/lib/active_job/continuable.rb`\n`activejob/lib/active_job/continuation.rb`\n`activejob/lib/active_job/exceptions.rb`\n`activejob/lib/active_job/queue_adapters/abstract_adapter.rb`\n\nContinuable's `checkpoint!` raises `Continuation::Interrupt` when the adapter reports `stopping?`, and its `continue` around-perform hook catches that and calls `retry_job` with the `resume_options` default of `wait: 5.seconds`, while `serialize`/`deserialize` carry the `continuation` progress (completed steps and the current cursor) in the job data to the next run. `continuation.rb` defines that progress format and the `Interrupt` class, `exceptions.rb` provides the `retry_job` that schedules the delayed re-enqueue, and `abstract_adapter.rb` holds the `stopping?` hook the worker signals through. I did not read `continuation/step.rb`, where `set!`/`advance!` update the cursor, so I left it out. The worker that actually sets `stopping?` lives in the queue backend (e.g. Sidekiq or Solid Queue), not in this repo."
+  },
+  {
+    "repo": "rails",
+    "task": "x088",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activejob/lib/active_job/continuable.rb",
+      "activejob/lib/active_job/continuation.rb",
+      "activejob/lib/active_job/exceptions.rb",
+      "activejob/lib/active_job/queue_adapters/abstract_adapter.rb",
+      "5.seconds"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "cd": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1681,
+      "cacheRead": 83727,
+      "cacheWrite": 14084
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00449557,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 17069,
+    "answer": "`activejob/lib/active_job/continuable.rb`\n`activejob/lib/active_job/continuation.rb`\n`activejob/lib/active_job/exceptions.rb`\n`activejob/lib/active_job/queue_adapters/abstract_adapter.rb`\n\nThe `Continuable` module checkpoints and raises `Continuation::Interrupt` when the adapter reports `stopping?`, then `continue` calls `resume_job`, which calls `retry_job` with `resume_options` (default `wait: 5.seconds`). The progress is serialized into the job data under `continuation` and `resumptions`, and `continuation.rb` defines the `Interrupt` class and the completed-step and cursor state that the next run restores.\n\nI read `continuable.rb` and `continuation.rb` in full. I only confirmed `retry_job` at `exceptions.rb:160` and the `stopping?` stubs by grep, so I did not read their bodies. The Bash tool was unavailable because the sandbox could not start (socat missing), so I used the Read and Grep tools instead. I did not modify anything."
+  },
+  {
+    "repo": "rails",
+    "task": "x088",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "activejob/lib/active_job/continuable.rb",
+      "activejob/lib/active_job/continuation.rb",
+      "activejob/lib/active_job/continuation/step.rb",
+      "activejob/lib/active_job/exceptions.rb",
+      "activejob/lib/active_job/queue_adapters/abstract_adapter.rb"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 3
+      },
+      "byCommand": {
+        "cd": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 2034,
+      "cacheRead": 84014,
+      "cacheWrite": 16897
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00523754,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 17984,
+    "answer": "`activejob/lib/active_job/continuable.rb`\n`activejob/lib/active_job/continuation.rb`\n`activejob/lib/active_job/continuation/step.rb`\n`activejob/lib/active_job/exceptions.rb`\n`activejob/lib/active_job/queue_adapters/abstract_adapter.rb`\n\n`continuable.rb` checks `queue_adapter.stopping?` at checkpoints, raises `Interrupt`, and in `resume_job` calls `retry_job` with `resume_options` (default `wait: 5.seconds`) after serializing the progress hash into the job data. `continuation.rb` defines that progress hash and the `Interrupt` class, `step.rb` holds the cursor that gets saved, `exceptions.rb` provides the `retry_job` that re-enqueues with the delay, and `abstract_adapter.rb` supplies the `stopping?` signal that starts the interruption.\n\nI read these files with the Read and Grep tools because the Bash sandbox failed to initialize (socat not installed), so nothing was run. I did not modify anything."
+  }
+]

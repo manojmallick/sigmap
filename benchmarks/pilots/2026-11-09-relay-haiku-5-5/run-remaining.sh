@@ -31,7 +31,7 @@ DONE_index="gin:x001 gin:x002 express:x038 express:x037 flask:x033 fastapi:x145"
 DONE_lean="gin:x001"
 
 for variant in $VARIANTS; do
-  case "$variant" in current|lean|index) ;; *) echo "unknown variant: $variant" >&2; exit 2 ;; esac
+  case "$variant" in current|lean|index|skill|skill-always|skill-shipped) ;; *) echo "unknown variant: $variant" >&2; exit 2 ;; esac
   done_var="DONE_$variant"
   for spec in $ORDER; do
     repo=${spec%%:*}; id=${spec##*:}; out="$OUT/$variant/$repo-$id"

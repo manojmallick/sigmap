@@ -1,0 +1,1274 @@
+[
+  {
+    "repo": "fastapi",
+    "task": "x145",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/encoders.py",
+      "fastapi/routing.py",
+      "tests/test_jsonable_encoder.py",
+      "fastapi/openapi/utils.py",
+      "fastapi/exception_handlers.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1041,
+      "cacheRead": 34930,
+      "cacheWrite": 7717
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0024138,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11865,
+    "answer": "`fastapi/encoders.py`\n`fastapi/routing.py`\n`tests/test_jsonable_encoder.py`\n`fastapi/openapi/utils.py`\n`fastapi/exception_handlers.py`\n\n`fastapi/encoders.py` holds `jsonable_encoder` (line 112), which recurses through the structure and replaces each value using the `ENCODERS_BY_TYPE` table (datetimes via `isoformat`, `Decimal` via `decimal_encoder`, `Enum` via `.value`, `UUID` via `str`, starting around line 71). `fastapi/routing.py` calls it on endpoint responses (around line 317), and the other listed files are the other call sites and a test that exercises this behaviour."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x145",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/encoders.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1228,
+      "cacheRead": 63493,
+      "cacheWrite": 11301
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00351013,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 15073,
+    "answer": "`fastapi/encoders.py`\n\nThis one file does all of it. `ENCODERS_BY_TYPE` (lines 68–95) maps datetimes to ISO strings, `Enum` to `.value`, `Decimal` to int or float, and `UUID` to `str`. `jsonable_encoder` (line 112) walks dicts, lists, and Pydantic models recursively and applies those mappings.\n\nI couldn't run the `sigmap ask` step because the Bash sandbox failed to start (`socat` is not installed), so I located this with Grep and Read. I didn't confirm any other files, so I'm listing only this one. Nothing in the repository was modified."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x145",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/encoders.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1191,
+      "cacheRead": 63327,
+      "cacheWrite": 9378
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0031053700000000005,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 14896,
+    "answer": "`sigmap ask` could not run because the sandbox needs `socat`, which isn't installed. I searched with Grep and read the code directly instead.\n\n`fastapi/encoders.py`\n\nThe file holds the `ENCODERS_BY_TYPE` map, which sends `datetime` values to `isoformat()`, `Decimal` to `decimal_encoder()` (int or float depending on exponent), `Enum` to `.value`, and `UUID` to `str`. `jsonable_encoder()` recurses through dicts, lists, dataclasses and Pydantic models, and returns the plain value for each leaf."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x145",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/encoders.py",
+      "fastapi/routing.py",
+      "fastapi/responses.py",
+      "json.dumps"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1295,
+      "cacheRead": 50881,
+      "cacheWrite": 9662
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00308951,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 12489,
+    "answer": "`fastapi/encoders.py`\n`fastapi/routing.py`\n`fastapi/responses.py`\n\n`fastapi/encoders.py` holds `jsonable_encoder`, which does the conversion: a type-to-function table (`ENCODERS_BY_TYPE`, lines 68–92) maps datetime/date/time to ISO strings, timedelta to seconds, Decimal to int or float, UUID to str, and Enum to `.value`, and the recursive walk handles nested dicts and lists. `fastapi/routing.py` calls `jsonable_encoder` on handler return values (line 317) and before `json.dumps` for streamed and serialized responses (lines 493–512). `fastapi/responses.py` holds the JSON response classes that finally serialize the plain result to bytes."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x146",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/sse.py",
+      "fastapi/routing.py",
+      "sse.py",
+      "routing.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 3,
+        "Bash": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "cat": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 2001,
+      "cacheRead": 89192,
+      "cacheWrite": 13946
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00468282,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 18019,
+    "answer": "`fastapi/sse.py`\n`fastapi/routing.py`\n\n`format_sse_event` in `sse.py` builds the bytes: comment lines (`: `), then `event:`, one `data:` line per line of text, `id:`, and `retry:` (milliseconds), joined with `\\n` and ended by a blank line. `routing.py` calls it for each yielded item and interleaves the `: ping` keep-alive every 15 seconds."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x146",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/sse.py",
+      "fastapi/routing.py",
+      "routing.py",
+      "sse.py"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 16,
+      "out": 2105,
+      "cacheRead": 139667,
+      "cacheWrite": 17124
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00587557,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 22239,
+    "answer": "`fastapi/sse.py`\n`fastapi/routing.py`\n\n`format_sse_event` in `fastapi/sse.py` builds the frame: it emits `: comment` lines, then `event:`, one `data:` line per line of the payload, `id:`, and `retry:`, joined with `\\n` and ended by a blank line, and `routing.py` (`_serialize_sse_item`, around line 500) decides what the `data:` payload is before calling it.\n\nNotes:\n- `sigmap ask` could not run because the sandbox failed to start (`socat` is not installed), and I was not allowed to run it outside the sandbox. I used Grep and Read directly, so the ranking is not from the SigMap index.\n- The `data` payload is JSON-encoded unless you pass `raw_data`. The `data`/`raw_data` split is in `ServerSentEvent` in the same `sse.py`.\n- A multi-line payload becomes several `data:` lines, which the browser rejoins with `\\n`. The frame is UTF-8 bytes."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x146",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/sse.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1645,
+      "cacheRead": 83453,
+      "cacheWrite": 11086
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00387543,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 17347,
+    "answer": "`fastapi/sse.py` is the only file I read that implements this. `sigmap ask` could not run because the sandbox failed to start (`socat` is not installed), so I found it with Grep and Read instead.\n\n`fastapi/sse.py`\n\nThe wire layout comes from `format_sse_event` (lines 189–214). It builds one line per field in this order: comment lines as `: <line>`, then `event: <name>`, then one `data: <line>` per line of the payload, then `id:`, then `retry: <ms>`. The lines are joined with `\\n`, and two empty entries are appended so the block ends in a blank line (`\\n\\n`), which terminates the event. The result is UTF-8 bytes. Multi-line text is split with `splitlines()`, so each line gets its own `data:` prefix, which the browser's EventSource reassembles with newlines. The payload is expected pre-serialized here; I did not trace where the JSON encoding of `data` happens."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x146",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/sse.py",
+      "fastapi/routing.py",
+      "routing.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "cat": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1616,
+      "cacheRead": 65780,
+      "cacheWrite": 9848
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0034364,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 16008,
+    "answer": "`fastapi/sse.py`\n`fastapi/routing.py`\n\n`format_sse_event` in `fastapi/sse.py` builds the bytes: it writes `: ` comment lines, then `event:`, then one `data:` line per line of the payload, then `id:` and `retry:`, and ends with a blank line (`\\n\\n`), so `<comment>\\nevent: <name>\\ndata: <line>…\\nid: <id>\\nretry: <ms>\\n\\n` encoded as UTF-8. `routing.py` calls it for each yielded `ServerSentEvent` (around lines 501–525) and sends the `KEEPALIVE_COMMENT` (`: ping\\n\\n`) during idle periods."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x147",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/concurrency.py",
+      "fastapi/dependencies/utils.py",
+      "anyio.to_thread.run"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1382,
+      "cacheRead": 34873,
+      "cacheWrite": 8137
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00266773,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 13515,
+    "answer": "`fastapi/concurrency.py`\n`fastapi/dependencies/utils.py`\n\n`contextmanager_in_threadpool` in `fastapi/concurrency.py` runs the generator's `__exit__` through `anyio.to_thread.run_sync` with a fresh `CapacityLimiter(1)` per call, so teardown never waits on the shared default thread limiter. `_solve_generator` in `fastapi/dependencies/utils.py` wraps sync `yield` dependencies with that helper. Setup (`__enter__`) still uses the shared pool via `run_in_threadpool`, so only teardown is protected."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x147",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/concurrency.py",
+      "fastapi/dependencies/utils.py",
+      "fastapi/routing.py",
+      "fastapi/middleware/asyncexitstack.py",
+      "anyio.to_thread.run"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1634,
+      "cacheRead": 65107,
+      "cacheWrite": 10227
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00351447,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 16195,
+    "answer": "The `sigmap ask` step failed because the Bash sandbox can't start (`socat` is missing), so I fell back to Grep and Read. The answer below is confirmed by reading the code.\n\n`fastapi/concurrency.py`\n`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/middleware/asyncexitstack.py`\n\n`contextmanager_in_threadpool` (`fastapi/concurrency.py:17-41`) runs `__enter__` through the shared threadpool, but runs `__exit__` through `anyio.to_thread.run_sync` with a fresh `CapacityLimiter(1)` created per call. Because that limiter is not the shared pool's limiter, teardown does not wait for a free worker thread, so a busy pool cannot block cleanup. `_solve_generator` in `fastapi/dependencies/utils.py:578-586` is where this wrapper is applied to sync generator dependencies, and `routing.py` supplies the per-request `AsyncExitStack` that drives the teardown."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x147",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/concurrency.py",
+      "fastapi/dependencies/utils.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1197,
+      "cacheRead": 63800,
+      "cacheWrite": 8778
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029931000000000003,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 13730,
+    "answer": "`fastapi/concurrency.py` is the file that handles this. Its `contextmanager_in_threadpool` runs `__enter__` in the shared threadpool, but runs `__exit__` through a fresh `CapacityLimiter(1)`. That limiter is separate from the shared pool's limiter, so teardown never waits behind busy workers. The comment at lines 21–26 gives the reason: a blocking `__exit__` that waits for a free thread can deadlock when the context manager has its own internal pool, such as a database connection pool.\n\n`fastapi/dependencies/utils.py` is where this gets used: `_solve_generator` at line 585 wraps sync generator dependencies with `contextmanager_in_threadpool` and registers them on the request's exit stack.\n\nI did not use `sigmap ask` because the sandbox failed to start (`socat` is not installed), and I did not retry outside the sandbox. I located the files with Grep and Read instead.\n\n```\nfastapi/concurrency.py\nfastapi/dependencies/utils.py\n```"
+  },
+  {
+    "repo": "fastapi",
+    "task": "x147",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/concurrency.py",
+      "fastapi/dependencies/utils.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 761,
+      "cacheRead": 34642,
+      "cacheWrite": 7071
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00214172,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11183,
+    "answer": "`fastapi/concurrency.py`\n`fastapi/dependencies/utils.py`\n\n`contextmanager_in_threadpool` (`fastapi/concurrency.py:18-41`) runs `__exit__` under a fresh `CapacityLimiter(1)` instead of the shared default thread limiter, so teardown never waits for a busy pool slot. `fastapi/dependencies/utils.py:585` is the call site that wraps sync generator dependencies with this helper."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x148",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/openapi/docs.py",
+      "json.dumps"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 883,
+      "cacheRead": 49511,
+      "cacheWrite": 7469
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00243121,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11686,
+    "answer": "`fastapi/openapi/docs.py`\n\nThe Swagger UI page builds its inline script in this file. `_html_safe_json` runs `json.dumps` and then replaces `<`, `>` and `&` with their `\\u003c`, `\\u003e` and `\\u0026` escapes. Those escapes are still valid inside a JSON string, so the values parse back to the same data, but a value like `</script>` can no longer close the `<script>` block. Both the swagger config entries (line 172) and `initOAuth` (line 186) go through it."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x148",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/openapi/docs.py",
+      "tests/test_swagger_ui_escape.py",
+      "docs.py",
+      "json.dumps"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1543,
+      "cacheRead": 80984,
+      "cacheWrite": 9717
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.003525940000000001,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 16124,
+    "answer": "`fastapi/openapi/docs.py` is the file that does this. I couldn't run `sigmap ask` because the sandbox fails to start (`socat` is not installed), so I found it with Grep instead.\n\n`fastapi/openapi/docs.py`\n`tests/test_swagger_ui_escape.py`\n\nThe `_html_safe_json` helper in `docs.py` runs `json.dumps` and then replaces `<`, `>` and `&` with their `\\u003c`, `\\u003e` and `\\u0026` escapes, so a value like `</script>` cannot close the inline `<script>` block in `get_swagger_ui_html`. The test file checks that a `</script><script>` payload in `init_oauth` and the swagger parameters comes out escaped."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x148",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/openapi/docs.py",
+      "tests/test_swagger_ui_escape.py",
+      "json.dumps"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1905,
+      "cacheRead": 90543,
+      "cacheWrite": 14374
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004733930000000001,
+      "source": "agent-reported"
+    },
+    "turns": 9,
+    "durationMs": 18101,
+    "answer": "`fastapi/openapi/docs.py`\n`tests/test_swagger_ui_escape.py`\n\n`_html_safe_json` in `fastapi/openapi/docs.py` (lines 9-19) runs `json.dumps` and then replaces `<`, `>` and `&` with `\\u003c`, `\\u003e` and `\\u0026`, so a value like `</script>` can't close the inline `<script>` block; the Swagger UI init code (around lines 166-186) uses it for every embedded config value. The test file checks that an `</script>` payload in `initOAuth` and in the Swagger parameters comes out escaped.\n\n`sigmap ask` didn't run because the sandbox failed to start (socat is not installed), and I didn't run it outside the sandbox. I found these two files with Grep instead. I didn't check the ReDoc script section (around line 315), so I can't say whether it uses the same helper. Nothing was modified."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x148",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/openapi/docs.py",
+      "json.dumps",
+      "docs.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 866,
+      "cacheRead": 20735,
+      "cacheWrite": 10247
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026901500000000005,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9229,
+    "answer": "`fastapi/openapi/docs.py`\n\nThe `_html_safe_json` helper (lines 9-18) runs `json.dumps` and then replaces `<`, `>` and `&` with `\\u003c`, `\\u003e` and `\\u0026`. Those escapes are valid inside JSON strings and JavaScript, so a value like `</script>` cannot close the inline `<script>` block. Every config value and the OAuth init value is passed through this helper before it is written into the HTML (lines 172 and 186).\n\nI only confirmed this in `docs.py`. I did not check for related tests or other files, so I'm listing just the one I verified. I made no changes."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x149",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/security/oauth2.py",
+      "scope.split"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 893,
+      "cacheRead": 34556,
+      "cacheWrite": 11072
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00300706,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11095,
+    "answer": "`fastapi/security/oauth2.py`\n\nThe `scope` field is split on whitespace with `scope.split()` in `OAuth2PasswordRequestForm.__init__` (line 157), and `OAuth2PasswordRequestFormStrict` (line 162) inherits that behavior while making `grant_type` required with `Form(pattern=\"^password$\")` (line 230), so it is the variant that insists on the literal `\"password\"`."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x149",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/security/oauth2.py",
+      "self.scopes",
+      "scope.split"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1659,
+      "cacheRead": 80762,
+      "cacheWrite": 10339
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0037061200000000002,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 19378,
+    "answer": "`fastapi/security/oauth2.py`\n\nThe base `OAuth2PasswordRequestForm` takes `scope` as one string and sets `self.scopes = scope.split()` (line 157), so the no-argument `split()` breaks on any run of whitespace. `OAuth2PasswordRequestFormStrict` (line 162) inherits that split, and its `grant_type` parameter is declared with `Form(pattern=\"^password$\")` (line 230), which makes it insist on the literal `password`.\n\nI could not run `sigmap ask` because the sandbox failed to start (`socat` is not installed), so I found this with Grep and Read instead. I did not modify anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x149",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/security/oauth2.py",
+      "self.scopes",
+      "scope.split",
+      "fastapi/security/__init__.py",
+      "tests/test_security_oauth2.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1376,
+      "cacheRead": 66494,
+      "cacheWrite": 12248
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0038035400000000002,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 14918,
+    "answer": "The sandbox would not start (`socat` is missing), so `sigmap ask` did not run. I used Grep and Read on the candidate file instead, and confirmed the lines below.\n\n`fastapi/security/oauth2.py`, `OAuth2PasswordRequestForm.__init__` at line 157 does `self.scopes = scope.split()`, which turns the space-separated string into a list. `OAuth2PasswordRequestFormStrict` (line 162) is the variant that requires `grant_type` to be the literal `\"password\"`, enforced with `Form(pattern=\"^password$\")` at line 230.\n`fastapi/security/__init__.py`\n`tests/test_security_oauth2.py`\n`docs_src/security/tutorial005_py310.py`\n\nThe first file holds both classes and the split logic, so it is the direct answer. The `__init__.py` exports both classes, the test file exercises the strict `grant_type` rejection, and the tutorial shows the `scope.split(\" \")` pattern in application code."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x149",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/security/oauth2.py",
+      "scope.split"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1426,
+      "cacheRead": 34737,
+      "cacheWrite": 7799
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026207700000000006,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12576,
+    "answer": "`fastapi/security/oauth2.py`\n\nThe permissive `OAuth2PasswordRequestForm` splits the form's `scope` string with `scope.split()` (line 157), and the `OAuth2PasswordRequestFormStrict` class (line 162) makes `grant_type` required and pins it to `\"password\"` via `Form(pattern=\"^password$\")` (line 230). Both are in this one file, which I checked directly; I did not look at other files, so this is the only one listed."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x150",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/dependencies/utils.py",
+      "fastapi/routing.py",
+      "fastapi/params.py",
+      "fastapi/param_functions.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 816,
+      "cacheRead": 35322,
+      "cacheWrite": 8284
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00241862,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9854,
+    "answer": "`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/params.py`\n`fastapi/param_functions.py`\n\nThe decision lives in `_should_embed_body_fields` in `fastapi/dependencies/utils.py`, which embeds whenever there are multiple distinct body parameter names, an explicit `Body(embed=True)` is set, or a non-model `Form` field is used. Otherwise a single unembedded field takes the whole JSON body directly, as `request_body_to_args` in the same file shows."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x150",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/dependencies/utils.py",
+      "fastapi/routing.py",
+      "fastapi/params.py",
+      "fastapi/param_functions.py",
+      "routing.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1452,
+      "cacheRead": 64260,
+      "cacheWrite": 9719
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0033134,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 16787,
+    "answer": "`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/params.py`\n`fastapi/param_functions.py`\n\nThe embed decision is made by `_should_embed_body_fields` in `fastapi/dependencies/utils.py` (line 888), which embeds when there are several distinct body parameter names, when the field sets `embed=True`, or when it is a non-BaseModel `Form`. `request_body_to_args` in the same file then reads that flag to validate the whole body as one model when it is not embedded, and `routing.py` (around line 793) computes the flag for each route.\n\nI could not run `sigmap ask` because the sandbox failed to start (socat is not installed), so I found these files with Grep and Read. I did not modify anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x150",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/dependencies/utils.py",
+      "fastapi/routing.py",
+      "fastapi/param_functions.py",
+      "dependencies/utils.py",
+      "routing.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1374,
+      "cacheRead": 66065,
+      "cacheWrite": 11220
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00359265,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 15999,
+    "answer": "`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/param_functions.py`\n\n`_should_embed_body_fields` in `dependencies/utils.py` decides the mode: it returns true (nested under each name) when there are several distinct body parameter names, when `Body(embed=True)` is set, or when a `Form` field is not a model. Otherwise the body maps directly to the single argument. `request_body_to_args` in the same file applies that choice (`single_not_embedded_field`), `routing.py` calls the check once per route, and `param_functions.py` defines the `embed` option.\n\nI could not run `sigmap ask` because the sandbox failed to start (`socat` is not installed), so I found these with Grep and Read instead. I did not change anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x150",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/dependencies/utils.py",
+      "fastapi/routing.py",
+      "fastapi/params.py",
+      "fastapi/param_functions.py",
+      "dependencies/utils.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1172,
+      "cacheRead": 35602,
+      "cacheWrite": 10072
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029570200000000007,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10369,
+    "answer": "`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/params.py`\n`fastapi/param_functions.py`\n\n`_should_embed_body_fields` in `dependencies/utils.py` decides it: a body is nested under parameter names when there are two or more distinct body parameter names, when a param sets `embed=True`, or when a non-model `Form` field is used. Otherwise a single body parameter receives the whole JSON body unwrapped. `routing.py` calls that check once per route to set `_embed_body_fields`, `request_body_to_args` in `utils.py` applies the result at request time, and `params.py` / `param_functions.py` define the `embed` option."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x151",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/routing.py",
+      "fastapi/applications.py",
+      "email.message"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1131,
+      "cacheRead": 35342,
+      "cacheWrite": 8314
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00258232,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 12183,
+    "answer": "`fastapi/routing.py`\n`fastapi/applications.py`\n\nThe decision is made in the request handler in `fastapi/routing.py` (around lines 401–426). An empty body stays `None`. If the request has no `Content-Type`, the body is parsed as JSON only when `strict_content_type` is off, and otherwise it stays raw bytes. If a `Content-Type` is present, it is parsed with `email.message`, and JSON is decoded only when the main type is `application` and the subtype is `json` or ends in `+json`; every other type stays raw bytes. The `strict_content_type` flag, which defaults to on, is defined and documented in `fastapi/applications.py` (around line 843) and passed down to the router."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x151",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/routing.py",
+      "email.message.Message",
+      "fastapi/applications.py",
+      "routing.py",
+      "applications.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1707,
+      "cacheRead": 91906,
+      "cacheWrite": 15709
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004915560000000001,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 18101,
+    "answer": "The sigmap index couldn't run because the sandbox won't start (socat is missing), so I located the code with Grep and read the relevant range directly.\n\n`fastapi/routing.py` (around lines 401–426, inside the request handler) is where the decision is made:\n\n- If the body is empty, nothing is decoded.\n- If there is no `Content-Type` header, the body is parsed as JSON only when `strict_content_type` is false. With the default (`True`), it stays as raw bytes.\n- If there is a header, it is parsed with `email.message.Message`. The body is decoded as JSON only when the main type is `application` and the subtype is `json` or ends in `+json`. Anything else stays as raw bytes.\n- A JSON parse failure is reported as a `json_invalid` validation error.\n\n`fastapi/applications.py` (around line 843) exposes the `strict_content_type` setting at the app level, and `fastapi/routing.py` resolves it per route and router (around lines 365–380 and 1246–1414).\n\n**Why:** `routing.py` contains the actual branch logic, and `applications.py` supplies the `strict_content_type` flag that controls the no-header case."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x151",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/routing.py",
+      "fastapi/applications.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 1585,
+      "cacheRead": 92065,
+      "cacheWrite": 15543
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00482295,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 16529,
+    "answer": "`fastapi/routing.py` holds the decision, in the body-reading block of `get_request_handler` (around lines 401–426). Without a Content-Type header, it parses JSON only when `strict_content_type` is off. With a header, it parses JSON only for `application/json` or any `application/*+json` subtype, and otherwise passes the raw bytes through.\n\n`fastapi/routing.py`\n`fastapi/applications.py`\n\nThe `strict_content_type` flag, which controls the no-header case, is defined in `fastapi/applications.py` (line 843) and passed down to routes. I confirmed it with a grep match rather than reading that range.\n\nNote: the `sigmap ask` call failed because the Bash sandbox could not start (`socat` is not installed), so I used Grep and Read directly. I didn't run the sandbox-disable workaround. I did not modify anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x151",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "fastapi/routing.py",
+      "fastapi/applications.py"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1352,
+      "cacheRead": 49766,
+      "cacheWrite": 7578
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026900599999999993,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 13292,
+    "answer": "`fastapi/routing.py`\n`fastapi/applications.py`\n\nThe decision is made in `get_request_handler` in `fastapi/routing.py` (lines 409–426). If the body is non-empty, a missing `Content-Type` header is parsed as JSON, unless strict content-type checking is on, in which case the raw bytes are kept. A present header is parsed as JSON only when its main type is `application` and its subtype is `json` or ends in `+json`; every other type keeps the raw bytes. `fastapi/applications.py` only supplies the `strict_content_type` setting that routing reads."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x152",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "routing.py",
+      "applications.py",
+      "fastapi/applications.py",
+      "fastapi/middleware/asyncexitstack.py",
+      "fastapi/routing.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {
+        "git": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 2054,
+      "cacheRead": 49443,
+      "cacheWrite": 8795
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0032812300000000004,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 16883,
+    "answer": "Outermost to innermost, the stack is: `ServerErrorMiddleware` → user middlewares (in `add_middleware` order) → `ExceptionMiddleware` → `AsyncExitStackMiddleware` → the router.\n\n`AsyncExitStackMiddleware` sits innermost among the internal layers, just outside the router. It creates an `AsyncExitStack`, stores it in `scope[\"fastapi_middleware_astack\"]`, and `routing.py` registers uploaded files on it so they close when the request finishes. Per the comment in `applications.py`, it is placed inside the user middlewares because those run in new anyio task groups with copied contextvars, so the stack has to live in the same context the route handler uses. Its only remaining job is closing files, since dependencies with `yield` now have their own stack.\n\n`fastapi/applications.py`\n`fastapi/middleware/asyncexitstack.py`\n`fastapi/routing.py`\n\nThe ordering is set in `build_middleware_stack` (`applications.py` ~1022–1069), and the comment there explains why the exit stack is placed after the user middlewares.\n\nI did not modify anything. I only read files, and the Bash call was blocked for approval, so I used Read and Grep instead."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x152",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "applications.py",
+      "fastapi/applications.py",
+      "fastapi/middleware/asyncexitstack.py",
+      "fastapi/routing.py",
+      "asyncexitstack.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1989,
+      "cacheRead": 64872,
+      "cacheWrite": 10027
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00364962,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 17440,
+    "answer": "Outermost to innermost, the stack is `ServerErrorMiddleware`, then the user middlewares added with `add_middleware`, then `ExceptionMiddleware`, then `AsyncExitStackMiddleware`, and finally the router. The stack is assembled in `build_middleware_stack`, which wraps the router in reverse order so the first entry ends up outermost.\n\nThe file-closing layer sits innermost, directly around the router, because it has to share a context with the request handling. The comment in `applications.py` says it comes after the user middlewares because those run in a new contextvars copy made by a task group. Putting the `AsyncExitStack` inside them means the stack and the endpoint see the same context. It also means the files are closed as soon as the route finishes, before `ExceptionMiddleware` and the outer layers handle errors or responses. The code comment adds that this placement is not strictly required for closing files; it was kept because dependencies with `yield` used to close here.\n\n```\nfastapi/applications.py\nfastapi/middleware/asyncexitstack.py\nfastapi/routing.py\n```\n\nMost relevant first: `applications.py` builds the nesting, `asyncexitstack.py` is the file-closing layer, and `routing.py` is where the request dispatcher opens the file and dependency stacks.\n\nNote: `sigmap ask` failed because the sandbox could not start (`socat` is not installed), so I located these files with Grep and Read instead. I did not run the command outside the sandbox. I did not modify anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x152",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "@app.middleware",
+      "applications.py",
+      "routing.py",
+      "fastapi/applications.py",
+      "fastapi/middleware/asyncexitstack.py"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Skill": 1,
+        "Bash": 1,
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {
+        "sigmap": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1521,
+      "cacheRead": 64499,
+      "cacheWrite": 9787
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0033638900000000005,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 16349,
+    "answer": "From outermost to innermost, the stack is: `ServerErrorMiddleware` → user middlewares (`add_middleware`, `@app.middleware`) → `ExceptionMiddleware` → `AsyncExitStackMiddleware` → the router. `build_middleware_stack` builds the list in that order and then wraps it in reverse, so the first entry ends up outermost.\n\nThe `AsyncExitStackMiddleware` sits innermost, directly around the router, so the upload files it closes are released when the route handler finishes. The comment in `applications.py` says it sits after the user middlewares because those middlewares run in a new contextvars copy (via a new anyio task group). Placing the stack inside them means the file-closing context matches the route's. Its only job here is closing files. Dependencies with `yield` now use their own `AsyncExitStack` in `routing.py`.\n\n`fastapi/applications.py`\n`fastapi/middleware/asyncexitstack.py`\n`fastapi/routing.py`\n\nThe `sigmap ask` step failed because the sandbox could not start (`socat` is not installed), so I found these files with Grep and Read instead. I did not modify anything."
+  },
+  {
+    "repo": "fastapi",
+    "task": "x152",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "routing.py",
+      "fastapi/applications.py",
+      "fastapi/middleware/asyncexitstack.py",
+      "fastapi/routing.py",
+      "fastapi/datastructures.py"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 2135,
+      "cacheRead": 56883,
+      "cacheWrite": 12076
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00405233,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 17684,
+    "answer": "From outermost to innermost, the stack is `ServerErrorMiddleware`, then the user-registered middlewares in the order they were added, then `ExceptionMiddleware`, then `AsyncExitStackMiddleware`, then the router. `build_middleware_stack` builds this list and wraps the router in reverse, so the first entry ends up outermost.\n\nThe code comment says the exit-stack layer sits inside the user middlewares because those middlewares create a new contextvars context. Placing it there means the stack shares the same context as the endpoint. Its job is only to close files, and it is registered per request by the route handler (`routing.py:385`). Sitting innermost, it closes files as soon as the endpoint and router finish, before `ExceptionMiddleware` turns any exception into a response. The comment does not spell out that last point, so that part is my reading of the code.\n\n`fastapi/applications.py`\n`fastapi/middleware/asyncexitstack.py`\n`fastapi/routing.py`\n`fastapi/datastructures.py`\n\nWhy: `applications.py` defines the stack order, `asyncexitstack.py` is the layer that closes files, `routing.py` registers the files on that stack, and `datastructures.py` defines `UploadFile.close()` that the stack ultimately calls."
+  }
+]

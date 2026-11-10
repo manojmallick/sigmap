@@ -61,24 +61,28 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false }) {
+  if (skills && bare) throw new Error('a skill run needs --session-auth: --bare turns skills off');
+  // A skill run keeps the Skill tool in BOTH arms and passes no --disable-slash-commands in either, so the
+  // arms still differ only by what SigMap adds (the CLI, and the skill file in the SigMap arm's checkout).
+  const tools = skills ? [...BUILTIN_TOOLS, 'Skill'] : [...BUILTIN_TOOLS];
   const allowed = [
-    ...BUILTIN_TOOLS.filter((t) => t !== 'Bash'),
+    ...tools.filter((t) => t !== 'Bash'),
     ...BASH_ALLOW.map((c) => `Bash(${c}:*)`),
   ];
-  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, `mcp__${SIGMAP_SERVER}`);
+  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills ? [] : [`mcp__${SIGMAP_SERVER}`]));
   const args = [
-    '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', '--disable-slash-commands']),
+    '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', ...(skills ? [] : ['--disable-slash-commands'])]),
     '--output-format', 'stream-json', '--verbose',
     '--no-session-persistence',
     '--model', model,
-    '--tools', BUILTIN_TOOLS.join(','),
+    '--tools', tools.join(','),
     '--allowedTools', allowed.join(','),
     '--permission-mode', 'dontAsk',
     '--max-budget-usd', String(budgetUsd),
     '--strict-mcp-config',
   ];
-  if (arm === 'with') {
+  if (arm === 'with' && !skills) {
     if (!sigmapContext || !mcpConfig) throw new Error('the SigMap arm needs its generated context and its MCP config');
     if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) {
       throw new Error(`the generated context is ${Buffer.byteLength(sigmapContext)} bytes; one argument may not exceed ${MAX_CONTEXT_BYTES} (Linux caps it at 128 KiB)`);
@@ -143,6 +147,7 @@ export function parseStream(text) {
         mcpServers: Array.isArray(o.mcp_servers)
           ? o.mcp_servers.filter((s) => s && typeof s === 'object').map((s) => ({ name: String(s.name), status: str(s.status) }))
           : [],
+        skills: Array.isArray(o.skills) ? o.skills.map(String) : null,
         model: str(o.model),
         apiKeySource: str(o.apiKeySource),
       };
@@ -322,11 +327,11 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare });
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
     const r = await runClaude({ bin, args, prompt: job.prompt, cwd: arm.cwd, env: env2, timeoutMs });

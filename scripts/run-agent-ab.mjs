@@ -49,10 +49,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
-  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS,
+  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
-import { prepareArm, probeMcp } from './lib/agent-ab-arms.mjs';
+import { prepareArm, probeMcp, probeCli } from './lib/agent-ab-arms.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
 } from './lib/agent-ab-claude.mjs';
@@ -116,6 +116,8 @@ const VARIANT = val('--sigmap-variant', 'current');
 if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
   fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
 }
+const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
+if (SKILL_RUN && !SESSION_AUTH) fail(`--sigmap-variant ${VARIANT} hands SigMap over as skills, and --bare turns skills off: add --session-auth`, 2);
 
 function selectRepos(manifest, tasks) {
   const wanted = ONLY ? ONLY.split(',').map((s) => s.trim()).filter(Boolean) : null;
@@ -188,17 +190,22 @@ async function main() {
       say(`  preparing ${repo.name} (${arm})`);
       prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
-    const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
-    if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
+    if (SKILL_RUN) {
+      const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
+      if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
+    } else {
+      const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
+      if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
+    }
   }
 
   const env = childEnv();
   const version = agentVersion(BIN, env);
-  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH });
+  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN });
 
   let n = 0;
   const entries = await runPlan({
-    tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS,
+    tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
     onRun: ({ task, arm, run, record }) => {
       n++;
       const c = record.cost && record.cost.usd !== null ? `${record.cost.source === 'table' ? '≥' : ''}$${record.cost.usd.toFixed(4)}` : 'cost n/a';
