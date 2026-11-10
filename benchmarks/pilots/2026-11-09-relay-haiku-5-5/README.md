@@ -71,6 +71,36 @@ Against `index` directly: `lean` costs +10% [+6%, +15%] and makes +47% more call
 - **They trade differently.** `current` buys fewer tool calls (its inline signature map saves reads) with a heavier prompt; `lean` makes the agent do extra steps; `index` does little of either. None changed the time, and all found the file every time.
 - **An agent that already finds the file in about 3 calls has little to give up to SigMap and little to gain from it.**
 
+### Why SigMap saved neither tokens nor time
+
+`why.mjs` prints the numbers below from the saved runs. Read against `llms-full.txt`, which is where the headline claims live.
+
+**1. The published savings are measured against something no agent does.**
+
+- *"Token reduction 95.2% average"* compares SigMap's output (257K tokens) with "full repo signatures" (13.7M tokens, `docs-vp/guide/methodology.md` §4): that is, putting every signature in the prompt. It is real, and it is not an agent's alternative.
+- *"Honest hit@5: 40.0% (single-shot grep) against 92.8%"* uses a baseline that scans the repository for the query's terms once, ranks the files, and stops. The agent here found the file in 90 of 90 runs without SigMap, in 3.4 tool calls, because it looked again when the first search was not enough.
+- *"Prompts per task 2.84 → 1.58"* is modelled, not observed.
+- What the baseline agent actually pays does not grow with the repository: **35k to 50k tokens a run from gin (99 source files, about 170k tokens if read whole) to rails (3,392 files, about 4.6M tokens)**. Grep scales; reading everything is not what it does. So a reduction against "read everything" has nothing to remove.
+
+**2. Tokens are turns times a per-turn cost, and SigMap adds to every turn.** A baseline run is 3.4 tool calls, 4.4 turns and 42k tokens: about 9.5k a turn, most of it the same prompt prefix and the growing conversation read again each turn. SigMap's setup adds text to every turn: about 1.6k (`index`), 4.3k (`current`), 1.0k (`lean`); measured per turn +2.2k, +5.6k and +0.4k. To break even on tokens it must remove **14%, 31% and 10% of the turns**; it removed **4%, 10%, and −28% (it added turns)**. Hence tokens +18%, +42%, +33%.
+
+**3. Time follows turns, not tokens.** A turn takes about 2.8 s and a cached prefix adds almost no latency, so time moves only if the number of turns does. It did not (12.7 s against 12.7 s for `index`, 12.3 against 12.1 for `current`), and `lean`'s extra turns cost +13%.
+
+**4. Why the turns did not fall.**
+
+- **The agent mostly did not use retrieval.** It called `query_context` in 16 of 90 `index` runs and 4 of 89 `current` runs: grep answers a "where is X" question in about 3 calls, and a retrieval call is itself a turn.
+- **When told to use it, it did both.** With `lean` it called `query_context` in 89 of 90 runs, confirmed with `get_lines` (179 calls) and kept grepping (124): SigMap became an added step, +28% turns.
+- **Retrieval is not decisive on these questions.** The first-ranked file is right 33% of the time and the right file is in the top 5 for 67% (30 paraphrased questions), so the agent has to check, and a check is another turn.
+- **The one thing that cut calls is not retrieval.** `current` made 17% fewer tool calls (`Read` 134 → 90) because its generated section lists files and signatures with line anchors, which tells the agent where to look, at 5.6k tokens a turn.
+
+**5. What this does not rule out (hypotheses, none tested here unless noted).**
+
+- **Weaker models**, which need more turns to find a file: tested next (Haiku 4.5, below).
+- **Repositories far larger than django**, where a grep returns more than an agent can read.
+- **Long sessions that ask many questions**, which would amortise the section; every run here is a cold single question.
+- **Tasks where text search fails** (renamed or generated symbols), and **tasks that are not search** (impact analysis, grounding checks): this test asked for neither.
+- **Product ideas aimed at turns, not at prompt size:** let `query_context` return the top match's lines, so confirming needs no `get_lines` turn; keep the always-on text near zero for agents that already search well; and report agent-level turns, tokens and time against an adaptive-search baseline next to the existing figures.
+
 ## How it was produced
 
 | | |
