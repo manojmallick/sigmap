@@ -27,6 +27,29 @@ What it changes:
 - **`current` (the old default: `full` strategy, all 22 tools, the generated section) on the same 45 questions: 178 of 180 runs counted, $0.45.** One run timed out at 420 s (`fastapi/x148`, repetition 2, SigMap arm) and that question × repetition is left out for every variant. File found 89/89 by both arms. Against its baseline: real cost **+9%** [+4%, +14%] (cheaper in 36 of 89 pairs), tokens **+41%** [+31%, +50%], seconds 0%, and **tool calls −17%** [−26%, −7%], the only variant with a clear cut in calls (`Read` 90 against 134 for the baseline). It asked SigMap to retrieve in only 4 of 89 runs, so the cut does not come from retrieval: the generated section lists files and signatures with line anchors, which tells the agent where to look and saves it reads, at the price of carrying that text on every turn.
 - **Not tested, and where it could still pay off:** weaker models, environments with no grep (chat-only LLMs), repos larger than django, other kinds of task (SigMap also offers impact analysis, grounding checks and other tools this test never asked for), and a prompt that makes the agent use SigMap's retrieval (it ignored it here). Only Haiku 5.5 was run.
 
+### Final comparison with the stet.sh study's six tools
+
+SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetitions, the 89 cases every setup completed (`session-combined.mjs`, last block). Study rows: the post's own figures, ten merged-change tasks on Codex with GPT-5.6 Sol. Change is the tool against its own baseline, negative = the tool used less; cost for SigMap is the agent's real-API figure.
+
+| tool | what it does | tokens, whole batch R1 / R2 | tokens, typical task R1 / R2 | cost, whole batch R1 / R2 | cost, typical task R1 / R2 | cases with fewer tokens | saved tokens both times? |
+|---|---|---:|---:|---:|---:|---:|---|
+| Caveman | terse dialogue | +7% / −11% | −5% / −9% | +9% / −12% | +2% / −10% | 12 of 20 | no |
+| Ponytail | write less code | +16% / −1% | +8% / −3% | +20% / −2% | +18% / −3% | 9 of 20 | no |
+| RTK | filter shell output | +18% / −8% | +18% / −5% | +13% / −9% | +12% / −7% | 8 of 20 | no |
+| Terra | cheaper model | +6% / +5% | −23% / −12% | −49% / −49% | −62% / −56% | about 10 of 20 | no (cost: yes) |
+| Mandarin | translated prompts | +86% / +15% | +70% / +12% | +69% / +9% | +60% / +5% | 2 of 20 | no, much worse |
+| Context Mode | index and retrieve context | +94% / +46% | +102% / +51% | +72% / +33% | +78% / +36% | 1 of 20 | no, much worse |
+| **SigMap `index`** (the docs' setup) | index map + 7 tools | **+20% / +16%** | **+21% / +16%** | **+7% / −1%** | **+8% / −1%** | **21 of 89** | **no** |
+| SigMap `current` (old default) | full signature map + 22 tools | +42% / +43% | +39% / +43% | +12% / +10% | +10% / +8% | 10 of 89 | no |
+| SigMap `lean` | 3-line section + 7 tools | +32% / +33% | +30% / +36% | +14% / +13% | +15% / +15% | 9 of 89 | no |
+
+- **No tool cut tokens in both repetitions, and SigMap is no exception.** The only tool that cut cost in both was Terra, by changing the model and price, not by compressing anything.
+- **Where SigMap sits.** On cost, `index` (+7%, then −1%) is in the same neighbourhood as RTK and Ponytail: roughly neutral and noisy. On tokens it is higher than all four of the study's near-zero tools, because its section and tool definitions are re-read each turn (cached, which is why the dollar cost moves much less than the token count), and far better than Mandarin and Context Mode. `current` and `lean` are worse than `index` on cost.
+- **The intervals.** SigMap's token increases are outside the noise in both repetitions; `index`'s cost is outside it in repetition 1 (+8%) and inside it in repetition 2.
+- **Quality is not comparable.** The study graded patches (several tools lost tests, equivalence or review). SigMap's runs only had to name the file, and both arms did that every time (90/90, 90/90, 89/89 for the three setups). Finding a file is a far easier test than writing a correct patch, and SigMap does not change how a patch is written.
+- **Different universe.** The study's agent, model and tasks differ from this one, so the table shows how each tool behaved in its own test, not a ranking.
+- **Superseded:** the SigMap rows in the next table, and everywhere above it that quotes the relay runs, came from a different agent (about 10 tool calls a run, against 3 here); use these rows.
+
 ### The three setups side by side (45 questions × 2 repetitions, 89 paired cases)
 
 Each column is that setup's SigMap arm against its own baseline run in the same invocation: typical task, 95% interval, `~` = the interval includes zero. `session-combined.mjs` prints it.
@@ -126,6 +149,8 @@ Per task and repetition (20 paired cases), SigMap's arm used **fewer** total tok
 - This is a pattern in 20 cases, offered as a hypothesis (SigMap pays off on questions that are hard to search, costs on easy ones) and not a finding. It was not tested by changing the tool profile or the generated section's budget.
 
 ## Against the stet.sh study (indicative only)
+
+> **Superseded for SigMap.** The SigMap rows below come from the relay runs, a different agent from the real-API runs. Use the *Final comparison* table in the *Update* section at the top of this file.
 
 [stet.sh's study](https://www.stet.sh/blog/gpt-56-token-saving-modes) ran the same shape of experiment (10 tasks, 2 repetitions, workload total and typical task) on six token-saving modes. **It is not the same experiment:** a different agent (Codex CLI), model (GPT-5.6 Sol) and tasks (ten merged edits in one repo, graded on patch quality), against this run's Claude Code, Haiku 5.5 via a relay, and where-is-this-file questions on five open-source repos. Read the table as "same kind of question, different world", not as a ranking.
 

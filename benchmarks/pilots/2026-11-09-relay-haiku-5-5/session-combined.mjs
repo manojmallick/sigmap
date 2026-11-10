@@ -161,3 +161,27 @@ if (currentRuns.length) {
   analyse('current (the old default): all 45 questions', currentRuns);
   threeWay({ index: [...small, ...large], lean: leanRuns, current: currentRuns });
 }
+
+// The result in the stet.sh study's own format, over the cases every setup completed, so the rows rest on identical questions.
+function studyFormat(sets) {
+  console.log('\n==================== in the stet.sh study\'s format ====================');
+  const key = (x) => `${x.repo}/${x.task}|${x.run}`;
+  const maps = Object.fromEntries(Object.entries(sets).map(([n, set]) => [n, { w: new Map(set.filter((x) => x.arm === 'with').map((x) => [key(x), x])), b: new Map(set.filter((x) => x.arm === 'without').map((x) => [key(x), x])) }]));
+  const keys = [...maps.index.w.keys()].filter((k) => Object.values(maps).every((v) => v.w.has(k) && v.b.has(k)));
+  const p = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 100))}%`;
+  const tokens = (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite;
+  const dollars = (x) => x.cost.usd;
+  console.log(`${keys.length} paired cases (question × repetition); change = SigMap arm against its own baseline, negative = SigMap used less`);
+  console.log('setup     tokens workload R1/R2   tokens typical R1/R2   cost workload R1/R2   cost typical R1/R2   fewer tokens   fewer cost   saved tokens in both?');
+  for (const [name, v] of Object.entries(maps)) {
+    const cell = (fn, kind) => [1, 2].map((r) => {
+      const ps = keys.filter((k) => k.endsWith(`|${r}`)).map((k) => ({ without: fn(v.b.get(k)), with: fn(v.w.get(k)) }));
+      return p(kind === 'workload' ? workloadChange(ps).change : geometricChange(ps).change);
+    }).join(' / ');
+    const wl = [1, 2].map((r) => workloadChange(keys.filter((k) => k.endsWith(`|${r}`)).map((k) => ({ without: tokens(v.b.get(k)), with: tokens(v.w.get(k)) }))).change);
+    const fewerT = keys.filter((k) => tokens(v.w.get(k)) < tokens(v.b.get(k))).length;
+    const fewerC = keys.filter((k) => dollars(v.w.get(k)) < dollars(v.b.get(k))).length;
+    console.log(`${name.padEnd(9)} ${cell(tokens, 'workload').padEnd(23)} ${cell(tokens, 'typical').padEnd(22)} ${cell(dollars, 'workload').padEnd(21)} ${cell(dollars, 'typical').padEnd(20)} ${`${fewerT} of ${keys.length}`.padEnd(14)} ${`${fewerC} of ${keys.length}`.padEnd(12)} ${wl.every((x) => x < 0) ? 'yes' : 'no'}`);
+  }
+}
+if (currentRuns.length) studyFormat({ index: [...small, ...large], lean: leanRuns, current: currentRuns });
