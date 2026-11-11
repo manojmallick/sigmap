@@ -8,6 +8,7 @@
 //   node benchmarks/agent-study/summarize.mjs --set change --tasks c04,c05,c06,c09   # only these questions or tasks
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
 //   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
+//   node benchmarks/agent-study/summarize.mjs --versus locate:index --set heldout   # one setup directly against another (the SigMap arms of the same questions)
 //   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
 //
@@ -31,6 +32,7 @@ const onlyTasks = new Set((val('--tasks', '') || '').split(',').filter(Boolean))
 const STUDY = argv.includes('--study');
 const VS_PLACEBO = argv.includes('--vs-placebo');
 const BY_REPO = argv.includes('--by-repo');
+const VERSUS = val('--versus', null);
 
 const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
   .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)));
@@ -103,6 +105,26 @@ if (BY_REPO) {
   if (argv.includes('--per-repo')) {
     console.log('\n| setup | repository | pairs | real cost | class |\n|---|---|---:|---:|---|');
     for (const r of repoRows) console.log(`| ${r.series.replace(/^.*-heldout-/, '')} | ${r.repo} | ${r.pairs} | ${cell(r)} | ${r.cls} |`);
+  }
+  process.exit(0);
+}
+
+if (VERSUS) {
+  const [va, vb] = VERSUS.split(':');
+  const groups = new Map();
+  for (const sr of all) { const k = `${sr.head.route}|${sr.head.model}|${sr.head.set}`; if (!groups.has(k)) groups.set(k, {}); groups.get(k)[sr.head.variant] = sr; }
+  console.log(`| run | comparison | pairs | real cost | cost by repetition | total tokens | tool calls | seconds | file found |`);
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|---:|');
+  for (const [, g] of groups) {
+    if (!g[va] || !g[vb]) continue;
+    const head = g[va].head; const lab = `${head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${head.model} · ${head.set}`;
+    const common = g[va].keys.filter((x) => g[vb].m.has(`${x}|with`));
+    const pairs = common.map((x) => ({ arm: g[va].m.get(`${x}|with`), base: g[vb].m.get(`${x}|with`) }));
+    const gg = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => ({ without: fn(p.base), with: fn(p.arm) })))]));
+    const reps = [...new Set(pairs.map((p) => p.arm.run))].sort((x, y) => x - y);
+    const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => ({ without: p.base.usd, with: p.arm.usd }))).change)).join(' / ');
+    const hit = (xs) => xs.filter((r) => r.pass).length;
+    console.log(`| ${lab} | **\`${va}\` against \`${vb}\`** | ${pairs.length} | **${cell(gg.cost)}** | ${byRep} | ${cell(gg.tokens)} | ${cell(gg.calls)} | ${cell(gg.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
   }
   process.exit(0);
 }
