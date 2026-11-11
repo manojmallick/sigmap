@@ -292,6 +292,10 @@ no-SigMap baseline of its own: 348 runs.
 - Anything else is reported as unexplained. With eight repositories and two repetitions, only a large difference can be told from noise,
   and the result will say so.
 
+**What was run.** 348 runs, none failed. By the letter of the rule the outcome is *unexplained* (the prompt text on Claude Code took cost
+−15% [−24, −6], so the route does not explain the gap, but its rank correlation with the API-route results was 0.40, short of the 0.5 the
+delivery branch asked for). The results page, "The real hook, and the same text in the prompt", gives the numbers and what they support.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

@@ -8,10 +8,11 @@
  * context. The model starts the turn already holding a list of leads instead of having to ask for one. It is what `sigmap ask`
  * prints and writes to `.context/query-context.md`, run for you: this module calls the CLI, so there is one ranking implementation.
  *
- * Measured in the agent study (docs-vp/guide/agent-study): over twenty repositories with Haiku 5.5, `prefetch` took total
- * tokens −27%, tool calls −44% and wall-clock time −18%, and real cost −8% [−11%, −4%] over the questions — but it cost more on
- * five of the twenty repositories (up to +31%), and found the file in 798 runs of 888 against 809 without it. It saves where the
- * unaided agent would have spent the most on searching, and is a small cost elsewhere; it is opt-in.
+ * Measured in the agent study (docs-vp/guide/agent-study), and the saving is not established. The benchmark's `prefetch`, which puts
+ * the same ranking in the prompt itself, took Haiku 5.5's real cost −8% [−11%, −4%] over twenty repositories (total tokens −27%, tool
+ * calls −44%, time −18%) but cost more on five of them. This hook delivers it as Claude Code's additional context instead, and run
+ * live on eight of those repositories it changed real cost by −1% [−10%, +8%] (tool calls −33%, time −8%, tokens −7%), against −15%
+ * [−24%, −6%] for the prompt text on the same route. It is opt-in.
  *
  * What it does NOT do, and why:
  *   - It does not inject on every prompt. A prompt is skipped when it is a slash command, a shell escape or a note, has fewer than
