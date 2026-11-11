@@ -1574,6 +1574,8 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     '.next', 'coverage', 'target', 'vendor', '.context',
   ]);
 
+  const { isVendoredName, isEnvironmentRoot } = __require('./src/util/vendored-dir');
+
   function _norm(p) {
     return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '');
   }
@@ -1813,8 +1815,9 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
       if (depth > 8 || seen > 5000) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (isEnvironmentRoot(entries)) return; // not indexed, so a change in it is not a stale index
       for (const e of entries) {
-        if (exclude.has(e.name)) continue;
+        if (exclude.has(e.name) || isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) walk(full, depth + 1);
         else if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) {
@@ -2593,6 +2596,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   const { langFor } = __require('./src/extractors/dispatch');
   const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
   const { resolveGraphDirs } = __require('./src/graph/src-dirs');
+  const { isVendoredName, isEnvironmentRoot } = __require('./src/util/vendored-dir');
 
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
   const DEFAULT_EXCLUDE = [
@@ -2629,8 +2633,9 @@ __factories["./src/cache/freshen"] = function(module, exports) {
     if (depth > maxDepth) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (isEnvironmentRoot(entries)) return; // a virtualenv: the generator never indexed it
     for (const e of entries) {
-      if (exclude.has(e.name)) continue;
+      if (exclude.has(e.name) || isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) _walk(full, exclude, out, depth + 1, maxDepth);
       else if (e.isFile() && langFor(e.name)) out.push(full);
@@ -22893,8 +22898,9 @@ __factories["./src/graph/builder"] = function(module, exports) {
       if (depth > maxDepth) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
       for (const e of entries) {
-        if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+        if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) {
           walkDir(full, depth + 1, out);
@@ -23480,8 +23486,9 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
     for (const e of entries) {
-      if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+      if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1, maxDepth);
       else if (e.isFile()) {
@@ -25388,8 +25395,9 @@ __factories["./src/graph/language-support"] = function(module, exports) {
       if (depth > maxDepth) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
       for (const e of entries) {
-        if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+        if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) { walk(full, depth + 1); continue; }
         if (!e.isFile() || seen.has(full)) continue;
@@ -40007,6 +40015,63 @@ __factories["./src/util/truncate"] = function(module, exports) {
   
 };
 
+// ── ./src/util/vendored-dir ──
+__factories["./src/util/vendored-dir"] = function(module, exports) {
+  
+  /**
+   * vendored-dir.js — directories that are never the project's own source, whatever `exclude` says.
+   *
+   * `exclude` is a list of NAMES, and a config file that sets it replaces the default list. So a project
+   * whose `gen-context.config.json` was copied from the example (which names `node_modules`, `dist`, ...
+   * but no Python environment) indexed every package installed in a virtualenv below its source root,
+   * so the generated context file and the retrieval index filled with third-party library signatures
+   * from `<dir>/.venv/lib/python3.x/site-packages`, a directory git ignores. A name list cannot fix
+   * that either, because an environment can be called anything (`.venv`, `venv`, `env`,
+   * `.direnv/python-3.11`).
+   *
+   * Two rules that need no name and no configuration:
+   *   - a directory that holds `pyvenv.cfg` IS a Python virtual environment (PEP 405 defines it by that
+   *     file), and one that holds `conda-meta/` is a conda environment. Neither is ever project source.
+   *   - a directory NAMED for installed third-party packages or a tool's cache is never source either.
+   *     The list is kept to names that mean one thing only; `vendor`, `venv`, `env` and `build` are not
+   *     on it, because projects do keep their own code under those names. They stay in `exclude`.
+   *
+   * Both are read from a listing the walker already has, so the check costs no filesystem call.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const VENDORED_NAMES = new Set([
+    'node_modules', 'bower_components', 'jspm_packages',          // installed JS packages
+    'site-packages', 'dist-packages',                             // installed Python packages
+    '__pycache__', '.tox', '.nox', '.mypy_cache', '.pytest_cache', '.ruff_cache', // Python tool output
+  ]);
+
+  /** True for a directory name that only ever holds installed packages or tool caches. */
+  function isVendoredName(name) {
+    return VENDORED_NAMES.has(String(name));
+  }
+
+  /**
+   * True when a directory's own listing marks it as a Python environment root: it holds a `pyvenv.cfg`
+   * file (venv / virtualenv) or a `conda-meta` directory (conda).
+   *
+   * @param {Array<{name:string, isFile:Function, isDirectory:Function}>} entries - the directory's entries
+   */
+  function isEnvironmentRoot(entries) {
+    if (!Array.isArray(entries)) return false;
+    for (const e of entries) {
+      if (!e || typeof e.name !== 'string') continue;
+      if (e.name === 'pyvenv.cfg' && typeof e.isFile === 'function' && e.isFile()) return true;
+      if (e.name === 'conda-meta' && typeof e.isDirectory === 'function' && e.isDirectory()) return true;
+    }
+    return false;
+  }
+
+  module.exports = { isVendoredName, isEnvironmentRoot, VENDORED_NAMES };
+  
+};
+
 // ── ./src/verify/arity ──
 __factories["./src/verify/arity"] = function(module, exports) {
   
@@ -43271,9 +43336,13 @@ function walkDir(dir, exclude, maxDepth, depth = 0) {
   // Sort by name so the collected file list — and therefore the output section
   // order — is deterministic. Raw readdir order is filesystem-dependent and can
   // vary run to run, making the generated context non-byte-stable.
+  // A Python environment (it holds pyvenv.cfg or conda-meta/) and a directory of installed packages are never
+  // the project's source, whatever `exclude` lists and whatever the directory is called (src/util/vendored-dir.js).
+  const vendored = requireSourceOrBundled('./src/util/vendored-dir');
+  if (vendored.isEnvironmentRoot(entries)) return [];
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
-    if (exclude.includes(entry.name)) continue;
+    if (exclude.includes(entry.name) || vendored.isVendoredName(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results = results.concat(walkDir(full, exclude, maxDepth, depth + 1));

@@ -1,0 +1,1146 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt": "A developer asks this about a codebase you cannot see: \"<question>\"\n\nList 8 to 12 lowercase words or identifier fragments that the code implementing it would likely contain in its file names, function names or comments: synonyms, and the technical terms a programmer would use. One line, comma-separated, nothing else.",
+ "records": [
+  {
+   "id": "m001",
+   "repo": "sigmap-src",
+   "words": [
+    "lowercase",
+    "identifier",
+    "tombstone",
+    "redact",
+    "sentinel",
+    "marker",
+    "quote",
+    "escape",
+    "preserve",
+    "skip",
+    "filter",
+    "strip"
+   ],
+   "usd": 0.00033036000000000003
+  },
+  {
+   "id": "m002",
+   "repo": "sigmap-src",
+   "words": [
+    "evidence",
+    "proof",
+    "verify",
+    "verification",
+    "test",
+    "tests",
+    "assert",
+    "assertion",
+    "check",
+    "validate",
+    "validation",
+    "changelog"
+   ],
+   "usd": 0.00033296000000000004
+  },
+  {
+   "id": "m003",
+   "repo": "sigmap-src",
+   "words": [
+    "objc",
+    "declaration",
+    "parser",
+    "header",
+    "interface",
+    "method_decl",
+    "signature_extractor",
+    "strip_body",
+    "skip_implementation",
+    "brace_match",
+    "implementation_block",
+    "selector"
+   ],
+   "usd": 0.00034286
+  },
+  {
+   "id": "m004",
+   "repo": "sigmap-src",
+   "words": [
+    "powershell",
+    "ps1",
+    "psm1",
+    "review",
+    "feedback",
+    "comment",
+    "reviewer",
+    "pscode",
+    "cmdlet",
+    "script",
+    "lint",
+    "psscriptanalyzer"
+   ],
+   "usd": 0.00033465999999999997
+  },
+  {
+   "id": "m005",
+   "repo": "sigmap-src",
+   "words": [
+    "powershell",
+    "tier2",
+    "tier_2",
+    "extractor",
+    "extract",
+    "ps1",
+    "pwsh",
+    "psextract",
+    "parser",
+    "parse",
+    "scraper",
+    "harvest"
+   ],
+   "usd": 0.00033316000000000004
+  },
+  {
+   "id": "m006",
+   "repo": "sigmap-src",
+   "words": [
+    "agent loop",
+    "feedback loop",
+    "closed-loop",
+    "telemetry",
+    "metrics",
+    "eval",
+    "evaluation",
+    "benchmark",
+    "reward",
+    "reflection",
+    "self-check",
+    "trace"
+   ],
+   "usd": 0.00033686
+  },
+  {
+   "id": "m007",
+   "repo": "sigmap-src",
+   "words": [
+    "coverage",
+    "locale",
+    "language",
+    "languages",
+    "i18n",
+    "translation",
+    "lang",
+    "localization",
+    "locales",
+    "supported_languages",
+    "language_list",
+    "l10n"
+   ],
+   "usd": 0.00032596
+  },
+  {
+   "id": "m008",
+   "repo": "sigmap-src",
+   "words": [
+    "rank",
+    "prioritize",
+    "ranking",
+    "sort",
+    "score",
+    "weight",
+    "priority",
+    "comparator",
+    "deprioritize",
+    "explain",
+    "explainer",
+    "verbose"
+   ],
+   "usd": 0.00033376000000000006
+  },
+  {
+   "id": "m009",
+   "repo": "sigmap-src",
+   "words": [
+    "scoring",
+    "score",
+    "technical",
+    "code",
+    "metric",
+    "algorithm",
+    "heuristic",
+    "rubric",
+    "grade",
+    "rank",
+    "weight",
+    "evaluate"
+   ],
+   "usd": 0.00033946
+  },
+  {
+   "id": "m010",
+   "repo": "sigmap-src",
+   "words": [
+    "population",
+    "populations",
+    "cohort",
+    "cohorts",
+    "segment",
+    "segments",
+    "group",
+    "groups",
+    "audience",
+    "audiences",
+    "membership",
+    "members"
+   ],
+   "usd": 0.00033005999999999997
+  },
+  {
+   "id": "m011",
+   "repo": "sigmap-src",
+   "words": [
+    "manifest",
+    "dependencies",
+    "lockfile",
+    "parse",
+    "deps",
+    "packages",
+    "requirements",
+    "packagejson",
+    "cargo",
+    "gemfile",
+    "pyproject",
+    "gomod"
+   ],
+   "usd": 0.00033506
+  },
+  {
+   "id": "m012",
+   "repo": "sigmap-src",
+   "words": [
+    "manifest",
+    "manifests",
+    "pom",
+    "pomxml",
+    "maven",
+    "xpath",
+    "xml",
+    "parser",
+    "parse",
+    "dependencies",
+    "finder",
+    "discover"
+   ],
+   "usd": 0.00033416000000000007
+  },
+  {
+   "id": "m013",
+   "repo": "sigmap-src",
+   "words": [
+    "balanced",
+    "scanner",
+    "shared",
+    "migrate",
+    "lint",
+    "checker",
+    "analyzer",
+    "parser",
+    "tokenizer",
+    "sweep",
+    "traverse",
+    "walker"
+   ],
+   "usd": 0.00033786
+  },
+  {
+   "id": "m014",
+   "repo": "sigmap-src",
+   "words": [
+    "balanced_scanner",
+    "shared_scanner",
+    "scanner_balanced",
+    "balancedscanner",
+    "balanced_scan",
+    "scan_balanced",
+    "scanneradapter",
+    "scanner_migration",
+    "legacy_scanner",
+    "scan_config",
+    "scanner_client",
+    "rebalance_scanner"
+   ],
+   "usd": 0.00034886000000000004
+  },
+  {
+   "id": "m015",
+   "repo": "sigmap-src",
+   "words": [
+    "model",
+    "fallback",
+    "unknown_model",
+    "resolvemodel",
+    "pricing",
+    "price",
+    "rate",
+    "unknownmodel",
+    "warnfallback",
+    "costtable",
+    "modelpricing",
+    "defaultmodel"
+   ],
+   "usd": 0.00034316
+  },
+  {
+   "id": "m016",
+   "repo": "sigmap-src",
+   "words": [
+    "correctness",
+    "defect",
+    "bug",
+    "regression",
+    "repro",
+    "fuzz",
+    "fuzzing",
+    "corpus",
+    "oracle",
+    "testcase",
+    "harness",
+    "crash"
+   ],
+   "usd": 0.00033445999999999997
+  },
+  {
+   "id": "m017",
+   "repo": "sigmap-src",
+   "words": [
+    "coordinate",
+    "coordinates",
+    "purl",
+    "pkgcoords",
+    "pkgid",
+    "packageurl",
+    "groupid",
+    "artifactid",
+    "namespace",
+    "ecosystem",
+    "registry",
+    "manifest"
+   ],
+   "usd": 0.00034436
+  },
+  {
+   "id": "m018",
+   "repo": "sigmap-src",
+   "words": [
+    "secret",
+    "token",
+    "password",
+    "credential",
+    "entropy",
+    "regex",
+    "pattern",
+    "detector",
+    "redact",
+    "unquoted",
+    "bare",
+    "assignment"
+   ],
+   "usd": 0.00033436
+  },
+  {
+   "id": "m019",
+   "repo": "sigmap-src",
+   "words": [
+    "confidence",
+    "score",
+    "certainty",
+    "calibration",
+    "uncertainty",
+    "hedge",
+    "provenance",
+    "citation",
+    "claim",
+    "claims",
+    "verified",
+    "verify"
+   ],
+   "usd": 0.00034106
+  },
+  {
+   "id": "m020",
+   "repo": "sigmap-src",
+   "words": [
+    "balanced",
+    "scanner",
+    "migration",
+    "arity",
+    "coverage",
+    "check",
+    "checker",
+    "lint",
+    "rule",
+    "validate",
+    "count",
+    "argc"
+   ],
+   "usd": 0.00034006
+  },
+  {
+   "id": "m021",
+   "repo": "sigmap-src",
+   "words": [
+    "case",
+    "sensitive",
+    "insensitive",
+    "casefold",
+    "normalize",
+    "filename",
+    "path",
+    "lowercase",
+    "collision",
+    "graph",
+    "node",
+    "dedupe"
+   ],
+   "usd": 0.00033186
+  },
+  {
+   "id": "m022",
+   "repo": "sigmap-src",
+   "words": [
+    "buildreturnhints",
+    "build_return_hints",
+    "returnhints",
+    "return_hints",
+    "hints",
+    "buildhints",
+    "computereturnhints",
+    "returnhint",
+    "memoize",
+    "memoization",
+    "cache",
+    "cached"
+   ],
+   "usd": 0.0003746600000000001
+  },
+  {
+   "id": "m023",
+   "repo": "sigmap-src",
+   "words": [
+    "controller",
+    "prefix",
+    "path",
+    "route",
+    "routes",
+    "globalprefix",
+    "setglobalprefix",
+    "joinpath",
+    "normalizepath",
+    "basepath",
+    "mergepath",
+    "routepath"
+   ],
+   "usd": 0.00033516000000000004
+  },
+  {
+   "id": "m024",
+   "repo": "sigmap-src",
+   "words": [
+    "resolution",
+    "dedup",
+    "stash",
+    "restore",
+    "unstash",
+    "pop",
+    "apply",
+    "recover",
+    "reapply",
+    "dedupe",
+    "duplicate",
+    "lost"
+   ],
+   "usd": 0.00033126
+  },
+  {
+   "id": "m025",
+   "repo": "sigmap-src",
+   "words": [
+    "demote",
+    "deprioritize",
+    "rank",
+    "priority",
+    "weight",
+    "lowpriority",
+    "sortorder",
+    "precedence",
+    "dtoweight",
+    "datamodel",
+    "boilerplate",
+    "pojo"
+   ],
+   "usd": 0.00033936000000000003
+  },
+  {
+   "id": "m026",
+   "repo": "sigmap-src",
+   "words": [
+    "lowercase",
+    "identifier",
+    "server",
+    "serverconfig",
+    "mcp",
+    "mcpserver",
+    "servers",
+    "serverlist",
+    "modelcontextprotocol",
+    "config",
+    "register",
+    "transport"
+   ],
+   "usd": 0.00033405999999999996
+  },
+  {
+   "id": "m027",
+   "repo": "sigmap-src",
+   "words": [
+    "resolve",
+    "import",
+    "imports",
+    "module",
+    "modules",
+    "sys_path",
+    "pythonpath",
+    "sourceroot",
+    "rootdir",
+    "ancestor",
+    "parent_dir",
+    "package"
+   ],
+   "usd": 0.00033826000000000006
+  },
+  {
+   "id": "m028",
+   "repo": "sigmap-src",
+   "words": [
+    "balanced",
+    "scanner",
+    "paren",
+    "parens",
+    "parenthesis",
+    "nested",
+    "nesting",
+    "depth",
+    "bracket",
+    "tokenizer",
+    "lexer",
+    "delimiter"
+   ],
+   "usd": 0.00034176
+  },
+  {
+   "id": "m029",
+   "repo": "sigmap-src",
+   "words": [
+    "verify",
+    "reconcile",
+    "docstring",
+    "drift",
+    "mismatch",
+    "misleading",
+    "assert",
+    "doc",
+    "comment",
+    "claim",
+    "behavior",
+    "accurate"
+   ],
+   "usd": 0.00033396
+  },
+  {
+   "id": "m030",
+   "repo": "sigmap-src",
+   "words": [
+    "synonym",
+    "alias",
+    "expansion",
+    "thesaurus",
+    "normalize",
+    "canonical",
+    "stem",
+    "lemma",
+    "tokenize",
+    "vocabulary",
+    "mismatch",
+    "rewrite"
+   ],
+   "usd": 0.00034106
+  },
+  {
+   "id": "m031",
+   "repo": "sigmap-src",
+   "words": [
+    "cli",
+    "command",
+    "doctor",
+    "diagnose",
+    "diagnostics",
+    "check",
+    "checks",
+    "health",
+    "healthcheck",
+    "validate",
+    "verify",
+    "env"
+   ],
+   "usd": 0.00033016
+  },
+  {
+   "id": "m032",
+   "repo": "sigmap-src",
+   "words": [
+    "get_diff_context",
+    "diff",
+    "git_diff",
+    "diff_hunks",
+    "context_window",
+    "surrounding_lines",
+    "get_architecture_overview",
+    "architecture",
+    "overview",
+    "codebase_map",
+    "project_structure",
+    "module_graph"
+   ],
+   "usd": 0.00035066000000000003
+  },
+  {
+   "id": "m033",
+   "repo": "sigmap-src",
+   "words": [
+    "runtime",
+    "library",
+    "dependency",
+    "vendor",
+    "package",
+    "module",
+    "import",
+    "placeholder",
+    "stub",
+    "scaffold",
+    "boilerplate",
+    "generated"
+   ],
+   "usd": 0.00033445999999999997
+  },
+  {
+   "id": "m034",
+   "repo": "sigmap-src",
+   "words": [
+    "sigmap",
+    "scaffold",
+    "proposal",
+    "convention",
+    "conventions",
+    "confidence",
+    "floor",
+    "threshold",
+    "minconfidence",
+    "score",
+    "generator",
+    "template"
+   ],
+   "usd": 0.00034016000000000005
+  },
+  {
+   "id": "m035",
+   "repo": "sigmap-src",
+   "words": [
+    "live",
+    "index",
+    "write",
+    "hook",
+    "hooks",
+    "watcher",
+    "watch",
+    "reindex",
+    "sync",
+    "ingest",
+    "on_write",
+    "post_write"
+   ],
+   "usd": 0.00033036000000000003
+  },
+  {
+   "id": "m036",
+   "repo": "sigmap-src",
+   "words": [
+    "callee_signature",
+    "get_callee_signatures",
+    "callee_sigs",
+    "function_signature",
+    "func_sig",
+    "signature_extractor",
+    "ast_call_graph",
+    "call_site",
+    "resolve_callee",
+    "symbol_lookup",
+    "type_hints",
+    "arg_types"
+   ],
+   "usd": 0.00035106
+  },
+  {
+   "id": "m037",
+   "repo": "sigmap-src",
+   "words": [
+    "app",
+    "api",
+    "core",
+    "entry",
+    "index",
+    "main",
+    "bootstrap",
+    "server",
+    "client",
+    "fingerprint",
+    "deviceid",
+    "device_id"
+   ],
+   "usd": 0.00033626
+  },
+  {
+   "id": "m038",
+   "repo": "sigmap-src",
+   "words": [
+    "symbol",
+    "name",
+    "names",
+    "extract",
+    "extractor",
+    "parse",
+    "parser",
+    "identifier",
+    "ident",
+    "ast",
+    "tokenize",
+    "lexer"
+   ],
+   "usd": 0.00033136000000000005
+  },
+  {
+   "id": "m039",
+   "repo": "sigmap-src",
+   "words": [
+    "hot-cold",
+    "cold-cache",
+    "hot-cache",
+    "context-cold",
+    "context-cache",
+    "mcp-index",
+    "mcp-tools",
+    "tool-index",
+    "deferred-tools",
+    "lazy-load",
+    "tool-registry",
+    "merge-index"
+   ],
+   "usd": 0.00035005999999999997
+  },
+  {
+   "id": "m040",
+   "repo": "sigmap-src",
+   "words": [
+    "confidence",
+    "tier",
+    "tiers",
+    "rank",
+    "ranking",
+    "score",
+    "scoring",
+    "normalize",
+    "normalization",
+    "normalizepath",
+    "path",
+    "paths"
+   ],
+   "usd": 0.00033576000000000005
+  },
+  {
+   "id": "m041",
+   "repo": "sigmap-src",
+   "words": [
+    "normalizepath",
+    "tolowercase",
+    "casefold",
+    "ignorecase",
+    "caseinsensitive",
+    "windowspath",
+    "pathcompare",
+    "canonicalpath",
+    "driveletter",
+    "backslash",
+    "separator",
+    "fscasesensitive"
+   ],
+   "usd": 0.00034616000000000003
+  },
+  {
+   "id": "m042",
+   "repo": "sigmap-src",
+   "words": [
+    "description",
+    "namespace",
+    "desc_file",
+    "namespaces",
+    "roxygen",
+    "imports",
+    "exports",
+    "importfrom",
+    "depends",
+    "suggests",
+    "packagedescription",
+    "read_desc"
+   ],
+   "usd": 0.00034286
+  },
+  {
+   "id": "m043",
+   "repo": "sigmap-src",
+   "words": [
+    "bioconductor",
+    "rcpp",
+    "rstudio",
+    "pkgdown",
+    "description",
+    "namespace",
+    "rd",
+    "devtools",
+    "rox",
+    "tidyverse",
+    "s4",
+    "s3"
+   ],
+   "usd": 0.00034016000000000005
+  },
+  {
+   "id": "m044",
+   "repo": "sigmap-src",
+   "words": [
+    "import",
+    "graph",
+    "edge",
+    "dependency",
+    "deps",
+    "adjacency",
+    "parser",
+    "extractor",
+    "register",
+    "registry",
+    "plugin",
+    "handler"
+   ],
+   "usd": 0.00033046
+  },
+  {
+   "id": "m045",
+   "repo": "sigmap-src",
+   "words": [
+    "absolute_import",
+    "from_future",
+    "__future__",
+    "import_style",
+    "relative_import",
+    "module_resolution",
+    "sys_path",
+    "import_rewrite",
+    "rewrite_imports",
+    "fix_imports",
+    "import_statement",
+    "package_name"
+   ],
+   "usd": 0.00034626000000000004
+  },
+  {
+   "id": "m046",
+   "repo": "sigmap-src",
+   "words": [
+    "agents",
+    "llm",
+    "documentation",
+    "docs",
+    "gdscript",
+    "extractor",
+    "parser",
+    "gd",
+    "godot",
+    "prompt",
+    "markdown",
+    "generate"
+   ],
+   "usd": 0.00033306
+  },
+  {
+   "id": "m047",
+   "repo": "sigmap-src",
+   "words": [
+    "normalizepath",
+    "normalizeseparators",
+    "toposix",
+    "posixpath",
+    "backslash",
+    "slashes",
+    "dedupe",
+    "dedup",
+    "uniquepaths",
+    "nestedpaths",
+    "pathseparator",
+    "windowspath"
+   ],
+   "usd": 0.00035176
+  },
+  {
+   "id": "m048",
+   "repo": "sigmap-src",
+   "words": [
+    "query",
+    "context",
+    "retrieval",
+    "retriever",
+    "rank",
+    "rerank",
+    "search",
+    "relevance",
+    "embedding",
+    "vector",
+    "index",
+    "chunk"
+   ],
+   "usd": 0.00033895999999999997
+  },
+  {
+   "id": "m049",
+   "repo": "sigmap-src",
+   "words": [
+    "benchmark",
+    "eval",
+    "evals",
+    "evaluator",
+    "harness",
+    "suite",
+    "metrics",
+    "score",
+    "scorer",
+    "leaderboard",
+    "runner",
+    "testcase"
+   ],
+   "usd": 0.00033246
+  },
+  {
+   "id": "m050",
+   "repo": "sigmap-src",
+   "words": [
+    "explain_file",
+    "list_modules",
+    "explain",
+    "describe",
+    "file_summary",
+    "summarize_file",
+    "modules",
+    "list_module",
+    "module_index",
+    "introspect",
+    "inspect_file",
+    "tool_registry"
+   ],
+   "usd": 0.00033156
+  },
+  {
+   "id": "m051",
+   "repo": "sigmap-src",
+   "words": [
+    "changed",
+    "diff",
+    "git",
+    "status",
+    "modified",
+    "staged",
+    "unstaged",
+    "since",
+    "filter",
+    "files_only",
+    "changedfiles",
+    "diffstat"
+   ],
+   "usd": 0.00033156
+  },
+  {
+   "id": "m052",
+   "repo": "sigmap-src",
+   "words": [
+    "model",
+    "fast",
+    "tier",
+    "default",
+    "mini",
+    "codex",
+    "gpt",
+    "copilot",
+    "multiplier",
+    "premium",
+    "request",
+    "cost"
+   ],
+   "usd": 0.00033766
+  },
+  {
+   "id": "m053",
+   "repo": "sigmap-src",
+   "words": [
+    "model names",
+    "model_id",
+    "model_version",
+    "model_string",
+    "llm_model",
+    "model_registry",
+    "model_config",
+    "default_model",
+    "models_list",
+    "aliases",
+    "model_mapping",
+    "deprecated_models"
+   ],
+   "usd": 0.00034956000000000006
+  },
+  {
+   "id": "m054",
+   "repo": "sigmap-src",
+   "words": [
+    "health",
+    "score",
+    "composite",
+    "metrics",
+    "aggregate",
+    "summary",
+    "status",
+    "checks",
+    "diagnostics",
+    "indicator",
+    "rollup",
+    "weighted"
+   ],
+   "usd": 0.00032716000000000006
+  },
+  {
+   "id": "m055",
+   "repo": "sigmap-src",
+   "words": [
+    "cli",
+    "args",
+    "parser",
+    "flag",
+    "report",
+    "reporter",
+    "json",
+    "serialize",
+    "serializer",
+    "token",
+    "tokens",
+    "usage"
+   ],
+   "usd": 0.00033206
+  },
+  {
+   "id": "m056",
+   "repo": "sigmap-src",
+   "words": [
+    "routing",
+    "route",
+    "router",
+    "get_route",
+    "routes",
+    "dispatch",
+    "handler",
+    "endpoint",
+    "mcp_tool",
+    "register_tool",
+    "tool_registry",
+    "resolve"
+   ],
+   "usd": 0.00033506
+  },
+  {
+   "id": "m057",
+   "repo": "sigmap-src",
+   "words": [
+    "model",
+    "routing",
+    "hint",
+    "hints",
+    "router",
+    "route",
+    "context",
+    "prompt",
+    "provider",
+    "selector",
+    "dispatch",
+    "tier"
+   ],
+   "usd": 0.00032536
+  },
+  {
+   "id": "m058",
+   "repo": "sigmap-src",
+   "words": [
+    "scaffold",
+    "template",
+    "boilerplate",
+    "init",
+    "generate",
+    "skeleton",
+    "main",
+    "index",
+    "entrypoint",
+    "bootstrap",
+    "stdlib",
+    "no_deps"
+   ],
+   "usd": 0.00033646
+  },
+  {
+   "id": "m059",
+   "repo": "sigmap-src",
+   "words": [
+    "load config",
+    "parse config",
+    "config path",
+    "config_path",
+    "settings loader",
+    "read_config",
+    "yaml_loader",
+    "toml_loader",
+    "json_config",
+    "deep_merge",
+    "merge_dicts",
+    "recursive_merge"
+   ],
+   "usd": 0.00035966000000000004
+  },
+  {
+   "id": "m060",
+   "repo": "sigmap-src",
+   "words": [
+    "extractor",
+    "parser",
+    "parse",
+    "ast",
+    "tree-sitter",
+    "treesitter",
+    "symbols",
+    "tsx",
+    "jsx",
+    "ecmascript",
+    "babel",
+    "typescript"
+   ],
+   "usd": 0.00034116
+  }
+ ]
+}

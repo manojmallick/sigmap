@@ -1393,19 +1393,18 @@ const treeHash = (dir) => {
 
   // ── prefetch: the ranking is in the prompt before the first turn ───────────────────────────────────────────────
 
-  await test('a prefetch run appends the pre-ranked files for its question and nothing else: no MCP server, the same tools, the CLI only', () => {
+  await test('a prefetch run changes nothing on the command line but the CLI allowance: no MCP server, no appended system prompt, the same tools', () => {
     const base = { model: 'm', budgetUsd: 1, bare: false, prefetch: true };
     const without = claude.buildArgs({ arm: 'without', ...base });
     const withSig = claude.buildArgs({ arm: 'with', ...base, sigmapContext: 'RANKED' });
     const flag = (a, f) => a[a.indexOf(f) + 1];
-    assert.strictEqual(flag(withSig, '--append-system-prompt'), 'RANKED');
+    assert.ok(!withSig.includes('--append-system-prompt') && !withSig.includes('RANKED'), 'the block rides in the user turn, so the cached system prompt is the same in both arms');
     assert.ok(!withSig.includes('--mcp-config') && !without.includes('--append-system-prompt'));
     assert.strictEqual(flag(without, '--tools'), flag(withSig, '--tools'));
     assert.ok(!flag(withSig, '--tools').includes('Skill') && withSig.includes('--disable-slash-commands'), 'not a skill run');
     const allow = (a) => flag(a, '--allowedTools').split(',');
     assert.deepStrictEqual(allow(withSig).filter((t) => !allow(without).includes(t)), ['Bash(sigmap:*)']);
-    assert.throws(() => claude.buildArgs({ arm: 'with', ...base }), /needs the pre-ranked files/);
-    assert.doesNotThrow(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, prefetch: true, sigmapContext: 'R' }), 'it does not need --session-auth');
+    assert.doesNotThrow(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, prefetch: true }), 'it does not need --session-auth');
     const sig = { name: 'sigmap', status: 'connected' };
     assert.ok(ab.checkIntegrity({ tools: ['Read', 'Bash'], mcpServers: [] }, 'with', { variant: 'prefetch' }).ok, 'no MCP server is what the arm should hold');
     assert.ok(!ab.checkIntegrity({ tools: ['Read', 'mcp__sigmap__q'], mcpServers: [sig] }, 'with', { variant: 'prefetch' }).ok);
@@ -1430,20 +1429,77 @@ const treeHash = (dir) => {
     assert.ok(ab.PREFETCH_MAX_BYTES <= 16 * 1024);
   });
 
-  await test('--sigmap-variant prefetch reaches the agent: the SigMap arm alone gets a per-question block, the report records the variant', () => {
+  await test('--sigmap-variant prefetch reaches the agent: the SigMap arm alone gets a per-question block after the question, the report records the variant', () => {
     const f = fixture();
     const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch', '--session-auth', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js', r2: 'src/alpha.js' }) });
     assert.strictEqual(r.status, 0, r.stderr);
     const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
-    const withCalls = calls.filter((c) => c.argv.includes('--append-system-prompt'));
+    const withCalls = calls.filter((c) => c.stdin.includes(ab.PREFETCH_HEADER));
     assert.ok(withCalls.length > 0 && withCalls.length === calls.length / 2, 'every SigMap run and no baseline run');
     for (const c of withCalls) {
-      assert.ok(c.argv[c.argv.indexOf('--append-system-prompt') + 1].startsWith(ab.PREFETCH_HEADER));
-      assert.ok(!c.argv.includes('--mcp-config'));
+      assert.ok(/-with$/.test(c.cwd), 'only the SigMap arm');
+      assert.ok(c.stdin.indexOf('Question: ') < c.stdin.indexOf(ab.PREFETCH_HEADER), 'after the question, where a hook puts it');
+      assert.ok(!c.argv.includes('--mcp-config') && !c.argv.includes('--append-system-prompt'));
     }
+    const base = calls.filter((c) => !c.stdin.includes(ab.PREFETCH_HEADER));
+    const strip = (a) => a.filter((x) => !/^Bash\(sigmap/.test(x)).join(' ').replace(/,Bash\(sigmap:\*\)/, '');
+    assert.strictEqual(strip(withCalls[0].argv), strip(base[0].argv), 'the command lines differ only by the sigmap CLI allowance');
     const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
     assert.strictEqual(rep.method.variant, 'prefetch');
     assert.strictEqual(rep.method.arms.with, ab.SIGMAP_VARIANTS.prefetch);
+  });
+
+  // ── run-token-saving.sh: the script a user runs with their own API key ──────────────────────────────────────────
+
+  await test('run-token-saving.sh checks first and starts nothing without GO=1, never prints the key, and refuses to start with a problem', () => {
+    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts') }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 240000, env: env(extra) });
+
+    const plan = sh({});
+    assert.strictEqual(plan.status, 0, plan.stderr);
+    assert.match(plan.stdout, /ANTHROPIC_API_KEY is set \(not shown\)/);
+    assert.ok(!(plan.stdout + plan.stderr).includes('SECRET-VALUE'), 'the key is never echoed');
+    assert.match(plan.stdout, /questions\s+30 per SigMap setup, 1 repetitions per arm → 60 agent runs in 4 batches/);
+    assert.match(plan.stdout, /Nothing started\. To run it:\s+GO=1 bash/);
+    assert.ok(!fs.existsSync(f.log) && !fs.existsSync(path.join(f.out, 'ts')), 'no agent was started and nothing was written');
+
+    const noKey = sh({ ANTHROPIC_API_KEY: '', GO: '1' });
+    assert.strictEqual(noKey.status, 1);
+    assert.match(noKey.stdout, /ANTHROPIC_API_KEY is not set/);
+    assert.match(noKey.stdout, /1 problem\(s\) above: nothing started/);
+    assert.ok(!fs.existsSync(f.log), 'GO=1 does not get past a failed check');
+
+    const badVariant = sh({ VARIANTS: 'skill' });
+    assert.strictEqual(badVariant.status, 1);
+    assert.match(badVariant.stdout, /skill variants need --session-auth/);
+    const badSet = sh({ SETS: 'everything' });
+    assert.match(badSet.stdout, /unknown set "everything"/);
+  });
+
+  await test('run-token-saving.sh with GO=1 runs batch by batch under the API key, stops at the spend limit, and resumes', () => {
+    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const f = fixture();
+    const out = path.join(f.out, 'ts');
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1' }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 300000, env: env(extra) });
+
+    // The fake agent reports $0.03 without SigMap and $0.01 with it: the first batch (8 questions) records $0.32.
+    const first = sh({ MAX_TOTAL_USD: '0.05' });
+    assert.strictEqual(first.status, 3, first.stdout + first.stderr);
+    assert.match(first.stdout, /STOPPED: \$0\.3200 recorded over 16 runs, past MAX_TOTAL_USD=\$0\.05/);
+    const batches = () => fs.readdirSync(path.join(out, 'unfamiliar', 'index')).filter((d) => fs.existsSync(path.join(out, 'unfamiliar', 'index', d, 'raw.json')));
+    assert.strictEqual(batches().length, 1, 'one batch ran, then the limit was checked before the next');
+    assert.ok(fs.existsSync(path.join(out, 'unfamiliar-root', 'benchmarks', 'xrepo-repos.json')), 'the unfamiliar data root was built from this checkout');
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.length === 16 && calls.every((c) => c.argv.includes('--bare')), 'an API-key run is the isolated --bare run');
+    assert.ok(calls.every((c) => !c.argv.includes('--setting-sources')));
+
+    const second = sh({ MAX_TOTAL_USD: '0.40' });
+    assert.strictEqual(second.status, 3, second.stdout + second.stderr);
+    assert.match(second.stdout, /skip\s+index sigmap-src:h001/, 'the finished batch is not paid for twice');
+    assert.strictEqual(batches().length, 2, 'it carried on with the next batch, then stopped again');
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

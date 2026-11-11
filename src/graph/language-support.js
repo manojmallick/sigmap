@@ -177,8 +177,9 @@ function censusUntracked(cwd, opts) {
     if (depth > maxDepth) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (require('../util/vendored-dir').isEnvironmentRoot(entries)) return;
     for (const e of entries) {
-      if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+      if (excludeSet.has(e.name) || e.name.startsWith('.') || require('../util/vendored-dir').isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) { walk(full, depth + 1); continue; }
       if (!e.isFile() || seen.has(full)) continue;

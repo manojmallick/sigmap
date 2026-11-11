@@ -1,0 +1,1714 @@
+{
+ "model": "claude-haiku-5-5",
+ "prompt": "A developer asks this about a codebase you cannot see: \"<question>\"\n\nList 8 to 12 lowercase words or identifier fragments that the code implementing it would likely contain in its file names, function names or comments: synonyms, and the technical terms a programmer would use. One line, comma-separated, nothing else.",
+ "records": [
+  {
+   "id": "h001",
+   "repo": "sigmap-src",
+   "words": [
+    "redact",
+    "mask",
+    "scrub",
+    "sanitize",
+    "secret",
+    "secrets",
+    "token",
+    "tokens",
+    "credential",
+    "credentials",
+    "password",
+    "redaction"
+   ],
+   "usd": 0.00066649
+  },
+  {
+   "id": "h002",
+   "repo": "sigmap-src",
+   "words": [
+    "dependency",
+    "imports",
+    "import",
+    "require",
+    "dependents",
+    "dependencies",
+    "fan_in",
+    "reverse_deps",
+    "callers",
+    "references",
+    "coupling",
+    "centrality"
+   ],
+   "usd": 0.00066109
+  },
+  {
+   "id": "h003",
+   "repo": "sigmap-src",
+   "words": [
+    "arity",
+    "argcount",
+    "numargs",
+    "paramcount",
+    "signature",
+    "callsite",
+    "argcheck",
+    "validateargs",
+    "param_count",
+    "nargs",
+    "calltype",
+    "arguments"
+   ],
+   "usd": 0.00065569
+  },
+  {
+   "id": "h004",
+   "repo": "sigmap-src",
+   "words": [
+    "exception",
+    "stacktrace",
+    "traceback",
+    "truncate",
+    "trim",
+    "summarize",
+    "condense",
+    "dedupe",
+    "collapse",
+    "frames",
+    "parse",
+    "rank"
+   ],
+   "usd": 0.00065979
+  },
+  {
+   "id": "h005",
+   "repo": "sigmap-src",
+   "words": [
+    "lint",
+    "linter",
+    "convention",
+    "consistency",
+    "naming",
+    "casing",
+    "camelcase",
+    "snakecase",
+    "kebabcase",
+    "pascalcase",
+    "outlier",
+    "deviation"
+   ],
+   "usd": 0.00033856
+  },
+  {
+   "id": "h006",
+   "repo": "sigmap-src",
+   "words": [
+    "cost",
+    "pricing",
+    "price",
+    "token",
+    "tokens",
+    "usage",
+    "per_token",
+    "input_tokens",
+    "output_tokens",
+    "rate",
+    "billing",
+    "estimate_cost"
+   ],
+   "usd": 0.00033416
+  },
+  {
+   "id": "h007",
+   "repo": "sigmap-src",
+   "words": [
+    "impact",
+    "dependents",
+    "callers",
+    "references",
+    "usages",
+    "call_graph",
+    "blast_radius",
+    "downstream",
+    "upstream",
+    "dependencies",
+    "imports",
+    "exports"
+   ],
+   "usd": 0.00033896
+  },
+  {
+   "id": "h008",
+   "repo": "sigmap-src",
+   "words": [
+    "stash",
+    "memo",
+    "note",
+    "notes",
+    "bookmark",
+    "persist",
+    "save",
+    "snapshot",
+    "scratch",
+    "todo",
+    "reminder",
+    "annotate"
+   ],
+   "usd": 0.00033136
+  },
+  {
+   "id": "h009",
+   "repo": "sigmap-src",
+   "words": [
+    "background",
+    "daemon",
+    "spawn",
+    "fork",
+    "detach",
+    "nohup",
+    "start",
+    "stop",
+    "kill",
+    "terminate",
+    "pid",
+    "watch"
+   ],
+   "usd": 0.00034316
+  },
+  {
+   "id": "h010",
+   "repo": "sigmap-src",
+   "words": [
+    "compact",
+    "condense",
+    "abbreviate",
+    "truncate",
+    "elide",
+    "skeleton",
+    "outline",
+    "minify",
+    "compress",
+    "signature_short",
+    "sig_compact",
+    "shorten"
+   ],
+   "usd": 0.00045476
+  },
+  {
+   "id": "h011",
+   "repo": "sigmap-src",
+   "words": [
+    "grounding",
+    "citation",
+    "citations",
+    "retrieval",
+    "rag",
+    "sourcing",
+    "attribution",
+    "context_docs",
+    "rag_eval",
+    "with_context",
+    "without_context",
+    "ungrounded"
+   ],
+   "usd": 0.00033186
+  },
+  {
+   "id": "h012",
+   "repo": "sigmap-src",
+   "words": [
+    "mcp",
+    "cursor",
+    "zed",
+    "install",
+    "register",
+    "config",
+    "settings",
+    "json",
+    "stdio",
+    "server",
+    "transport",
+    "editor"
+   ],
+   "usd": 0.00032486
+  },
+  {
+   "id": "h013",
+   "repo": "sigmap-src",
+   "words": [
+    "scaffold",
+    "template",
+    "boilerplate",
+    "generator",
+    "skeleton",
+    "module",
+    "component",
+    "factory",
+    "new_file",
+    "create",
+    "mirror",
+    "convention"
+   ],
+   "usd": 0.00032916
+  },
+  {
+   "id": "h014",
+   "repo": "sigmap-src",
+   "words": [
+    "fuzzy",
+    "levenshtein",
+    "edit distance",
+    "suggestion",
+    "closest match",
+    "similar",
+    "typo",
+    "spellcheck",
+    "suggest",
+    "nearest",
+    "candidates",
+    "ranking"
+   ],
+   "usd": 0.00035126
+  },
+  {
+   "id": "h015",
+   "repo": "sigmap-src",
+   "words": [
+    "ci",
+    "log",
+    "output",
+    "filter",
+    "trim",
+    "grep",
+    "failure",
+    "failed",
+    "error",
+    "errors",
+    "fail",
+    "summary"
+   ],
+   "usd": 0.00033936000000000003
+  },
+  {
+   "id": "h016",
+   "repo": "sigmap-src",
+   "words": [
+    "token usage",
+    "session tokens",
+    "token counter",
+    "usage tracker",
+    "cost tracker",
+    "token budget",
+    "context window",
+    "token count",
+    "usage stats",
+    "spent tokens",
+    "session usage",
+    "input tokens"
+   ],
+   "usd": 0.00033966000000000004
+  },
+  {
+   "id": "h017",
+   "repo": "sigmap-src",
+   "words": [
+    "query parsing",
+    "intent extraction",
+    "keyword weights",
+    "term weights",
+    "token scoring",
+    "relevance score",
+    "boost",
+    "ranking signals",
+    "feature weights",
+    "tokenizer",
+    "stopwords",
+    "entity extraction"
+   ],
+   "usd": 0.00034286000000000006
+  },
+  {
+   "id": "h018",
+   "repo": "sigmap-src",
+   "words": [
+    "directory",
+    "tree",
+    "walk",
+    "traverse",
+    "recurse",
+    "glob",
+    "dirent",
+    "readdir",
+    "scandir",
+    "filepath",
+    "fs",
+    "classify"
+   ],
+   "usd": 0.00033816
+  },
+  {
+   "id": "h019",
+   "repo": "sigmap-src",
+   "words": [
+    "weight",
+    "boost",
+    "bias",
+    "score",
+    "rank",
+    "ranking",
+    "history",
+    "frequency",
+    "recency",
+    "decay",
+    "priority",
+    "prioritize"
+   ],
+   "usd": 0.00033016
+  },
+  {
+   "id": "h020",
+   "repo": "sigmap-src",
+   "words": [
+    "workspace",
+    "packages",
+    "monorepo",
+    "resolve",
+    "owner",
+    "module",
+    "manifest",
+    "lerna",
+    "pnpm",
+    "nx",
+    "turborepo",
+    "dependency"
+   ],
+   "usd": 0.00033405999999999996
+  },
+  {
+   "id": "h021",
+   "repo": "sigmap-src",
+   "words": [
+    "carry-over",
+    "context",
+    "previous",
+    "prior",
+    "followup",
+    "follow_up",
+    "chain",
+    "history",
+    "session",
+    "conversation",
+    "inherit",
+    "persist"
+   ],
+   "usd": 0.00033066
+  },
+  {
+   "id": "h022",
+   "repo": "sigmap-src",
+   "words": [
+    "detect",
+    "framework",
+    "django",
+    "rails",
+    "managepy",
+    "settingspy",
+    "wsgi",
+    "urls",
+    "gemfile",
+    "configru",
+    "rakefile",
+    "applicationrb"
+   ],
+   "usd": 0.00034806
+  },
+  {
+   "id": "h023",
+   "repo": "sigmap-src",
+   "words": [
+    "skip-unchanged",
+    "incremental",
+    "mtime",
+    "timestamp",
+    "checksum",
+    "hash",
+    "digest",
+    "manifest",
+    "cache",
+    "sha256",
+    "etag",
+    "lastmodified"
+   ],
+   "usd": 0.00034086
+  },
+  {
+   "id": "h024",
+   "repo": "sigmap-src",
+   "words": [
+    "skipped",
+    "excluded",
+    "filtered",
+    "dropped",
+    "truncated",
+    "budget",
+    "limit",
+    "quota",
+    "exceeded",
+    "cutoff",
+    "pruned",
+    "trimmed"
+   ],
+   "usd": 0.00033886
+  },
+  {
+   "id": "h025",
+   "repo": "sigmap-src",
+   "words": [
+    "model tier",
+    "model selection",
+    "tier selection",
+    "model routing",
+    "route_model",
+    "select_model",
+    "choose_model",
+    "model_tier",
+    "tier_mapping",
+    "model_id",
+    "complexity_score",
+    "task_complexity"
+   ],
+   "usd": 0.00034976
+  },
+  {
+   "id": "h026",
+   "repo": "sigmap-src",
+   "words": [
+    "todo",
+    "fixme",
+    "hack",
+    "xxx",
+    "reminder",
+    "note",
+    "leftover",
+    "stale",
+    "deferred",
+    "pending",
+    "marker",
+    "annotation"
+   ],
+   "usd": 0.00033176000000000006
+  },
+  {
+   "id": "h027",
+   "repo": "sigmap-src",
+   "words": [
+    "class-hierarchy",
+    "inheritance",
+    "subclass",
+    "superclass",
+    "base_class",
+    "derived",
+    "parent_class",
+    "extends",
+    "is_a",
+    "mro",
+    "hierarchy",
+    "type_tree"
+   ],
+   "usd": 0.00033476
+  },
+  {
+   "id": "h028",
+   "repo": "sigmap-src",
+   "words": [
+    "circular",
+    "cycle",
+    "cycles",
+    "dependency",
+    "dependencies",
+    "import",
+    "imports",
+    "cyclic",
+    "graph",
+    "scc",
+    "tarjan",
+    "dfs"
+   ],
+   "usd": 0.00032966
+  },
+  {
+   "id": "h029",
+   "repo": "sigmap-src",
+   "words": [
+    "camelcase",
+    "camel",
+    "pascal",
+    "snake_case",
+    "split",
+    "tokenize",
+    "tokenizer",
+    "words",
+    "word_split",
+    "to_snake",
+    "tosnake",
+    "humps"
+   ],
+   "usd": 0.00033806
+  },
+  {
+   "id": "h030",
+   "repo": "sigmap-src",
+   "words": [
+    "prompt caching",
+    "cache_control",
+    "ephemeral",
+    "cache_key",
+    "cached_prompt",
+    "prompt_cache",
+    "cache_breakpoint",
+    "cache_write",
+    "cache_read",
+    "cache_ttl",
+    "cached_tokens",
+    "prefix_cache"
+   ],
+   "usd": 0.00034576
+  },
+  {
+   "id": "h031",
+   "repo": "sigmap-src",
+   "words": [
+    "append",
+    "appendtofile",
+    "assistantfile",
+    "mergeblock",
+    "preserveuser",
+    "handwritten",
+    "usernotes",
+    "marker",
+    "sentinel",
+    "idempotent",
+    "upsert",
+    "insertafter"
+   ],
+   "usd": 0.00034236
+  },
+  {
+   "id": "h032",
+   "repo": "sigmap-src",
+   "words": [
+    "rules",
+    "rulesfile",
+    "cursorrules",
+    "instructions",
+    "workspaceopen",
+    "onworkspaceopen",
+    "activate",
+    "emitrules",
+    "generaterules",
+    "writerules",
+    "agentsmd",
+    "workspacefolders"
+   ],
+   "usd": 0.00042396
+  },
+  {
+   "id": "h033",
+   "repo": "sigmap-src",
+   "words": [
+    "api",
+    "public",
+    "export",
+    "index",
+    "init",
+    "__init__",
+    "interface",
+    "facade",
+    "module",
+    "exports",
+    "entrypoint",
+    "sdk"
+   ],
+   "usd": 0.00032776
+  },
+  {
+   "id": "h034",
+   "repo": "sigmap-src",
+   "words": [
+    "lowercase words",
+    "identifier fragments",
+    "exclusion",
+    "ignore",
+    "skip",
+    "filter",
+    "omit",
+    "blacklist",
+    "denylist",
+    "gitignore",
+    "excluded",
+    "exclude"
+   ],
+   "usd": 0.00033326
+  },
+  {
+   "id": "h035",
+   "repo": "sigmap-src",
+   "words": [
+    "signature",
+    "signatures",
+    "sync",
+    "synchronize",
+    "resync",
+    "refresh",
+    "update",
+    "stale",
+    "drift",
+    "dirty",
+    "changed",
+    "mtime"
+   ],
+   "usd": 0.00034046
+  },
+  {
+   "id": "h036",
+   "repo": "sigmap-src",
+   "words": [
+    "auto-config",
+    "settings",
+    "recommend",
+    "recommendation",
+    "heuristics",
+    "detect",
+    "detector",
+    "analyze",
+    "analyzer",
+    "profile",
+    "preset",
+    "defaults"
+   ],
+   "usd": 0.00033586
+  },
+  {
+   "id": "h037",
+   "repo": "sigmap-src",
+   "words": [
+    "style-lint",
+    "lint-rules",
+    "stylelint",
+    "eslint",
+    "prettier",
+    "formatter",
+    "style-guide",
+    "styleguide",
+    "convention",
+    "conventions",
+    "consistency-check",
+    "lint-check"
+   ],
+   "usd": 0.00034516
+  },
+  {
+   "id": "h038",
+   "repo": "sigmap-src",
+   "words": [
+    "chan",
+    "shape",
+    "static",
+    "type",
+    "typing",
+    "pattern",
+    "lint",
+    "linter",
+    "format",
+    "formatter",
+    "convention",
+    "naming"
+   ],
+   "usd": 0.00034866000000000004
+  },
+  {
+   "id": "h039",
+   "repo": "sigmap-src",
+   "words": [
+    "rename",
+    "normalize",
+    "kebab",
+    "snake",
+    "camel",
+    "lowercase",
+    "slug",
+    "style",
+    "convention",
+    "lint",
+    "format",
+    "casing"
+   ],
+   "usd": 0.00033816
+  },
+  {
+   "id": "h040",
+   "repo": "sigmap-src",
+   "words": [
+    "guard",
+    "stage",
+    "pipeline",
+    "sequence",
+    "chain",
+    "run_stages",
+    "grounding",
+    "grounded",
+    "verify",
+    "validate",
+    "precondition",
+    "gate"
+   ],
+   "usd": 0.00033286000000000004
+  },
+  {
+   "id": "h041",
+   "repo": "sigmap-src",
+   "words": [
+    "setup",
+    "preflight",
+    "doctor",
+    "healthcheck",
+    "prerequisites",
+    "requirements",
+    "environment",
+    "dependency",
+    "install",
+    "check",
+    "validate",
+    "diagnose"
+   ],
+   "usd": 0.00034126
+  },
+  {
+   "id": "h042",
+   "repo": "sigmap-src",
+   "words": [
+    "per-file",
+    "file",
+    "stats",
+    "stat",
+    "statistics",
+    "extract",
+    "extracted",
+    "extractor",
+    "parse",
+    "parsed",
+    "source",
+    "summary"
+   ],
+   "usd": 0.00033056
+  },
+  {
+   "id": "h043",
+   "repo": "sigmap-src",
+   "words": [
+    "leak",
+    "leaked",
+    "answer",
+    "answers",
+    "solution",
+    "spoiler",
+    "redact",
+    "redacted",
+    "sanitize",
+    "scrub",
+    "strip",
+    "hidden"
+   ],
+   "usd": 0.00034805999999999997
+  },
+  {
+   "id": "h044",
+   "repo": "sigmap-src",
+   "words": [
+    "hit_rate",
+    "hit_ratio",
+    "recall_at_k",
+    "recall",
+    "mrr",
+    "mean_reciprocal_rank",
+    "reciprocal_rank",
+    "rr_at_k",
+    "ndcg",
+    "precision_at_k",
+    "topk",
+    "retrieval_metrics"
+   ],
+   "usd": 0.00035136
+  },
+  {
+   "id": "h045",
+   "repo": "sigmap-src",
+   "words": [
+    "proof-bundle",
+    "attestation",
+    "manifest",
+    "evidence",
+    "certificate",
+    "merkle",
+    "inclusion",
+    "witness",
+    "signed",
+    "provenance",
+    "sbom",
+    "bundle"
+   ],
+   "usd": 0.00033695999999999997
+  },
+  {
+   "id": "h046",
+   "repo": "sigmap-src",
+   "words": [
+    "stylesheet",
+    "css",
+    "selector",
+    "rule",
+    "parse",
+    "parser",
+    "cssom",
+    "rulelist",
+    "ast",
+    "selectortext",
+    "cssrule",
+    "stylerule"
+   ],
+   "usd": 0.00033276000000000003
+  },
+  {
+   "id": "h047",
+   "repo": "sigmap-src",
+   "words": [
+    "parser",
+    "parsers",
+    "parse",
+    "parsing",
+    "detect",
+    "detector",
+    "mime",
+    "mimetype",
+    "extension",
+    "dispatch",
+    "registry",
+    "factory"
+   ],
+   "usd": 0.00033096000000000004
+  },
+  {
+   "id": "h048",
+   "repo": "sigmap-src",
+   "words": [
+    "savings",
+    "dashboard",
+    "render",
+    "chart",
+    "bar",
+    "bars",
+    "progress",
+    "gauge",
+    "sparkline",
+    "ansi",
+    "colour",
+    "color"
+   ],
+   "usd": 0.00034416000000000004
+  },
+  {
+   "id": "h049",
+   "repo": "sigmap-src",
+   "words": [
+    "adapter",
+    "boilerplate",
+    "usage",
+    "instructions",
+    "howto",
+    "help",
+    "hint",
+    "template",
+    "docstring",
+    "banner",
+    "footer",
+    "preamble"
+   ],
+   "usd": 0.00032696
+  },
+  {
+   "id": "h050",
+   "repo": "sigmap-src",
+   "words": [
+    "guard",
+    "guards",
+    "result",
+    "results",
+    "report",
+    "html",
+    "render",
+    "template",
+    "standalone",
+    "export",
+    "dump",
+    "summary"
+   ],
+   "usd": 0.00033066000000000004
+  },
+  {
+   "id": "h051",
+   "repo": "sigmap-src",
+   "words": [
+    "import",
+    "parse",
+    "resolve",
+    "dependency",
+    "deps",
+    "graph",
+    "imports",
+    "module",
+    "resolver",
+    "requires",
+    "resolveimports",
+    "buildgraph"
+   ],
+   "usd": 0.00032486
+  },
+  {
+   "id": "h052",
+   "repo": "sigmap-src",
+   "words": [
+    "logs",
+    "hasdependents",
+    "reversedeps",
+    "importgraph",
+    "dependents",
+    "transitivedeps",
+    "closure",
+    "blastradius",
+    "affected",
+    "reverseimports",
+    "impactanalysis",
+    "traverse"
+   ],
+   "usd": 0.00033916
+  },
+  {
+   "id": "h053",
+   "repo": "sigmap-src",
+   "words": [
+    "grade",
+    "score",
+    "rubric",
+    "deduction",
+    "penalty",
+    "weight",
+    "checklist",
+    "lint",
+    "audit",
+    "metrics",
+    "complexity",
+    "coverage"
+   ],
+   "usd": 0.00033816000000000006
+  },
+  {
+   "id": "h054",
+   "repo": "sigmap-src",
+   "words": [
+    "build",
+    "compile",
+    "make",
+    "makefile",
+    "justfile",
+    "taskfile",
+    "script",
+    "scripts",
+    "workflow",
+    "workflows",
+    "ci",
+    "pipeline"
+   ],
+   "usd": 0.00034056
+  },
+  {
+   "id": "h055",
+   "repo": "sigmap-src",
+   "words": [
+    "getenv",
+    "environ",
+    "osenviron",
+    "dotenv",
+    "env_var",
+    "envvar",
+    "config_loader",
+    "settings",
+    "getenv_default",
+    "env_lookup",
+    "processenv",
+    "secrets"
+   ],
+   "usd": 0.00032986
+  },
+  {
+   "id": "h056",
+   "repo": "sigmap-src",
+   "words": [
+    "migration",
+    "migrations",
+    "schema",
+    "ddl",
+    "alembic",
+    "flyway",
+    "liquibase",
+    "knex",
+    "sequelize",
+    "activerecord",
+    "schemamigration",
+    "changeset"
+   ],
+   "usd": 0.00033746
+  },
+  {
+   "id": "h057",
+   "repo": "sigmap-src",
+   "words": [
+    "jsonrpc",
+    "json-rpc",
+    "rpc",
+    "stdio",
+    "stdin",
+    "stdout",
+    "request",
+    "response",
+    "dispatch",
+    "handler",
+    "notification",
+    "method"
+   ],
+   "usd": 0.00034206
+  },
+  {
+   "id": "h058",
+   "repo": "sigmap-src",
+   "words": [
+    "tool",
+    "action",
+    "function",
+    "command",
+    "operation",
+    "capability",
+    "registry",
+    "toolset",
+    "skill",
+    "handler",
+    "dispatch",
+    "invoke"
+   ],
+   "usd": 0.00033106
+  },
+  {
+   "id": "h059",
+   "repo": "sigmap-src",
+   "words": [
+    "lowercase words",
+    "identifier fragments",
+    "synonyms",
+    "star",
+    "prompt",
+    "nudge",
+    "banner",
+    "reminder",
+    "milestone",
+    "counter",
+    "usage",
+    "run"
+   ],
+   "usd": 0.00034296
+  },
+  {
+   "id": "h060",
+   "repo": "sigmap-src",
+   "words": [
+    "validate",
+    "validator",
+    "verify",
+    "verifier",
+    "sanitize",
+    "sanitizer",
+    "approve",
+    "approval",
+    "review",
+    "reviewer",
+    "precheck",
+    "dryrun"
+   ],
+   "usd": 0.00034396
+  },
+  {
+   "id": "h061",
+   "repo": "sigmap-src",
+   "words": [
+    "route",
+    "routes",
+    "surface",
+    "surfaces",
+    "candidates",
+    "ranking",
+    "ranker",
+    "rank",
+    "score",
+    "scoring",
+    "fold",
+    "merge"
+   ],
+   "usd": 0.00033336000000000005
+  },
+  {
+   "id": "h062",
+   "repo": "sigmap-src",
+   "words": [
+    "keep-full-symbols",
+    "separate-prompt-context",
+    "prompt-builder",
+    "system-prompt",
+    "prompt-template",
+    "context-window",
+    "token-budget",
+    "symbol-table",
+    "full-symbols",
+    "prompt-truncation",
+    "context-filter",
+    "prompt-assembly"
+   ],
+   "usd": 0.00034386000000000003
+  },
+  {
+   "id": "h063",
+   "repo": "sigmap-src",
+   "words": [
+    "brand",
+    "branding",
+    "logo",
+    "header",
+    "footer",
+    "watermark",
+    "template",
+    "theme",
+    "summary",
+    "changeset",
+    "diff",
+    "pr_summary"
+   ],
+   "usd": 0.00033466
+  },
+  {
+   "id": "h064",
+   "repo": "sigmap-src",
+   "words": [
+    "scope_creep",
+    "unrequested_changes",
+    "out_of_scope",
+    "extra_features",
+    "gold_plating",
+    "feature_creep",
+    "diff_review",
+    "changeset_audit",
+    "scope_drift",
+    "unasked_changes",
+    "unrelated_edits",
+    "requirements_check"
+   ],
+   "usd": 0.00034326000000000007
+  },
+  {
+   "id": "h065",
+   "repo": "sigmap-src",
+   "words": [
+    "complexity tier",
+    "tier",
+    "complexity",
+    "level",
+    "levels",
+    "model",
+    "models",
+    "example",
+    "examples",
+    "size",
+    "mapping",
+    "map"
+   ],
+   "usd": 0.00032696
+  },
+  {
+   "id": "h066",
+   "repo": "sigmap-src",
+   "words": [
+    "write",
+    "save",
+    "record",
+    "persist",
+    "serialize",
+    "dump",
+    "json",
+    "file",
+    "disk",
+    "fs",
+    "writefile",
+    "outputstream"
+   ],
+   "usd": 0.00033286000000000004
+  },
+  {
+   "id": "h067",
+   "repo": "sigmap-src",
+   "words": [
+    "api_key",
+    "apikey",
+    "secret",
+    "token",
+    "credential",
+    "password",
+    "passwd",
+    "secret_key",
+    "access_key",
+    "bearer",
+    "auth",
+    "private_key"
+   ],
+   "usd": 0.00033465999999999997
+  },
+  {
+   "id": "h068",
+   "repo": "sigmap-src",
+   "words": [
+    "cross-session",
+    "persistent",
+    "session",
+    "store",
+    "storage",
+    "state",
+    "cache",
+    "memory",
+    "history",
+    "clear",
+    "reset",
+    "purge"
+   ],
+   "usd": 0.00034576
+  },
+  {
+   "id": "h069",
+   "repo": "sigmap-src",
+   "words": [
+    "install",
+    "playbook",
+    "agent",
+    "agents",
+    "client",
+    "clients",
+    "deploy",
+    "setup",
+    "config",
+    "template",
+    "prompt",
+    "skill"
+   ],
+   "usd": 0.00033486
+  },
+  {
+   "id": "h070",
+   "repo": "sigmap-src",
+   "words": [
+    "classify",
+    "classifier",
+    "detect",
+    "detector",
+    "detection",
+    "sniff",
+    "sniffer",
+    "mime",
+    "mimetype",
+    "content_type",
+    "infer",
+    "inference"
+   ],
+   "usd": 0.00034226000000000005
+  },
+  {
+   "id": "h071",
+   "repo": "sigmap-src",
+   "words": [
+    "minimize_paste",
+    "minimise_paste",
+    "minimizepaste",
+    "paste",
+    "pasted",
+    "pastedinput",
+    "input_size",
+    "truncate",
+    "truncation",
+    "collapse",
+    "collapsepaste",
+    "sanitize"
+   ],
+   "usd": 0.00034646000000000004
+  },
+  {
+   "id": "h072",
+   "repo": "sigmap-src",
+   "words": [
+    "unflatten",
+    "dedupe",
+    "compress",
+    "collapse",
+    "run_length",
+    "rle",
+    "unique",
+    "consecutive",
+    "duplicates",
+    "squeeze",
+    "reshape",
+    "shape"
+   ],
+   "usd": 0.00033646
+  },
+  {
+   "id": "h073",
+   "repo": "sigmap-src",
+   "words": [
+    "aggregate",
+    "rollup",
+    "usage",
+    "record",
+    "bucket",
+    "group_by",
+    "daily",
+    "weekly",
+    "reduce",
+    "sum",
+    "timestamp",
+    "strftime"
+   ],
+   "usd": 0.00033066000000000004
+  },
+  {
+   "id": "h074",
+   "repo": "sigmap-src",
+   "words": [
+    "append",
+    "appendonly",
+    "append_only",
+    "appendlog",
+    "append_log",
+    "writeahead",
+    "wal",
+    "journal",
+    "journaling",
+    "logwriter",
+    "audit",
+    "auditlog"
+   ],
+   "usd": 0.00033836
+  },
+  {
+   "id": "h075",
+   "repo": "sigmap-src",
+   "words": [
+    "word",
+    "exec",
+    "execfile",
+    "subprocess",
+    "popen",
+    "shell",
+    "shellout",
+    "gitcli",
+    "git_bin",
+    "libgit2",
+    "nogit",
+    "direct"
+   ],
+   "usd": 0.00034526
+  },
+  {
+   "id": "h076",
+   "repo": "sigmap-src",
+   "words": [
+    "capped",
+    "cap",
+    "clamp",
+    "truncate",
+    "truncated",
+    "truncation",
+    "limit",
+    "max",
+    "maxsignatures",
+    "signaturelimit",
+    "ellipsis",
+    "overflow"
+   ],
+   "usd": 0.00033646
+  },
+  {
+   "id": "h077",
+   "repo": "sigmap-src",
+   "words": [
+    "claim",
+    "contradict",
+    "verify",
+    "assert",
+    "fact-check",
+    "consistency",
+    "inconsistent",
+    "mismatch",
+    "diff",
+    "validator",
+    "checker",
+    "lint"
+   ],
+   "usd": 0.00033756
+  },
+  {
+   "id": "h078",
+   "repo": "sigmap-src",
+   "words": [
+    "exports",
+    "symbols",
+    "dependencies",
+    "site-packages",
+    "introspection",
+    "inspect",
+    "getmembers",
+    "reflection",
+    "dir",
+    "__all__",
+    "api_surface",
+    "namespace"
+   ],
+   "usd": 0.00034066
+  },
+  {
+   "id": "h079",
+   "repo": "sigmap-src",
+   "words": [
+    "extract",
+    "references",
+    "paths",
+    "imports",
+    "dependencies",
+    "includes",
+    "requires",
+    "resolve",
+    "links",
+    "citations",
+    "filepaths",
+    "modules"
+   ],
+   "usd": 0.00032386000000000003
+  },
+  {
+   "id": "h080",
+   "repo": "sigmap-src",
+   "words": [
+    "architecture",
+    "design",
+    "overview",
+    "structure",
+    "docs",
+    "readme",
+    "diagram",
+    "components",
+    "modules",
+    "layers",
+    "dependencies",
+    "adr"
+   ],
+   "usd": 0.00033716000000000003
+  },
+  {
+   "id": "h081",
+   "repo": "sigmap-src",
+   "words": [
+    "call graph",
+    "caller",
+    "callee",
+    "invokes",
+    "call_graph",
+    "call_site",
+    "function_call",
+    "dependency_graph",
+    "cross_reference",
+    "xref"
+   ],
+   "usd": 0.00032526
+  },
+  {
+   "id": "h082",
+   "repo": "sigmap-src",
+   "words": [
+    "merge",
+    "mergesettings",
+    "deepmerge",
+    "defaults",
+    "default_config",
+    "userconfig",
+    "loadconfig",
+    "resolveconfig",
+    "applydefaults",
+    "autodetect",
+    "detectroots",
+    "workspaceroots"
+   ],
+   "usd": 0.00035466
+  },
+  {
+   "id": "h083",
+   "repo": "sigmap-src",
+   "words": [
+    "ignore",
+    "exclude",
+    "skip",
+    "ignorefile",
+    "gitignore",
+    "excludes",
+    "blacklist",
+    "denylist",
+    "filter",
+    "pathspec",
+    "glob",
+    "prune"
+   ],
+   "usd": 0.00033386000000000006
+  },
+  {
+   "id": "h084",
+   "repo": "sigmap-src",
+   "words": [
+    "syntax",
+    "grammar",
+    "parser",
+    "lexer",
+    "tokenizer",
+    "ast",
+    "language",
+    "highlighter",
+    "lang",
+    "detect",
+    "grammars",
+    "syntaxes"
+   ],
+   "usd": 0.00033566
+  },
+  {
+   "id": "h085",
+   "repo": "sigmap-src",
+   "words": [
+    "manifest",
+    "metadata",
+    "package",
+    "dependencies",
+    "deps",
+    "lockfile",
+    "pyproject",
+    "package_json",
+    "cargo_toml",
+    "go_mod",
+    "gemfile",
+    "pom"
+   ],
+   "usd": 0.00035205999999999996
+  },
+  {
+   "id": "h086",
+   "repo": "sigmap-src",
+   "words": [
+    "tool",
+    "handler",
+    "executor",
+    "dispatch",
+    "invoke",
+    "action",
+    "function",
+    "callable",
+    "operation",
+    "impl",
+    "register",
+    "endpoint"
+   ],
+   "usd": 0.00032656
+  },
+  {
+   "id": "h087",
+   "repo": "sigmap-src",
+   "words": [
+    "default_settings",
+    "builtin_defaults",
+    "default_config",
+    "defaults",
+    "base_config",
+    "baseline_settings",
+    "preset_config",
+    "system_defaults",
+    "initial_settings",
+    "factory_defaults",
+    "applydefaults",
+    "mergedefaults"
+   ],
+   "usd": 0.00034586
+  },
+  {
+   "id": "h088",
+   "repo": "sigmap-src",
+   "words": [
+    "custom instructions",
+    "repository instructions",
+    "copilot-instructions",
+    "agentsmd",
+    "instructions file",
+    "system prompt",
+    "path-specific instructions",
+    "prompt file",
+    "github assistant",
+    "instruction loading",
+    "applyto",
+    "custom agent"
+   ],
+   "usd": 0.00034386000000000003
+  },
+  {
+   "id": "h089",
+   "repo": "sigmap-src",
+   "words": [
+    "read",
+    "package",
+    "metadata",
+    "description",
+    "dcf",
+    "desc",
+    "manifest",
+    "cran",
+    "dependencies",
+    "version",
+    "author",
+    "license"
+   ],
+   "usd": 0.00032696
+  },
+  {
+   "id": "h090",
+   "repo": "sigmap-src",
+   "words": [
+    "guardrail",
+    "guard_rail",
+    "rails",
+    "safety",
+    "setup",
+    "onboarding",
+    "firstrun",
+    "first_run",
+    "init",
+    "bootstrap",
+    "wizard",
+    "restriction"
+   ],
+   "usd": 0.00034076
+  }
+ ]
+}

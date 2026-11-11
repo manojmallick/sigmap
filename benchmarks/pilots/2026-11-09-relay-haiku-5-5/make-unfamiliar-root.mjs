@@ -2,7 +2,7 @@
 // Build a data root for the agent A/B on code the model has NOT memorised: this repository itself, with its own labelled
 // "hard" questions (benchmarks/tasks/retrieval-hard.jsonl: behaviour described in other words than the code uses).
 //
-//   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/make-unfamiliar-root.mjs <dir> [how-many-questions=30]
+//   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/make-unfamiliar-root.mjs <dir> [how-many-questions=30] [corpus=retrieval-hard.jsonl]
 //   SIGMAP_XREPO_DATA=<dir> node scripts/run-agent-ab.mjs --repos sigmap-src --task-ids h001,... --session-auth ...
 //
 // The eight repos of the pilot are famous frameworks: closed-book.mjs shows a model names the right file for most of those
@@ -23,7 +23,8 @@ import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const [dest, nArg] = process.argv.slice(2);
+const [dest, nArg, corpusArg] = process.argv.slice(2);
+const CORPUS = corpusArg || 'retrieval-hard.jsonl';
 if (!dest) { console.error('usage: make-unfamiliar-root.mjs <dir> [n=30]'); process.exit(2); }
 const N = Number(nArg) || 30;
 const NAME = 'sigmap-src';
@@ -43,7 +44,7 @@ for (const p of REMOVE) if (fs.existsSync(path.join(clone, p))) { git(clone, ['r
 git(clone, ['commit', '-q', '-m', 'sanitised snapshot for the unfamiliar-code A/B: answer keys and generated agent context removed']);
 const commit = git(clone, ['rev-parse', 'HEAD']);
 
-const hard = fs.readFileSync(path.join(ROOT, 'benchmarks', 'tasks', 'retrieval-hard.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+const hard = fs.readFileSync(path.join(ROOT, 'benchmarks', 'tasks', CORPUS), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
 const usable = hard.filter((t) => t.expected_files.length && t.expected_files.every((f) => fs.existsSync(path.join(clone, f))));
 const tasks = usable.slice(0, N).map((t) => ({ id: t.id, split: 'hard', source: 'labelled', repo: NAME, query: t.query, expected_files: t.expected_files }));
 fs.writeFileSync(path.join(root, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl'), tasks.map((t) => JSON.stringify(t)).join('\n') + '\n');

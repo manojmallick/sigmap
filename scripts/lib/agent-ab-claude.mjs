@@ -83,10 +83,9 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     '--strict-mcp-config',
   ];
   if (arm === 'with' && prefetch) {
-    // The pre-ranked files for THIS question, and nothing else: no MCP server, no standing section.
-    if (!sigmapContext) throw new Error('the prefetch arm needs the pre-ranked files for its question');
-    if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) throw new Error(`the pre-ranked context is ${Buffer.byteLength(sigmapContext)} bytes; one argument may not exceed ${MAX_CONTEXT_BYTES}`);
-    args.push('--append-system-prompt', sigmapContext);
+    // Nothing on the command line: the pre-ranked files for this question ride in the USER turn (see makeRunner), where a
+    // prompt hook puts them. Appending them to the system prompt instead changed it for every question, so each first
+    // run rewrote the whole cached prefix (cost +14% in repetition 1 and -11% in repetition 2 of the same questions).
   } else if (arm === 'with' && !skills) {
     if (!sigmapContext || !mcpConfig) throw new Error('the SigMap arm needs its generated context and its MCP config');
     if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) {
@@ -338,10 +337,13 @@ export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare =
     const arm = arms(job.task.repo, job.arm);
     // `prefetch(job, arm)` returns the pre-ranked files for this question: computed per run, before the model is called.
     const pre = prefetch && job.arm === 'with' ? prefetch(job, arm) : null;
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: pre || arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch });
+    if (prefetch && job.arm === 'with' && !pre) throw new Error('the prefetch arm needs the pre-ranked files for its question');
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
-    const r = await runClaude({ bin, args, prompt: job.prompt, cwd: arm.cwd, env: env2, timeoutMs });
+    // The block goes AFTER the question, as hook context does: the system prompt and the tools stay byte-identical in both arms.
+    const prompt = pre ? `${job.prompt}\n\n${pre}` : job.prompt;
+    const r = await runClaude({ bin, args, prompt, cwd: arm.cwd, env: env2, timeoutMs });
     if (r.spawnError) throw new Error(`cannot start "${bin}": ${r.spawnError}`);
     const record = toRecord(parseStream(r.stdout), { wallMs: r.wallMs, cwds: arm.cwds, model, timedOut: r.timedOut, code: r.code });
     if (!record.ok && r.overflow) record.error = 'output too large';

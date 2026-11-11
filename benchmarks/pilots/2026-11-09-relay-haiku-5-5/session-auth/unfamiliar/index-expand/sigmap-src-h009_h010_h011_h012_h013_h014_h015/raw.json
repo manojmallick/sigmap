@@ -1,0 +1,1083 @@
+[
+  {
+    "repo": "sigmap-src",
+    "task": "h009",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/daemon/daemon.js",
+      "gen-context.js",
+      "src/cli/command-table.js",
+      "src/analysis/index-state.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1291,
+      "cacheRead": 40896,
+      "cacheWrite": 8348
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00272486,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12236,
+    "answer": "`src/daemon/daemon.js`\n`gen-context.js`\n`src/cli/command-table.js`\n`src/analysis/index-state.js`\n\n`src/daemon/daemon.js` implements `start` (spawns `--watch` detached, records the PID) and `stop` (sends SIGTERM and clears the PID file). `gen-context.js` holds the `sigmap daemon start|stop|status` dispatch that calls it, which is the built bundle with the same code, so it's where the command actually runs. `src/cli/command-table.js` declares the command, and `src/analysis/index-state.js` reads the PID file to report whether the watcher is running."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h009",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/daemon/daemon.js",
+      "test/integration/daemon.test.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 655,
+      "cacheRead": 20831,
+      "cacheWrite": 5494
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0016350100000000001,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 9749,
+    "answer": "`src/daemon/daemon.js` is the implementation. It exports `start` and `stop`, which launch the `--watch` process detached and record its PID under `.context/`.\n\n`src/daemon/daemon.js`\n`test/integration/daemon.test.js`\n\nThe first file launches the watcher with `spawn(..., { detached: true })` and provides `stop` to end it using the PID file. The second file exercises that full start/stop lifecycle and kills any process it starts. I went by the index signatures and did not open the files, and I did not confirm how the `sigmap daemon` CLI command dispatches to these functions. I changed nothing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h009",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/daemon/daemon.js",
+      "test/integration/daemon.test.js",
+      "src/cli/command-table.js",
+      "packages/cli/index.js",
+      "gen-context.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 661,
+      "cacheRead": 35693,
+      "cacheWrite": 6830
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00205403,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9618,
+    "answer": "`src/daemon/daemon.js`\n`test/integration/daemon.test.js`\n`src/cli/command-table.js`\n`packages/cli/index.js`\n\n`src/daemon/daemon.js` does the work: its `start()` launches `gen-context.js --watch` with `spawn(..., { detached: true })`, records the PID in `.context/daemon.pid`, and `stop()` kills that PID later. The test file exercises that start/stop lifecycle, the command table exposes the `daemon start|stop|status` subcommands, and `packages/cli/index.js` is the thin wrapper that routes CLI arguments through to it.\n\nI only ran the sigmap index queries and did not open the source files directly, so the line-level details are from the index signatures. I modified nothing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h009",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/daemon/daemon.js",
+      "gen-context.js",
+      "src/cli/command-table.js",
+      "src/analysis/index-state.js",
+      "src/doctor/diagnose.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1253,
+      "cacheRead": 40266,
+      "cacheWrite": 5855
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00220096,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 12425,
+    "answer": "`src/daemon/daemon.js`\n`gen-context.js`\n`src/cli/command-table.js`\n`src/analysis/index-state.js`\n`src/doctor/diagnose.js`\n\n`src/daemon/daemon.js` holds the core logic: `start` spawns a detached `--watch` process and records its PID, and `stop` sends SIGTERM and clears the PID file. `gen-context.js` is the bundled CLI that wires `daemon.start/stop/status` to commands, `src/cli/command-table.js` registers the `daemon start|stop|status` syntax, and the last two read the watcher's running state and PID."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h010",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/terse.js",
+      "src/cache/entry.js",
+      "src/config/defaults.js",
+      "src/cli/command-table.js",
+      "test/integration/terse.test.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1275,
+      "cacheRead": 46321,
+      "cacheWrite": 10366
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0031747100000000003,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11838,
+    "answer": "`src/format/terse.js`\n`src/cache/entry.js`\n`src/config/defaults.js`\n`src/cli/command-table.js`\n`test/integration/terse.test.js`\n\n`terse.js` holds the deterministic rewrites that shorten each signature line (`function`→`fn`, collapsing spaces and commas), and `entry.js` applies it when `terse` is set, with `defaults.js` and `command-table.js` controlling that opt-in flag."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h010",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/terse.js",
+      "gen-context.js",
+      "src/config/defaults.js",
+      "src/cli/command-table.js",
+      "src/cache/entry.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 866,
+      "cacheRead": 34711,
+      "cacheWrite": 5964
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019735100000000004,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10726,
+    "answer": "`src/format/terse.js`\n`gen-context.js`\n`src/config/defaults.js`\n`src/cli/command-table.js`\n`src/cache/entry.js`\n\n`terse.js` holds the actual compaction: `encodeTerseSig` rewrites each signature line with fixed string transforms and leaves the `:start-end` anchor intact. The other four are where that encoder gets switched on (`--terse` / `terse: true`) and fed into the generated output; I matched them by grep and did not open them, so the ordering after the first is a judgment call."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h010",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/terse.js",
+      "src/util/truncate.js",
+      "terse.js",
+      "truncate.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 571,
+      "cacheRead": 21458,
+      "cacheWrite": 5058
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0015120800000000003,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 9732,
+    "answer": "`src/format/terse.js`\n`src/util/truncate.js`\n\n`terse.js` does the work: its `encodeTerseSig` (lines 37-50) applies fixed string rewrites to each signature line to shorten it, and it is opt-in via `--terse`. `truncate.js` is only a weaker match: it caps how many signatures an extractor emits, not how long each line is. I ranked it from the search results alone and did not open either file's body."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h010",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/terse.js",
+      "src/config/defaults.js",
+      "src/cache/entry.js",
+      "src/cli/command-table.js",
+      "cache/entry.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1390,
+      "cacheRead": 63909,
+      "cacheWrite": 12457
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00382649,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13058,
+    "answer": "The terse encoder is the implementation. It is opt-in (`terse: false` by default) and is enabled with `--terse`.\n\n`src/format/terse.js`\n`src/config/defaults.js`\n`src/cache/entry.js`\n`src/cli/command-table.js`\n\n`src/format/terse.js` holds `encodeTerseSig`, which applies deterministic string rewrites to each signature line (`function` → `fn`, `async function` → `async fn`, dropping spaces around `,`, `=`, `{`, `}`, and collapsing runs of spaces) while leaving the line anchor and any trailing doc hint byte-exact. `src/config/defaults.js` sets the opt-in `terse` flag, `src/cache/entry.js` calls the encoder when it writes cached signature lists, and `src/cli/command-table.js` exposes the `--terse` flag.\n\nI only read the first two files in full, so the `cache/entry.js` and `command-table.js` roles come from the grep matches, not a full read. I did not modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h011",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/eval/llm-ablation.js",
+      "scripts/run-llm-ablation.mjs",
+      "scripts/lib/agent-ab.mjs",
+      "test/integration/llm-ablation.test.js",
+      "test/integration/agent-ab.test.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Bash": 1
+      },
+      "byCommand": {
+        "git": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1270,
+      "cacheRead": 40859,
+      "cacheWrite": 6317
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00230779,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 11209,
+    "answer": "`src/eval/llm-ablation.js`\n`scripts/run-llm-ablation.mjs`\n`scripts/lib/agent-ab.mjs`\n`test/integration/llm-ablation.test.js`\n`test/integration/agent-ab.test.js`\n\n`src/eval/llm-ablation.js` defines `buildGrounding` and `runAblation`, which run each task once with and once without the grounding context and aggregate the error deltas. The runner script wires that to a real model, `scripts/lib/agent-ab.mjs` covers the agent-side A/B arms, and the two tests check the harness."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h011",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/eval/llm-ablation.js",
+      "src/judge/judge-engine.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 500,
+      "cacheRead": 20822,
+      "cacheWrite": 5767
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00161202,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 7630,
+    "answer": "`src/eval/llm-ablation.js`\n`src/judge/judge-engine.js`\n\nThe ablation harness runs each task without SigMap context (A) and with the grounding block (B), then scores both answers with the hallucination guard, while the judge engine supplies the groundedness scoring those answers are measured with."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h011",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/eval/llm-ablation.js",
+      "src/judge/judge-engine.js",
+      "src/judge/context-source.js",
+      "llm-ablation.js",
+      "judge-engine.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 516,
+      "cacheRead": 21464,
+      "cacheWrite": 5132
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00149944,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 7277,
+    "answer": "`src/eval/llm-ablation.js`\n`src/judge/judge-engine.js`\n`src/judge/context-source.js`\n\n`llm-ablation.js` is the core of this: `runAblation` runs each task twice, once without SigMap context and once with `buildGrounding` prepended, and reports the delta in flagged codebase-fact errors. `judge-engine.js` supplies the scoring it relies on (`judge`, `groundedness`, `claimGrounding`), and `context-source.js` resolves the context file that the grounded run uses."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h011",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/eval/llm-ablation.js",
+      "scripts/run-llm-ablation.mjs",
+      "test/integration/llm-ablation.test.js",
+      "src/verify/hallucination-guard.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 3
+      },
+      "byCommand": {
+        "head": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1516,
+      "cacheRead": 44356,
+      "cacheWrite": 10497
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00330176,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 12298,
+    "answer": "`src/eval/llm-ablation.js` is the core of the comparison: its header describes running each task with no SigMap context (arm A) and with grounding (arm B), then scoring both outputs.\n\n- `src/eval/llm-ablation.js`\n- `scripts/run-llm-ablation.mjs`\n- `test/integration/llm-ablation.test.js`\n- `src/verify/hallucination-guard.js`\n\nThe harness builds the grounding block and scores each arm's output for flagged codebase-fact errors, which is the measured delta. The live runner supplies the real model calls, the test covers the harness offline, and the hallucination guard does the per-answer checking. Nothing was modified, and I didn't run the tests because the Bash sandbox failed to start (`socat` is missing)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h012",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/mcp/install.js",
+      "test/integration/mcp/install.test.js",
+      ".cursor/mcp.json",
+      "~/.config/zed/settings.json"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1168,
+      "cacheRead": 43082,
+      "cacheWrite": 8678
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00275122,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11737,
+    "answer": "`src/mcp/install.js`\n\n`test/integration/mcp/install.test.js`\n\n`src/mcp/install.js` defines the Cursor (`.cursor/mcp.json`) and Zed (`~/.config/zed/settings.json`, `context_servers` format) targets in its `CLIENTS` table and writes the Zed entry in `_installZed`. I did not open the test file; it is listed only because its name suggests it covers this install path."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h012",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/mcp/install.js",
+      "packages/adapters/cursor.js",
+      "test/integration/mcp/register.test.js",
+      "src/doctor/diagnose.js",
+      "test/integration/mcp/install.test.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 821,
+      "cacheRead": 36073,
+      "cacheWrite": 7733
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00231843,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9884,
+    "answer": "`src/mcp/install.js`\n`src/mcp/install.js` holds the `CLIENTS` table (Cursor at line 27, Zed at line 36) and the `_installJson` and `_installZed` writers that register the `sigmap` server in each client's config.\n\n`packages/adapters/cursor.js`\nThis is the Cursor adapter, but it generates context output rather than registering the MCP server, so it is only indirectly related.\n\n`test/integration/mcp/register.test.js`\nThis is the likely integration test for registering the server with clients, though I did not open it to confirm it covers Cursor and Zed.\n\n`src/doctor/diagnose.js`\nIt checks MCP config targets (`_mcpTargets`), which includes the Cursor and Zed paths, so it reads these locations without writing them.\n\n`test/integration/mcp/install.test.js`\nThis is probably the install test for the same `install.js` logic, but I did not open it to verify that it exercises the Cursor and Zed cases."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h012",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/mcp/install.js",
+      "src/doctor/diagnose.js",
+      "src/mcp/server.js",
+      ".cursor/mcp.json",
+      "~/.config/zed/settings.json"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1035,
+      "cacheRead": 36722,
+      "cacheWrite": 7032
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00229172,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10803,
+    "answer": "`src/mcp/install.js`\n`src/doctor/diagnose.js`\n`src/mcp/server.js`\n\n`src/mcp/install.js` defines the Cursor (`.cursor/mcp.json`) and Zed (`~/.config/zed/settings.json`, `context_servers` format) targets and the `_installZed` writer, so it does the actual registration. The other two are weaker: `diagnose.js` checks the MCP config paths as part of `sigmap doctor`, and `server.js` is the server being registered. I only read the install.js lines directly, so the other two are inferred from search hits and their signatures."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h012",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/mcp/install.js",
+      "src/cli/command-table.js",
+      "src/doctor/diagnose.js",
+      "test/integration/mcp/install.test.js",
+      "install.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1451,
+      "cacheRead": 40559,
+      "cacheWrite": 8902
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029122900000000005,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 12138,
+    "answer": "`src/mcp/install.js`\n`src/cli/command-table.js`\n`src/doctor/diagnose.js`\n`test/integration/mcp/install.test.js`\n\n`install.js` defines Cursor (`.cursor/mcp.json`) and Zed (`~/.config/zed/settings.json`, under `context_servers`) as client targets and writes the sigmap entry; `command-table.js` exposes the `mcp install cursor|zed` CLI, `diagnose.js` checks the Zed config path, and the install test covers the registration."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h013",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/scaffold/propose.js",
+      "src/conventions/extract.js",
+      "src/create/orchestrate.js",
+      "src/scaffold/persist.js",
+      "propose.js"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Bash": 2,
+        "Grep": 2,
+        "Read": 4
+      },
+      "byCommand": {
+        "git": 1,
+        "wc": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 2175,
+      "cacheRead": 73193,
+      "cacheWrite": 15560
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0049326299999999995,
+      "source": "agent-reported"
+    },
+    "turns": 9,
+    "durationMs": 17638,
+    "answer": "`src/scaffold/propose.js`\n`src/conventions/extract.js`\n`src/create/orchestrate.js`\n`src/scaffold/persist.js`\n\n`propose.js` does the core work: it builds a new file's name, export style, and test file from the repo's detected conventions, and refuses when consistency is too low. `extract.js` supplies those conventions, `orchestrate.js` runs the scaffold step as part of the `create` pipeline, and `persist.js` renders the proposal to a record.\n\nI read \"create a new file that follows existing repo style\" as the scaffold feature, since that is the code that proposes a new file matching house style. The shell sandbox failed to start (`socat` is not installed), so I worked only with Read and Grep. I changed nothing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h013",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/scaffold/propose.js",
+      "src/conventions/extract.js",
+      "src/scaffold/persist.js",
+      "src/create/orchestrate.js",
+      "src/conventions/inject.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 594,
+      "cacheRead": 20823,
+      "cacheWrite": 5565
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0016186300000000002,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 9519,
+    "answer": "`src/scaffold/propose.js`\n`src/conventions/extract.js`\n`src/scaffold/persist.js`\n`src/create/orchestrate.js`\n`src/conventions/inject.js`\n\n`propose.js` builds a new module's filename, export style, and test file from the repo's detected conventions, `extract.js` detects those conventions, `persist.js` is the write step, `orchestrate.js` runs the create flow, and `inject.js` applies conventions to generated code. These are ranked from the index's signatures and descriptions only; I did not open the bodies of `persist.js`, `orchestrate.js`, or `inject.js`. Nothing was modified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h013",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/scaffold/propose.js",
+      "src/conventions/extract.js",
+      "src/conventions/conflicts.js",
+      "propose.js",
+      "extract.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 620,
+      "cacheRead": 35652,
+      "cacheWrite": 6817
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00203052,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9753,
+    "answer": "`src/scaffold/propose.js`\n`src/conventions/extract.js`\n`src/conventions/conflicts.js`\n\n`propose.js` is the module that builds a new file's proposed name, export style and test file from the repo's conventions, and it refuses when those conventions are too inconsistent. `extract.js` detects the file-naming, export and test-framework conventions it relies on, and `conflicts.js` supplies the naming-style conversion it uses. I ranked these from search results and signatures only, without opening the function bodies."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h013",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/scaffold/propose.js",
+      "src/create/orchestrate.js",
+      "src/conventions/extract.js",
+      "src/scaffold/persist.js",
+      "src/cli/command-table.js"
+    ],
+    "toolCalls": {
+      "total": 11,
+      "byTool": {
+        "Glob": 3,
+        "Bash": 1,
+        "Grep": 6,
+        "Read": 1
+      },
+      "byCommand": {
+        "cat": 1
+      }
+    },
+    "usage": {
+      "in": 12,
+      "out": 2535,
+      "cacheRead": 79781,
+      "cacheWrite": 12562
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004578909999999999,
+      "source": "agent-reported"
+    },
+    "turns": 12,
+    "durationMs": 17758,
+    "answer": "`src/scaffold/propose.js`\n`src/create/orchestrate.js`\n`src/conventions/extract.js`\n`src/scaffold/persist.js`\n`src/cli/command-table.js`\n\nI took \"create a new file that follows existing repo style\" to mean the `sigmap create --name` scaffold feature, which proposes a new file's path from the repo's detected naming conventions, and `propose.js` does that matching, with `orchestrate.js` driving it, `extract.js` detecting the conventions it follows, `persist.js` rendering the result, and `command-table.js` exposing the command."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h014",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/closest-match.js",
+      "src/verify/hallucination-guard.js",
+      "src/mcp/handlers.js",
+      "src/plan/verify-plan.js",
+      "closest-match.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 874,
+      "cacheRead": 31702,
+      "cacheWrite": 11134
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029814200000000003,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9974,
+    "answer": "`src/verify/closest-match.js`\n`src/verify/hallucination-guard.js`\n`src/mcp/handlers.js`\n`src/plan/verify-plan.js`\n\n`closest-match.js` holds the core logic: it finds the nearest real candidate by Levenshtein distance, with an early-exit ceiling and a similarity floor. The other three call it: the hallucination guard uses it for symbol and file-name \"Did you mean\" hints, the MCP handler uses it for unknown names, and the plan verifier uses it for suggested replacements."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h014",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/closest-match.js",
+      "src/verify/hallucination-guard.js",
+      "src/verify/source-confirm.js",
+      "closest-match.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 554,
+      "cacheRead": 20831,
+      "cacheWrite": 5763
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00163831,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8716,
+    "answer": "`src/verify/closest-match.js`\n`src/verify/hallucination-guard.js`\n`src/verify/source-confirm.js`\n\n`closest-match.js` implements the feature: `closestMatch()` finds the nearest candidate by Levenshtein distance, and `buildSymbolCandidates()` and `formatSuggestion()` turn it into a \"Did you mean…\" hint. The other two are ranked next by the index, but I haven't read them, so I'm not certain how they connect."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h014",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/closest-match.js",
+      "src/verify/hallucination-guard.js",
+      "src/plan/verify-plan.js",
+      "src/mcp/handlers.js",
+      "closest-match.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 660,
+      "cacheRead": 35900,
+      "cacheWrite": 5591
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018078000000000002,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8474,
+    "answer": "`src/verify/closest-match.js`\n`src/verify/hallucination-guard.js`\n`src/plan/verify-plan.js`\n`src/mcp/handlers.js`\n\n`closest-match.js` implements the feature: `closestMatch()` finds the nearest real candidate by Levenshtein distance, and `formatSuggestion()` renders it as a \"Did you mean …?\" line. The other three call into it: the hallucination guard and the plan verifier flag unknown names and attach that suggestion, and the MCP handlers expose it."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h014",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/closest-match.js",
+      "src/verify/hallucination-guard.js",
+      "src/mcp/handlers.js",
+      "src/mcp/tools.js",
+      "src/format/verify-report.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 718,
+      "cacheRead": 27660,
+      "cacheWrite": 5530
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017422,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9130,
+    "answer": "`src/verify/closest-match.js`\n`src/verify/hallucination-guard.js`\n`src/mcp/handlers.js`\n`src/mcp/tools.js`\n`src/format/verify-report.js`\n\n`closest-match.js` holds the core logic (`closestMatch`, `buildSymbolCandidates`, `formatSuggestion`), `hallucination-guard.js` calls it to attach a \"Did you mean…?\" suggestion to unknown symbols and files, `handlers.js` uses it for the MCP symbol lookup that answers unknown names with a closest-match hint, `tools.js` documents that behavior in the tool description, and `verify-report.js` is the likely formatter for the rendered suggestion (I didn't open it, so that one is inferred from its name and the grep hits)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h015",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/cilog.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/index.js",
+      "cilog.js",
+      "classify.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 924,
+      "cacheRead": 40751,
+      "cacheWrite": 9566
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027835100000000003,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 10129,
+    "answer": "`src/squeeze/cilog.js`\n`src/squeeze/classify.js`\n`src/squeeze/index.js`\n\n`cilog.js` does the trimming: `squeezeCiLog` keeps only lines matching `ERROR_RE` plus a small context window, drops progress and noise lines, and falls back to a head/tail summary when no errors are found. `classify.js` detects that input is a CI log so it gets routed there, and `index.js` dispatches the `cilog` category to `squeezeCiLog`."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h015",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/cilog.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/index.js",
+      "test/integration/squeeze.test.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 617,
+      "cacheRead": 34468,
+      "cacheWrite": 5364
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017265800000000001,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8413,
+    "answer": "`src/squeeze/cilog.js`\n`src/squeeze/classify.js`\n`src/squeeze/index.js`\n`test/integration/squeeze.test.js`\n\n`src/squeeze/cilog.js` holds `squeezeCiLog`, which strips timestamps and progress noise and keeps every error line plus a small context window, falling back to a head/tail summary when there are no errors. `src/squeeze/classify.js` detects CI logs so they get routed to that squeezer, and `src/squeeze/index.js` is where `squeezeCiLog` is wired in. `test/integration/squeeze.test.js` exercises that path. I did not modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h015",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/cilog.js",
+      "src/squeeze/classify.js",
+      "cilog.js",
+      "classify.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 427,
+      "cacheRead": 21470,
+      "cacheWrite": 4821
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0013928,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 6961,
+    "answer": "`src/squeeze/cilog.js`\n`src/squeeze/classify.js`\n\n`cilog.js` does the trimming: `squeezeCiLog` strips timestamps and noise and keeps only error lines plus a small context window, and `classify.js` routes a pasted CI log to that squeezer."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h015",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/cilog.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/index.js",
+      "cilog.js",
+      "classify.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 990,
+      "cacheRead": 32619,
+      "cacheWrite": 10048
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00283139,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9549,
+    "answer": "`src/squeeze/cilog.js`\n`src/squeeze/classify.js`\n`src/squeeze/index.js`\n\n`cilog.js` implements the squeeze: it strips timestamps, progress bars and repeated noise, keeps every line matching the error pattern plus a small context window around each one, and falls back to a head/tail summary when no errors are found. `classify.js` and `index.js` are the two files that reference `cilog`, so they presumably route CI logs into it, but I only confirmed the reference and did not read their logic."
+  }
+]

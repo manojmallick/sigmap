@@ -3,8 +3,9 @@
 //
 //   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/variant-combined.mjs <folder under session-auth> ["label"]
 //   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/variant-combined.mjs unfamiliar "Haiku 5.5, SigMap's own source"
+//   node benchmarks/pilots/2026-11-09-relay-haiku-5-5/variant-combined.mjs ./token-saving-runs/unfamiliar      # any directory of runs
 //
-// Reads session-auth/<folder>/<variant>/<batch>/raw.json. For real cost, total tokens, tool calls and seconds: the whole-batch and
+// Reads <folder>/<variant>/<batch>/raw.json, where <folder> is a directory you name or one saved under session-auth/. For real cost, total tokens, tool calls and seconds: the whole-batch and
 // typical-task change per repetition and pooled, with the 95% bootstrap interval; whether the file was found, and by which arm
 // when only one found it; how the SigMap arm used SigMap; and turns. The estimators are scripts/lib/agent-ab-stats.mjs.
 import fs from 'fs';
@@ -17,8 +18,8 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const [folder, label = ''] = process.argv.slice(2);
 if (!folder) { console.error('usage: variant-combined.mjs <folder under session-auth> ["label"]'); process.exit(2); }
-const root = path.join(here, 'session-auth', folder);
-if (!fs.existsSync(root)) { console.log(`no data saved yet (session-auth/${folder}/)`); process.exit(0); }
+const root = fs.existsSync(folder) && fs.statSync(folder).isDirectory() ? path.resolve(folder) : path.join(here, 'session-auth', folder);
+if (!fs.existsSync(root)) { console.log(`no data saved yet (${folder})`); process.exit(0); }
 const key = (x) => `${x.repo}/${x.task}|${x.run}`;
 const tot = (x) => x.usage.in + x.usage.out + x.usage.cacheRead + x.usage.cacheWrite;
 const metrics = [['real cost', (x) => x.cost.usd], ['total tokens', tot], ['tool calls', (x) => x.toolCalls.total], ['seconds', (x) => x.durationMs / 1000]];
@@ -28,7 +29,8 @@ const turns = (x) => x.toolCalls.total + 1;
 
 for (const name of fs.readdirSync(root).filter((v) => fs.statSync(path.join(root, v)).isDirectory()).sort()) {
   const dir = path.join(root, name);
-  let raw = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).flatMap((e) => require(path.join(dir, e.name, 'raw.json')));
+  let raw = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && fs.existsSync(path.join(dir, e.name, 'raw.json'))).flatMap((e) => require(path.join(dir, e.name, 'raw.json')));
+  if (!raw.length) continue;
   const bad = new Set(raw.filter((x) => !x.ok).map(key));
   if (bad.size) console.log(`note: ${name}: ${raw.filter((x) => !x.ok).length} failed run(s) (${[...bad].join(', ')}); that question x repetition is left out`);
   raw = raw.filter((x) => !bad.has(key(x)));

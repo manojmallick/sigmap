@@ -1,0 +1,1237 @@
+[
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/validation.js",
+      "lib/reply.js",
+      "lib/error-handler.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1191,
+      "cacheRead": 48183,
+      "cacheWrite": 11146
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00330733,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10957,
+    "answer": "`lib/schemas.js`\n`lib/validation.js`\n`lib/reply.js`\n`lib/error-handler.js`\n\n`lib/schemas.js` holds the lookup in `getSchemaSerializer`, which tries the exact code, then the `Nxx` class, then `default`, and within each one checks the media type and then `*/*`. `lib/validation.js` compiles and validates the keys (`/^[1-5](?:\\d{2}|xx)$|^default$/`), and `lib/reply.js` and `lib/error-handler.js` call the lookup when serializing a normal reply or an error. One detail: if a code has media-type entries and none matches, the lookup returns `false` rather than falling through to `Nxx` or `default`."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/validation.js",
+      "lib/reply.js",
+      "lib/error-handler.js",
+      "e.g"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1075,
+      "cacheRead": 29821,
+      "cacheWrite": 20309
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004898110000000001,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10118,
+    "answer": "`lib/schemas.js`\n`lib/validation.js`\n`lib/reply.js`\n`lib/error-handler.js`\n\n`getSchemaSerializer` in `lib/schemas.js` implements the lookup order: an exact status code first, then the `Nxx` class (e.g. `2xx`), then `default`. Within whichever entry matches, it picks the media type by the `content-type` header with any parameters stripped, falling back to `*/*`. `lib/validation.js` compiles and keys these entries per status and media type and rejects keys that aren't exact codes, `Nxx` classes or `default`. `lib/reply.js` and `lib/error-handler.js` call that lookup when serializing normal and error replies."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/reply.js",
+      "lib/validation.js",
+      "lib/error-handler.js",
+      "schemas.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 1266,
+      "cacheRead": 21982,
+      "cacheWrite": 9213
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026958200000000002,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 11289,
+    "answer": "`lib/schemas.js`, `lib/reply.js`, `lib/validation.js`, `lib/error-handler.js`, and `lib/schemas.js` are the implementation, with `getSchemaSerializer` in `lib/schemas.js` doing the selection.\n\n1. `lib/schemas.js`: `getSchemaSerializer` (lines 144–198) picks the serializer. It tries the exact status code first, then the class wildcard (`2xx`, derived from the first digit), then `default`. Within each, a media-type map is checked by the content type with parameters stripped, then `*/*`, and a plain (non-map) schema is used directly.\n2. `lib/reply.js`: `serialize` (line 1018) and `serializeInput` (line 393) call `getSchemaSerializer` or look up `kSchemaResponse[status][contentType]` directly. `getSerializationFunction` (line 337) does the same lookup, and `compileSerializationSchema` (line 353) compiles schemas passed at reply time.\n3. `lib/validation.js`: at route setup, response schemas are compiled into the per-status map, with one compiled schema per media type when the response is a content map (lines 32–43).\n4. `lib/error-handler.js`: error replies go through the same `getSchemaSerializer` lookup (line 109), so error status codes resolve the same way.\n5. `lib/schemas.js`: `schemas.js` also normalizes the declared response content (lines 80–83), where missing per-media schemas raise an error.\n\nThe one thing I did not check is how the route-level response definition is normalized into these keys (for example, whether `\"2xx\"` and `\"200\"` are both allowed as keys and which wins if both are declared). I read the lookup order directly from `lib/schemas.js` rather than running the code."
+  },
+  {
+    "repo": "fastify",
+    "task": "x137",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/schemas.js",
+      "lib/validation.js",
+      "lib/reply.js",
+      "lib/error-handler.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1105,
+      "cacheRead": 29328,
+      "cacheWrite": 7424
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00233118,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10252,
+    "answer": "`lib/schemas.js`\n`lib/validation.js`\n`lib/reply.js`\n`lib/error-handler.js`\n\n`getSchemaSerializer` in `lib/schemas.js` tries the exact status code first, then the class wildcard (`2xx`), then `default`, and within whichever matches it picks the media type, falling back to `*/*` or returning false. `lib/validation.js` builds the per-status and per-media-type compiled schemas that it looks up, and `lib/reply.js` and `lib/error-handler.js` call it when serializing normal and error replies."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "lib/schemas.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 705,
+      "cacheRead": 16814,
+      "cacheWrite": 5966
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017142400000000001,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 7460,
+    "answer": "`lib/validation.js` lowercases the schema's property names and `required` entries at compile time, so they match the lowercase keys Node uses for incoming headers.\n\n`lib/validation.js`\n`lib/schemas.js`\n\nThe header-schema compile step (lines 65–84) builds a copy of the route's `headers` schema with every `properties` key and every `required` entry lowercased, then compiles that copy. `lib/schemas.js` lists `headers` as a schema source, so the route's header schema is picked up there."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "request.headers"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 737,
+      "cacheRead": 21279,
+      "cacheWrite": 5297
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00164109,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 7906,
+    "answer": "The lowercasing happens at schema-compile time in `lib/validation.js`, lines 73–84. For each `headers` schema, the framework copies the `required` names and `properties` keys to lowercase, so they match the lowercase keys Node puts on `request.headers`.\n\n`lib/validation.js`\n\nThis file is the only one I found that does the conversion. The `headers` schema is rewritten there before compiling, and the request-time check at lines 191–196 then runs against Node's lowercased `request.headers`."
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "request.headers",
+      "lib/request.js",
+      "lib/route.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Bash": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 6,
+      "out": 966,
+      "cacheRead": 37550,
+      "cacheWrite": 7095
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0022781,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9719,
+    "answer": "`lib/validation.js` is the only file that implements the mixed-case handling. It lowercases the header schema's keys (and `required` entries and `properties` keys) before compiling it, so the validator matches the lowercase keys Node puts on `request.headers`. Lines 71–84 do the work; the custom-validator branch at line 67 skips this rewrite on purpose. I did not open `lib/request.js` or `lib/route.js`, so I'm not listing them.\n\n`lib/validation.js`"
+  },
+  {
+    "repo": "fastify",
+    "task": "x138",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/validation.js",
+      "request.headers"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 640,
+      "cacheRead": 16816,
+      "cacheWrite": 5866
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00166176,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 7037,
+    "answer": "`lib/validation.js`\n\nThe schema compiler lowercases every `headers` property name and each `required` entry (lines 73–84) before compiling, so the schema matches the lowercase keys Node puts on `request.headers`."
+  },
+  {
+    "repo": "fastify",
+    "task": "x139",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/content-type-parser.js",
+      "lib/handle-request.js",
+      "lib/request.js",
+      "lib/context.js",
+      "fastify.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1223,
+      "cacheRead": 29997,
+      "cacheWrite": 8011
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00251427,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11820,
+    "answer": "`lib/content-type-parser.js`\n`lib/handle-request.js`\n`lib/request.js`\n`lib/context.js`\n`fastify.js`\n\n`lib/content-type-parser.js` does the work: `rawBody` rejects up front when the `Content-Length` header exceeds the limit (line 238), and during streaming `onData` counts bytes and aborts with `FST_ERR_CTP_BODY_TOO_LARGE` once the received or encoded length passes the limit (lines 256–268). The other four files only route the request into that parser and resolve the limit: `handle-request.js` sends bodies to the parser, `request.js` and `context.js` pick the route or server limit, and `fastify.js` sets the default.\n\nI only read the relevant sections and did not modify anything."
+  },
+  {
+    "repo": "fastify",
+    "task": "x139",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/content-type-parser.js",
+      "lib/request.js",
+      "lib/context.js",
+      "lib/route.js",
+      "lib/errors.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1015,
+      "cacheRead": 33657,
+      "cacheWrite": 10140
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00287267,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9934,
+    "answer": "`lib/content-type-parser.js`\n`lib/request.js`\n`lib/context.js`\n`lib/route.js`\n`lib/errors.js`\n\nThe `rawBody` function in `lib/content-type-parser.js` does both checks: it rejects up front when the `content-length` header exceeds the limit, and during streaming it counts bytes in `onData` and calls `done` with `FST_ERR_CTP_BODY_TOO_LARGE` once the received or encoded length passes the limit, removing its listeners but not destroying the stream. The other files supply the limit (`request.js` picks the route or server value, `context.js` and `route.js` set it per route, and `errors.js` defines the error)."
+  },
+  {
+    "repo": "fastify",
+    "task": "x139",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/content-type-parser.js",
+      "lib/request.js",
+      "lib/route.js",
+      "lib/errors.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 817,
+      "cacheRead": 36677,
+      "cacheWrite": 6209
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00201767,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9909,
+    "answer": "`lib/content-type-parser.js`\n`lib/request.js`\n`lib/route.js`\n`lib/errors.js`\n\n`rawBody` in `lib/content-type-parser.js` enforces the limit twice: it rejects up front when the `Content-Length` header exceeds the limit, and during streaming it counts bytes in `onData`, removes its listeners, and fails with `FST_ERR_CTP_BODY_TOO_LARGE` once the received or encoded length passes the limit. `lib/request.js` supplies the effective limit (route option, then server `bodyLimit`), `lib/route.js` validates the per-route `bodyLimit`, and `lib/errors.js` defines the error."
+  },
+  {
+    "repo": "fastify",
+    "task": "x139",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/content-type-parser.js",
+      "lib/request.js",
+      "lib/errors.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 915,
+      "cacheRead": 29130,
+      "cacheWrite": 6574
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020642,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9962,
+    "answer": "The early check on `Content-Length` and the per-chunk byte count both live in `rawBody`, which is in `lib/content-type-parser.js` (lines 233–275). It rejects with `FST_ERR_CTP_BODY_TOO_LARGE` when the declared length exceeds the limit, and when the running total passes it, it removes its listeners and stops collecting chunks.\n\n`lib/content-type-parser.js`\n`lib/request.js`\n`lib/errors.js`\n\nThe parser file does the work: it compares `Content-Length` against the limit up front (line 238), then counts bytes on each `data` event (line 262) and detaches its listeners once the limit is exceeded. `lib/request.js` (lines 185–191) supplies the effective limit from the route or server config, and `lib/errors.js` (line 105) defines the error that is raised."
+  },
+  {
+    "repo": "fastify",
+    "task": "x140",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/four-oh-four.js",
+      "fastify.js",
+      "fourOhFour.router.lookup",
+      "lib/plugin-override.js",
+      "lib/route.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1678,
+      "cacheRead": 30081,
+      "cacheWrite": 10096
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00315961,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 13386,
+    "answer": "The unmatched-URL path runs through a second, 404-only router, and a prefixed plugin gets its own fallback by registering a wildcard route in that router under its prefix.\n\n`lib/four-oh-four.js`: `_setNotFoundHandler` registers `prefix/*` and `prefix` in the 404 router with the scope's handler context, and `fourOhFourFallBack` is the last-resort response when nothing matches. Malformed URLs go to `onBadUrl`, which calls `_onBadUrlHandler`, falling back to `basic404` if no handler is set.\n\n`fastify.js`: `defaultRoute` (around lines 627-636) forwards every request the main router didn't match to `fourOhFour.router.lookup(req, res)`. `setNotFoundHandler` (around line 694) is the public entry point.\n\n`lib/plugin-override.js`: calls `arrange404(instance)` for each encapsulated child instance (line 68), which gives it its own 404 level pointer and allows it to set a handler.\n\n`lib/route.js`: receives the shared `fourOhFour` object through the route arguments and calls `setContext` so 404 responses pick up the onSend hook.\n\nA sub-scope with its own prefix calls `setNotFoundHandler` inside a plugin registered with that prefix. The handler is stored against that scope and registered as `prefix/*`, so only unmatched paths under that prefix reach it. A second call in the same scope throws \"Not found handler already set\". I read these files but did not run the tests."
+  },
+  {
+    "repo": "fastify",
+    "task": "x140",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/four-oh-four.js",
+      "fastify.js",
+      "lib/route.js",
+      "lib/plugin-override.js",
+      "lib/context.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1331,
+      "cacheRead": 36101,
+      "cacheWrite": 8858
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027987100000000003,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11585,
+    "answer": "`lib/four-oh-four.js`\n`fastify.js`\n`lib/route.js`\n`lib/plugin-override.js`\n`lib/context.js`\n\nUnmatched URLs fall through `defaultRoute` in `fastify.js` to a separate 404 router, which `lib/four-oh-four.js` builds; a sub-scope calls `setNotFoundHandler` to register a `prefix/*` catch-all in that router, with its own context, and throws if that scope already has a handler."
+  },
+  {
+    "repo": "fastify",
+    "task": "x140",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/four-oh-four.js",
+      "fastify.js",
+      "lib/route.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1099,
+      "cacheRead": 35986,
+      "cacheWrite": 8008
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00251156,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10301,
+    "answer": "`lib/four-oh-four.js`\n`fastify.js`\n`lib/route.js`\n\nThe 404 module (`lib/four-oh-four.js`) owns a separate find-my-way router whose `defaultRoute` and `onBadUrl` call the registered not-found handler; `fastify.js` wires it up at startup and routes unmatched requests into it, and `lib/route.js` sets the per-request 404 context. Inside a `register` with a prefix, `setNotFoundHandler` registers `prefix + '/*'` and `prefix` on that router, so only URLs under that prefix hit the sub-scope's handler."
+  },
+  {
+    "repo": "fastify",
+    "task": "x140",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/four-oh-four.js",
+      "fastify.js",
+      "lib/plugin-override.js",
+      "lib/route.js",
+      "plugin-override.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 981,
+      "cacheRead": 30740,
+      "cacheWrite": 10812
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0029609,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9245,
+    "answer": "`lib/four-oh-four.js`\n`fastify.js`\n`lib/plugin-override.js`\n`lib/route.js`\n\nUnmatched URLs fall through to a dedicated 404 router in `lib/four-oh-four.js`, which runs the root or scoped not-found handler, and a child scope installs its own fallback by registering `prefix/*` routes on that router, with `fastify.js` wiring the root and `plugin-override.js` arming child instances to do so."
+  },
+  {
+    "repo": "fastify",
+    "task": "x141",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/plugin-override.js",
+      "fastify.js",
+      "lib/hooks.js",
+      "lib/plugin-utils.js",
+      "Object.create"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 6,
+      "out": 1376,
+      "cacheRead": 27590,
+      "cacheWrite": 5830
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0021305,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 11367,
+    "answer": "`lib/plugin-override.js`\n`fastify.js`\n`lib/hooks.js`\n`lib/plugin-utils.js`\n\n`lib/plugin-override.js` does the work: it creates each child with `Object.create(old)`, so it inherits every property of its parent through the prototype chain. It then gives the child its own copies of the mutable state (hooks, content-type parsers, reply/request builders, schema controller, plugin registry, log serializers), so additions made inside the child stay on the child. `fastify.js` wires this in as `avvio.override`, `lib/hooks.js` builds the per-instance hook sets, and `lib/plugin-utils.js` supplies the registered-plugin tracking that `plugin-override.js` depends on. I read the first two directly. I did not open `lib/plugin-utils.js` or the body of `buildHooks`, so their roles are inferred from how `plugin-override.js` calls them."
+  },
+  {
+    "repo": "fastify",
+    "task": "x141",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/plugin-override.js",
+      "lib/hooks.js",
+      "lib/plugin-utils.js",
+      "lib/reply.js",
+      "lib/schema-controller.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 864,
+      "cacheRead": 36115,
+      "cacheWrite": 7120
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00221775,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9874,
+    "answer": "`lib/plugin-override.js`\n`lib/hooks.js`\n`lib/plugin-utils.js`\n`lib/reply.js`\n`lib/schema-controller.js`\n\nFastify creates each child scope with `Object.create(old)` in `lib/plugin-override.js` (lines 38–41), so the child inherits every parent property through the prototype chain. Anything the child then assigns lands on its own object and never reaches the parent. Hooks, reply/request prototypes, content-type parsers, and schema controllers are then rebuilt per child from the parent's version in that same function, and `lib/hooks.js` walks `kChildren` to run hooks down the tree. `lib/plugin-utils.js` keeps the registered-plugins set in a child-level `Object.create` layer. `lib/reply.js` and `lib/schema-controller.js` supply the per-child builders that `plugin-override.js` calls. This is from reading the code, not from running it."
+  },
+  {
+    "repo": "fastify",
+    "task": "x141",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/plugin-override.js",
+      "fastify.js",
+      "lib/plugin-utils.js",
+      "lib/schema-controller.js",
+      "lib/logger-factory.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 945,
+      "cacheRead": 35880,
+      "cacheWrite": 6236
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020791,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10270,
+    "answer": "`lib/plugin-override.js`\n`fastify.js`\n`lib/plugin-utils.js`\n`lib/schema-controller.js`\n`lib/logger-factory.js`\n\n`lib/plugin-override.js` does the work: `override()` builds the child with `Object.create(old)`, so it reads everything from the parent through the prototype chain, and each child then gets its own copies of the things it can add to (hooks, reply/request, content-type parsers, schema controller, route prefix, plugin registry), so writes stay on the child. `fastify.js` wires this in by setting `avvio.override = override` so Avvio calls it for every registered plugin. The other files supply the pieces `override()` relies on: `plugin-utils.js` for the registered-plugin tracking, `schema-controller.js` for `buildSchemaController`, and `logger-factory.js` for the child-logger handling."
+  },
+  {
+    "repo": "fastify",
+    "task": "x141",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/plugin-override.js",
+      "lib/hooks.js",
+      "lib/reply.js",
+      "lib/request.js",
+      "Object.create"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 926,
+      "cacheRead": 27627,
+      "cacheWrite": 5543
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00184847,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9329,
+    "answer": "`lib/plugin-override.js`\n`lib/hooks.js`\n`lib/reply.js`\n`lib/request.js`\n\n`override()` in `lib/plugin-override.js` creates each child with `Object.create(old)`, so it reads everything from the parent through the prototype chain. The child then gets its own copies of the mutable state (hooks, content-type parsers, schema controller, route prefix, log serializers, children list), and writes go to those own properties, so they never reach the parent. The other three files are the per-scope builders it calls: `hooks.js` (`buildHooks`) and `reply.js`/`request.js` (`buildReply`/`buildRequest`) each layer a fresh object over the parent's version."
+  },
+  {
+    "repo": "fastify",
+    "task": "x142",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/hooks.js",
+      "lib/route.js",
+      "lib/content-type-parser.js",
+      "lib/symbols.js",
+      "request.raw"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1001,
+      "cacheRead": 28124,
+      "cacheWrite": 6301
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0020425400000000002,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9945,
+    "answer": "`lib/hooks.js`\n`lib/route.js`\n`lib/content-type-parser.js`\n`lib/symbols.js`\n\nThe preParsing runner in `lib/hooks.js` stores each hook's returned stream in `request[kRequestPayloadStream]`, which `lib/route.js` seeds with `request.raw` before the hooks run, and the body parser in `lib/content-type-parser.js` reads from that symbol instead of `request.raw`, so later stages consume the replacement; `lib/symbols.js` defines that `kRequestPayloadStream` symbol."
+  },
+  {
+    "repo": "fastify",
+    "task": "x142",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/hooks.js",
+      "lib/content-type-parser.js",
+      "lib/route.js",
+      "fastify.js",
+      "lib/symbols.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 893,
+      "cacheRead": 34924,
+      "cacheWrite": 5596
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00191554,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 8862,
+    "answer": "`lib/hooks.js`\n`lib/content-type-parser.js`\n`lib/route.js`\n`fastify.js`\n`lib/symbols.js`\n\nThe runner in `lib/hooks.js` stores whatever a `preParsing` hook resolves or passes to `next` on the request under the `kRequestPayloadStream` symbol, and passes that stored stream to the next hook. Body parsing in `lib/content-type-parser.js` then reads `request[kRequestPayloadStream] || request.raw`, so it consumes the replacement. `lib/route.js` seeds the symbol with `request.raw` and starts the hook chain, `fastify.js` registers `preParsing` as a valid hook name, and `lib/symbols.js` defines the symbol."
+  },
+  {
+    "repo": "fastify",
+    "task": "x142",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/hooks.js",
+      "lib/route.js",
+      "lib/content-type-parser.js",
+      "lib/symbols.js",
+      "request.raw"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1141,
+      "cacheRead": 50089,
+      "cacheWrite": 5971
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00226639,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 11581,
+    "answer": "`lib/hooks.js`\n`lib/route.js`\n`lib/content-type-parser.js`\n`lib/symbols.js`\n\n`preParsingHookRunner` in `lib/hooks.js` stores each non-undefined value a `preParsing` hook returns (or passes to its `next` callback) into the private `kRequestPayloadStream` slot on the request, and `lib/route.js` seeds that slot with `request.raw` before the hooks run. Later, `lib/content-type-parser.js` reads from that slot rather than `request.raw`, so the parser consumes the replacement stream, and `lib/symbols.js` defines the slot symbol."
+  },
+  {
+    "repo": "fastify",
+    "task": "x142",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/hooks.js",
+      "lib/route.js",
+      "lib/content-type-parser.js",
+      "lib/symbols.js",
+      "request.raw"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 973,
+      "cacheRead": 39234,
+      "cacheWrite": 5463
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00197224,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10702,
+    "answer": "`lib/hooks.js`\n`lib/route.js`\n`lib/content-type-parser.js`\n`lib/symbols.js`\n\n`lib/hooks.js` is the most relevant because `preParsingHookRunner` stores each hook's returned stream in `request[kRequestPayloadStream]`, which is the slot later stages read; `lib/route.js` seeds that slot with `request.raw` before the hooks run, `lib/content-type-parser.js` reads the slot when parsing the body, and `lib/symbols.js` defines the `kRequestPayloadStream` key."
+  },
+  {
+    "repo": "fastify",
+    "task": "x143",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "proxyAddr.all",
+      "fastify.js",
+      "Request.buildReque",
+      "docs/Reference/Server.md"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1271,
+      "cacheRead": 28399,
+      "cacheWrite": 7193
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00235869,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11764,
+    "answer": "The IP, host and scheme logic is in `lib/request.js`. It uses the `@fastify/proxy-addr` package, which is an external dependency, so the hop-trust walk itself is not in this repo.\n\n`lib/request.js`: `buildRequestWithTrustProxy` defines `ip`, `ips`, `host` and `protocol`. It walks hops with `proxyAddr.all` and returns the last entry as `ip`, and it reads `x-forwarded-host` and `x-forwarded-proto` only when the socket peer is trusted.\n`fastify.js`: line 168 passes the `trustProxy` option into `Request.buildRequest`, which is where the option takes effect.\n`docs/Reference/Server.md`: the `trustProxy` section (around line 532) documents the accepted forms (boolean, IP/CIDR list, number, function) and the last-entry rule for multiple forwarded headers.\n`docs/Reference/Request.md`: documents the resulting `ip`, `ips`, `host` and `protocol` behaviour.\n`fastify.d.ts`: line 138 declares the accepted `trustProxy` types.\n\nThe point that decides which hops to trust is the `proxyFn` built by `getTrustProxyFn` in `lib/request.js` (lines 42–60), which compiles the configured value with `@fastify/proxy-addr`. Without `trustProxy`, `buildRegularRequest` is used and none of these headers are read."
+  },
+  {
+    "repo": "fastify",
+    "task": "x143",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "fastify.js",
+      "options.trustProxy",
+      "Request.buildReque"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1620,
+      "cacheRead": 66380,
+      "cacheWrite": 7735
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0030218000000000003,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 15892,
+    "answer": "`lib/request.js`\n`fastify.js`\n\n`lib/request.js` defines the `ip`, `ips`, `host` and `protocol` getters and the trust logic: `getTrustProxyFn` turns the `trustProxy` option (boolean, hop count, CIDR/name list, or function) into a predicate, `ip` and `ips` walk `X-Forwarded-For` via `@fastify/proxy-addr` while the socket peer is trusted, and `host` and `protocol` read the last `X-Forwarded-Host` or `X-Forwarded-Proto` entry only when the socket's remote address passes that predicate. `fastify.js` is second because line 168 passes `options.trustProxy` into `Request.buildRequest`, which is what switches those getters on."
+  },
+  {
+    "repo": "fastify",
+    "task": "x143",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "fastify.js",
+      "docs/Reference/Server.md",
+      "fastify.d.ts",
+      "docs/Reference/Request.md"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1274,
+      "cacheRead": 35676,
+      "cacheWrite": 6777
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00234976,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 12964,
+    "answer": "`lib/request.js`\n`fastify.js`\n`docs/Reference/Server.md`\n`fastify.d.ts`\n`docs/Reference/Request.md`\n\n`lib/request.js` does the work: when `trustProxy` is set it overrides the `ip`, `ips`, `host` and `protocol` getters, using `@fastify/proxy-addr` to walk `X-Forwarded-For` from the socket address and trusting hops only where the trust function (`true`, a hop count, an address/CIDR list, or a custom function) says so. It only reads `X-Forwarded-Host` and `X-Forwarded-Proto` when the direct socket address is trusted, taking the last entry of each, and otherwise falls back to the `Host` header and the socket's TLS state."
+  },
+  {
+    "repo": "fastify",
+    "task": "x143",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/request.js",
+      "fastify.js",
+      "docs/Reference/Server.md",
+      "fastify.d.ts",
+      "docs/Reference/Request.md"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 830,
+      "cacheRead": 28387,
+      "cacheWrite": 7124
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00212427,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8457,
+    "answer": "`lib/request.js`\n`fastify.js`\n`docs/Reference/Server.md`\n`fastify.d.ts`\n`docs/Reference/Request.md`\n\n`lib/request.js` does the work: when `trustProxy` is set, it overrides the `ip`, `ips`, `host` and `protocol` getters, and walks the `X-Forwarded-For` chain with `@fastify/proxy-addr` (an external package, so the actual hop-trust matching is not in this repo). `host` and `protocol` read the last `X-Forwarded-Host`/`X-Forwarded-Proto` value only when the socket's remote address is trusted; `fastify.js` wires this in at line 168, and the docs and typings describe the option.\n\nI did not modify anything."
+  },
+  {
+    "repo": "fastify",
+    "task": "x144",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/error-handler.js",
+      "lib/reply.js",
+      "reply.send"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 948,
+      "cacheRead": 27491,
+      "cacheWrite": 6252
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0019999099999999997,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9790,
+    "answer": "`lib/error-handler.js` implements the chain. `handleError` walks the scope chain through `kReplyNextErrorHandler`, and when no handler is left it calls `fallbackErrorHandler`, which writes a built-in JSON response.\n\n`lib/error-handler.js`\n`lib/reply.js`\n\nThe mechanism: before each callback runs, `handleError` sets `reply[kReplyNextErrorHandler]` to the prototype of the current handler, so the next scope's handler is the one used if the current one throws. The `try/catch` around `func(...)` at lines 68–79 catches a throw and calls `reply.send(err)`, which re-enters `handleError` with the next handler. When the chain reaches the root (`rootErrorHandler`, which wraps `defaultErrorHandler`) and that handler has no `func` or the flag is `false`, `fallbackErrorHandler` builds the status-code JSON body (lines 103–140). If serialization fails there, it falls back to a 500 `FST_ERR_FAILED_ERROR_SERIALIZATION` payload. `lib/reply.js` (lines 890–893) is the caller that routes errors into `handleError`."
+  },
+  {
+    "repo": "fastify",
+    "task": "x144",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/error-handler.js",
+      "reply.send",
+      "lib/reply.js",
+      "lib/route.js",
+      "lib/context.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1099,
+      "cacheRead": 51178,
+      "cacheWrite": 8177
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026974800000000004,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11691,
+    "answer": "`lib/error-handler.js` implements this. When a developer's error handler throws, `handleError` catches it and calls `reply.send(err)`, which re-enters `handleError`. Each pass sets `reply[kReplyNextErrorHandler]` to the prototype of the current handler, so the next pass uses the outer scope's handler. Once the chain is exhausted (`func` missing or `kReplyNextErrorHandler === false`), `fallbackErrorHandler` builds a plain JSON error response with the built-in serializer and ends the response.\n\n`lib/error-handler.js`\n`lib/reply.js`\n`lib/route.js`\n`lib/context.js`\n\nThe first file holds the retry loop and the built-in fallback. `lib/reply.js` (`onErrorHook`, around line 882) is the entry point into `handleError`. `lib/route.js` builds the scoped handler chain with `buildErrorHandler`, and `lib/context.js` stores the starting handler on each request context."
+  },
+  {
+    "repo": "fastify",
+    "task": "x144",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/error-handler.js",
+      "lib/reply.js",
+      "lib/route.js",
+      "lib/context.js",
+      "reply.send"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1,
+        "Bash": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {
+        "sed": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1399,
+      "cacheRead": 67828,
+      "cacheWrite": 7525
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00288378,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 20058,
+    "answer": "`lib/error-handler.js`\n`lib/reply.js`\n`lib/route.js`\n`lib/context.js`\n\n`lib/error-handler.js` does the work: `handleError` wraps the handler call in try/catch, and on a throw calls `reply.send(err)`, which re-enters `handleError` with `kReplyNextErrorHandler` already set to the prototype parent of the failed handler (built by `buildErrorHandler` via `Object.create`), so each throw walks one scope outward until the root `defaultErrorHandler`, and once no parent remains it sets the next handler to `false` and calls `fallbackErrorHandler`, which serializes a plain status-code JSON body. `lib/reply.js` (`onErrorHook`) is the entry point that routes errors into `handleError`, `lib/route.js` builds the per-route handler chain that the outward walk follows, and `lib/context.js` stores the starting `context.errorHandler`."
+  },
+  {
+    "repo": "fastify",
+    "task": "x144",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "lib/error-handler.js",
+      "lib/reply.js",
+      "Object.getPrototy"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 761,
+      "cacheRead": 16836,
+      "cacheWrite": 6097
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00176866,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8079,
+    "answer": "`lib/error-handler.js`\n`lib/reply.js`\n\n`lib/error-handler.js` does the work: each error handler is a prototype-chained object, so when a handler throws, `handleError` sets `kReplyNextErrorHandler` to the parent (`Object.getPrototypeOf`) and retries there, ending at `rootErrorHandler` or, if no handler is left, at `fallbackErrorHandler`, which builds a plain JSON error body. `lib/reply.js` is where `send(err)` routes errors into `handleError` (lines 890–893)."
+  }
+]

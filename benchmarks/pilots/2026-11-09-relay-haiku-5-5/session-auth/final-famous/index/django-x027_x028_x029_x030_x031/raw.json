@@ -1,0 +1,782 @@
+[
+  {
+    "repo": "django",
+    "task": "x027",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/models/lookups.py",
+      "django/db/backends/oracle/operations.py",
+      "django/db/backends/base/operations.py",
+      "lookups.py",
+      "In.as"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 885,
+      "cacheRead": 27337,
+      "cacheWrite": 5063
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00172907,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 8561,
+    "answer": "The split happens in the `In` lookup's SQL generation, and Oracle is the backend that sets the limit (1000).\n\n`django/db/models/lookups.py`\n`django/db/backends/oracle/operations.py`\n`django/db/backends/base/operations.py`\n\n`lookups.py` is the main answer: `In.as_sql` checks the list length against `max_in_list_size()`, and `split_parameter_list_as_sql` rewrites one large `IN (...)` into several `IN` groups of at most that size joined with `OR`. `oracle/operations.py` supplies the limit of 1000, and `base/operations.py` defines the default hook, which returns `None` (no limit) for other backends."
+  },
+  {
+    "repo": "django",
+    "task": "x027",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/models/lookups.py",
+      "django/db/backends/oracle/operations.py",
+      "django/db/backends/base/operations.py",
+      "django/db/backends/sqlite3/operations.py",
+      "django/db/models/query.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 944,
+      "cacheRead": 31698,
+      "cacheWrite": 8813
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025521800000000002,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 9148,
+    "answer": "`django/db/models/lookups.py`\n`django/db/backends/oracle/operations.py`\n`django/db/backends/base/operations.py`\n`django/db/backends/sqlite3/operations.py`\n`django/db/models/query.py`\n\nThe `In` lookup in `lookups.py` checks `max_in_list_size()` and, when the list is too long, splits it into several `IN (...)` groups joined with `OR`. Oracle sets that limit to 1000 in `oracle/operations.py`. The base `bulk_batch_size()` in `base/operations.py` derives batch sizes from `max_query_params` for writes, and the SQLite operations file uses the same limit for its own batching, while `query.py` applies `bulk_batch_size` to bulk create, update and lookup batching."
+  },
+  {
+    "repo": "django",
+    "task": "x027",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/models/lookups.py",
+      "django/db/backends/oracle/operations.py",
+      "django/db/backends/base/operations.py",
+      "lookups.py",
+      "connection.ops.max"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 700,
+      "cacheRead": 34406,
+      "cacheWrite": 4698
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00163426,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 8942,
+    "answer": "`django/db/models/lookups.py`\n`django/db/backends/oracle/operations.py`\n`django/db/backends/base/operations.py`\n\nThe `In` lookup in `lookups.py` checks `connection.ops.max_in_list_size()` and, when the list is longer, `split_parameter_list_as_sql` rewrites it as `(col IN (...) OR col IN (...) ...)` in chunks of that size. Oracle's backend sets the limit to 1000 in `oracle/operations.py`, and the base `operations.py` provides the default hook that returns no limit."
+  },
+  {
+    "repo": "django",
+    "task": "x027",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/models/lookups.py",
+      "django/db/backends/oracle/operations.py",
+      "django/db/backends/base/operations.py",
+      "django/db/backends/oracle/features.py",
+      "django/db/backends/sqlite3/features.py"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 1,
+        "Read": 5,
+        "Bash": 1
+      },
+      "byCommand": {
+        "printf": 1
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1670,
+      "cacheRead": 42368,
+      "cacheWrite": 7560
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00277148,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 13153,
+    "answer": "`django/db/models/lookups.py`\n`django/db/backends/oracle/operations.py`\n`django/db/backends/base/operations.py`\n`django/db/backends/oracle/features.py`\n`django/db/backends/sqlite3/features.py`\n\n`In` lookup's `as_sql` checks the backend's `max_in_list_size()` and, when the list is longer, `split_parameter_list_as_sql` rewrites it as `(x IN (...) OR x IN (...) ...)` in chunks of that size. Oracle caps that size at 1000 (`oracle/operations.py:367`), and the base default returns no limit (`base/operations.py:328`). The base `bulk_batch_size` in `base/operations.py` is the separate mechanism that sizes batches against `max_query_params`, and `oracle/features.py` and `sqlite3/features.py` define that parameter limit for their backends."
+  },
+  {
+    "repo": "django",
+    "task": "x028",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/migrations/recorder.py",
+      "django/db/migrations/executor.py",
+      "django/db/migrations/loader.py",
+      "django/core/management/commands/showmigrations.py",
+      "recorder.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 994,
+      "cacheRead": 27846,
+      "cacheWrite": 6117
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00199946,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10052,
+    "answer": "`django/db/migrations/recorder.py`\n`django/db/migrations/executor.py`\n`django/db/migrations/loader.py`\n`django/core/management/commands/showmigrations.py`\n\nApplied state is remembered as rows in a `django_migrations` table: `MigrationRecorder` in `recorder.py` defines that table, `applied_migrations()` reads it, and `record_applied()`/`record_unapplied()` write and delete rows. `MigrationRecorder.ensure_schema()` creates the table through the schema editor when `has_table()` finds it missing, and `MigrationExecutor.migrate()` in `executor.py` calls `ensure_schema()` before applying a non-empty plan, so the executor is what creates the table in practice. The loader and `showmigrations` only read the applied set."
+  },
+  {
+    "repo": "django",
+    "task": "x028",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/migrations/recorder.py",
+      "django/db/migrations/executor.py",
+      "django/db/migrations/loader.py",
+      "MigrationRecorder.Migration",
+      "MigrationRecorder.ensure"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 745,
+      "cacheRead": 33571,
+      "cacheWrite": 4936
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00169601,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8618,
+    "answer": "`django/db/migrations/recorder.py`\n`django/db/migrations/executor.py`\n`django/db/migrations/loader.py`\n\nApplied state is remembered as rows in a `django_migrations` table (the `MigrationRecorder.Migration` model), keyed by app and name. `MigrationRecorder.ensure_schema()` creates that table on demand via `schema_editor().create_model()` when `has_table()` is false, and it is called from `record_applied()`/`record_unapplied()` and from `MigrationExecutor` before it reads state, so the executor is what triggers table creation. `applied_migrations()` returns an empty dict when the table is absent, so a missing table means nothing is applied rather than an error.\n\nNothing was modified."
+  },
+  {
+    "repo": "django",
+    "task": "x028",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/migrations/recorder.py",
+      "django/db/migrations/executor.py",
+      "recorder.py",
+      "MigrationRecorder.ensure",
+      "executor.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 620,
+      "cacheRead": 21466,
+      "cacheWrite": 3863
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00129766,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 6626,
+    "answer": "`django/db/migrations/recorder.py`\n`django/db/migrations/executor.py`\n\nApplied migrations are remembered as rows in the `django_migrations` table, which `MigrationRecorder` in `recorder.py` reads (`applied_migrations`) and writes (`record_applied`/`record_unapplied`). `MigrationRecorder.ensure_schema()` creates that table on demand, and `MigrationExecutor` in `executor.py` calls it, after checking `has_table()`, just before it applies migrations."
+  },
+  {
+    "repo": "django",
+    "task": "x028",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/db/migrations/recorder.py",
+      "django/db/migrations/executor.py",
+      "django/db/migrations/loader.py",
+      "recorder.py",
+      "executor.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 975,
+      "cacheRead": 30358,
+      "cacheWrite": 8771
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025458800000000004,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 8810,
+    "answer": "`django/db/migrations/recorder.py`\n`django/db/migrations/executor.py`\n`django/db/migrations/loader.py`\n\nThe `MigrationRecorder` class in `recorder.py` keeps one row per applied migration in the `django_migrations` table, and `ensure_schema()` creates that table on demand through the schema editor. `executor.py` calls `ensure_schema()` before applying migrations and records each one through the recorder, and `loader.py` reads the applied set back via `applied_migrations()` to build the graph state."
+  },
+  {
+    "repo": "django",
+    "task": "x029",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/urls/resolvers.py",
+      "django/urls/base.py",
+      "django/urls/conf.py",
+      "resolvers.py",
+      "URLResolver.resolve"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 825,
+      "cacheRead": 27799,
+      "cacheWrite": 5057
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00170249,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9111,
+    "answer": "`django/urls/resolvers.py`\n`django/urls/base.py`\n`django/urls/conf.py`\n\n`resolvers.py` holds `URLResolver.resolve` (around line 672), which matches its own prefix pattern, recurses into each child pattern with the remaining path, and merges the captured kwargs from its level with the child's kwargs into one `ResolverMatch`. `base.py` has the top-level `resolve()` entry point that starts this recursion from the root urlconf, and `conf.py` has `include()`, which creates the nested resolvers."
+  },
+  {
+    "repo": "django",
+    "task": "x029",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/urls/resolvers.py",
+      "django/urls/base.py",
+      "resolvers.py",
+      "URLResolver.resolve",
+      "base.py"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 724,
+      "cacheRead": 20817,
+      "cacheWrite": 5295
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00162957,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 7950,
+    "answer": "`django/urls/resolvers.py`\n`django/urls/base.py`\n\n`resolvers.py` holds the recursive `URLResolver.resolve()` (around line 672), which matches its prefix, recurses into each sub-pattern with the remaining path, and merges each level's kwargs and args into the final match. `base.py` has the top-level `resolve()` entry point (line 22) that starts that recursion from the root URLconf."
+  },
+  {
+    "repo": "django",
+    "task": "x029",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/urls/resolvers.py",
+      "django/urls/base.py",
+      "django/urls/conf.py",
+      "resolvers.py",
+      "URLResolver.resolve"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 581,
+      "cacheRead": 21472,
+      "cacheWrite": 4051
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00131582,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8191,
+    "answer": "`django/urls/resolvers.py`\n`django/urls/base.py`\n`django/urls/conf.py`\n\n`resolvers.py` holds the recursive matching: `URLResolver.resolve` (around line 672) strips the matched prefix, calls `resolve` on each child pattern, and merges the parent's captured kwargs with the child's `sub_match.kwargs` into one `ResolverMatch`. `base.py` provides the top-level `resolve(path, urlconf)` entry point that starts this walk from the root urlconf, and `conf.py` defines `include()`, which creates the nested resolvers."
+  },
+  {
+    "repo": "django",
+    "task": "x029",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/urls/resolvers.py",
+      "django/urls/base.py",
+      "URLResolver.resolve",
+      "resolvers.py",
+      "sub_match.kwargs"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 921,
+      "cacheRead": 27696,
+      "cacheWrite": 5399
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018178600000000001,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9962,
+    "answer": "`django/urls/resolvers.py`\n`django/urls/base.py`\n\n`URLResolver.resolve` (resolvers.py:672) matches its own prefix, passes the remaining path to each child pattern, then merges the parent's captured kwargs with the child's `sub_match.kwargs` (lines 686-689) before returning a `ResolverMatch`. `base.py` only provides the top-level `resolve()` entry point that gets the root resolver. I did not open the `RegexPattern.match` implementation, which is called at line 675 and presumably lives in the same file."
+  },
+  {
+    "repo": "django",
+    "task": "x030",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/template/loader_tags.py",
+      "BlockNode.render",
+      "ExtendsNode.render",
+      "block.super",
+      "BlockNode.super"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 836,
+      "cacheRead": 31683,
+      "cacheWrite": 10372
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00280983,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9368,
+    "answer": "The core logic is in one file:\n\n`django/template/loader_tags.py`\n\nIt works like this. `BlockNode.render` (line 51) checks `render_context` for a `BlockContext`. `BlockContext` (line 14) holds a FIFO stack of override blocks per name, built by `ExtendsNode.render` (line 134), which adds the child's blocks first and then the parent chain's blocks. When rendering, `BlockNode` pops the most-derived override and renders it. `{{ block.super }}` calls `BlockNode.super` (line 71), which re-renders the next block in that stack, so the parent's original content is output at that point."
+  },
+  {
+    "repo": "django",
+    "task": "x030",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/template/loader_tags.py",
+      "django/template/base.py",
+      "block.super",
+      "loader_tags.py",
+      "BlockNode.render"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 641,
+      "cacheRead": 33515,
+      "cacheWrite": 5094
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00167505,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8459,
+    "answer": "`django/template/loader_tags.py`\n`django/template/base.py`\n\nThe child's `{% block %}` overrides the parent's by name, and `{{ block.super }}` renders the parent's version: `BlockContext` in `loader_tags.py` holds a per-name stack of block overrides, `BlockNode.render` pops the next override and renders it, and `BlockNode.super()` re-renders the previously pushed block to produce the parent's content. `base.py` supplies the `Node` render machinery (`render_annotated`) these nodes depend on."
+  },
+  {
+    "repo": "django",
+    "task": "x030",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/template/loader_tags.py",
+      "django/template/base.py",
+      "loader_tags.py",
+      "BlockNode.render",
+      "BlockNode.super"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 675,
+      "cacheRead": 34101,
+      "cacheWrite": 4404
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00155991,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8768,
+    "answer": "`django/template/loader_tags.py`\n`django/template/base.py`\n\n`loader_tags.py` holds the whole mechanism: `BlockContext` keeps a per-block-name stack of overrides from the child-most template down to the base, `BlockNode.render` pops the next override and renders it, and `BlockNode.super()` re-renders the next-up block so `{{ block.super }}` can output the parent's content. `base.py` is the template engine core that the `{% block %}` and `{% extends %}` tags are registered into and rendered through, which I didn't open, so it's listed only as a secondary location."
+  },
+  {
+    "repo": "django",
+    "task": "x030",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/template/loader_tags.py",
+      "django/template/syntax_tests/test_extends.py",
+      "tests/template_tests/syntax_tests/test_extends.py",
+      "tests/template_tests/syntax_tests/test_basic.py",
+      "loader_tags.py"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 839,
+      "cacheRead": 16778,
+      "cacheWrite": 3731
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00133388,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8556,
+    "answer": "`django/template/loader_tags.py`\n`django/template/syntax_tests/test_extends.py` is wrong here; the correct path is `tests/template_tests/syntax_tests/test_extends.py`\n`tests/template_tests/syntax_tests/test_basic.py`\n\nThe core logic is in `loader_tags.py`: `ExtendsNode` builds a `BlockContext` that stacks each child's block overrides, and `BlockNode` renders the most-derived version. `BlockNode.super()` renders the next version up the chain, which is how a child gets the parent's original content. The two test files exercise `extends` and block/context behaviour, but I only grepped them and did not read the test bodies."
+  },
+  {
+    "repo": "django",
+    "task": "x031",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/templates/admin/filter.html",
+      "django/contrib/admin/views/main.py",
+      "django/contrib/admin/templates/admin/change_list.html",
+      "filters.py"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 6,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1706,
+      "cacheRead": 59060,
+      "cacheWrite": 17079
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0048602,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 12222,
+    "answer": "`django/contrib/admin/filters.py`\n`django/contrib/admin/templates/admin/filter.html`\n`django/contrib/admin/views/main.py`\n`django/contrib/admin/templates/admin/change_list.html`\n\n`DateFieldListFilter` in `filters.py` builds the \"Any date / Today / Past 7 days / This month / This year\" links as lookup dicts (`field__gte`, `field__lt`) and its `choices()` turns each into a query string via `ChangeList.get_query_string` in `views/main.py`; `filter.html` renders those choices as sidebar links, and `change_list.html` includes the filter sidebar on the changelist page."
+  },
+  {
+    "repo": "django",
+    "task": "x031",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/views/main.py",
+      "django/contrib/admin/templatetags/admin_list.py",
+      "django/contrib/admin/templates/admin/filter.html",
+      "ChangeList.get"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 3,
+        "mcp__sigmap__get_lines": 3,
+        "Bash": 1
+      },
+      "byCommand": {
+        "cat": 1
+      }
+    },
+    "usage": {
+      "in": 10,
+      "out": 1943,
+      "cacheRead": 87625,
+      "cacheWrite": 15848
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0050183499999999995,
+      "source": "agent-reported"
+    },
+    "turns": 8,
+    "durationMs": 15906,
+    "answer": "`django/contrib/admin/filters.py`\n`django/contrib/admin/views/main.py`\n`django/contrib/admin/templatetags/admin_list.py`\n`django/contrib/admin/templates/admin/filter.html`\n\n`DateFieldListFilter` builds the \"Today\", \"Past 7 days\", \"This month\" and \"This year\" entries as `field__gte`/`field__lt` dicts, and its `choices()` turns each into a URL via `ChangeList.get_query_string` in `views/main.py`. The `admin_list_filter` tag in `templatetags/admin_list.py` hands those choices to the template. I did not open `filter.html` (the Bash sandbox failed to start), so its path is from the Django layout, not from reading it."
+  },
+  {
+    "repo": "django",
+    "task": "x031",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/contrib/admin/filters.py",
+      "django/contrib/admin/templates/admin/filter.html",
+      "changelist.get"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1362,
+      "cacheRead": 65786,
+      "cacheWrite": 14503
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.004240260000000001,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13497,
+    "answer": "`django/contrib/admin/filters.py`\n`django/contrib/admin/templates/admin/filter.html`\n\n`DateFieldListFilter` builds the \"Any date / Today / Past 7 days / This month / This year\" links as `{lookup: value}` dicts (`field__gte` and `field__lt`), and its `choices()` turns each one into a query string via `changelist.get_query_string`, which I did not open. The template renders those query strings as plain `<a href>` links in the sidebar."
+  },
+  {
+    "repo": "django",
+    "task": "x031",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "django/contrib/admin/filters.py",
+      "self.links",
+      "changelist.get",
+      "django/contrib/admin/templates/admin/filter.html",
+      "choice.query"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1610,
+      "cacheRead": 48343,
+      "cacheWrite": 11094
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0035080299999999997,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13048,
+    "answer": "Django's date filter is in `django/contrib/admin/filters.py`. `DateFieldListFilter.__init__` builds the quick ranges as `self.links`: Any date, Today, Past 7 days, This month, This year (plus No date / Has date for nullable fields). Each range is a dict of `field__gte` and `field__lt` lookups. `choices()` turns each dict into a query string via `changelist.get_query_string(...)` and marks the active one as selected by comparing against the request's date params. The template then renders those links.\n\n`django/contrib/admin/filters.py`\n`django/contrib/admin/templates/admin/filter.html`\n\nThe first file defines the ranges, their date bounds, and the URL-parameter generation. The second file renders each choice as a sidebar link using `choice.query_string` and `choice.selected`."
+  }
+]
