@@ -427,7 +427,7 @@ function listModules(args, cwd) {
       return 'No context file found. Run: node gen-context.js';
     }
 
-    const groups = {};
+    const groups = Object.create(null); // no prototype: a directory may be called `constructor`
     for (const [rel, sigs] of index.entries()) {
       const parts = rel.replace(/\\/g, '/').split('/');
       const mod = parts.length > 1 ? parts[0] : '.';

@@ -27962,7 +27962,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
    */
   function architectureView(map) {
     const files = map.nodes.filter((n) => n.kind === 'file');
-    const groups = {};
+    const groups = Object.create(null); // no prototype: a directory may be called `constructor`
     let totalTokens = 0;
     for (const n of files) {
       const rel = n.id.slice(5);
@@ -28768,7 +28768,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         return 'No context file found. Run: node gen-context.js';
       }
 
-      const groups = {};
+      const groups = Object.create(null); // no prototype: a directory may be called `constructor`
       for (const [rel, sigs] of index.entries()) {
         const parts = rel.replace(/\\/g, '/').split('/');
         const mod = parts.length > 1 ? parts[0] : '.';
@@ -44536,8 +44536,8 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
 
   const impactMap = resolveImpactRadius(fileEntries, cwd, config || {});
 
-  // Group by top-level src dir
-  const groups = {};
+  // Group by top-level src dir. No prototype: a directory called `constructor`, `toString` or `hasOwnProperty` is a key like any other.
+  const groups = Object.create(null);
   for (const entry of fileEntries) {
     const rel = path.relative(cwd, entry.filePath);
     const parts = rel.split(path.sep);
