@@ -52,7 +52,7 @@ import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
-import { prepareArm, probeMcp, probeCli } from './lib/agent-ab-arms.mjs';
+import { prepareArm, probeMcp, probeCli, prefetchContext } from './lib/agent-ab-arms.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
 } from './lib/agent-ab-claude.mjs';
@@ -190,7 +190,7 @@ async function main() {
       say(`  preparing ${repo.name} (${arm})`);
       prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
-    if (SKILL_RUN) {
+    if (SKILL_RUN || VARIANT === 'prefetch') {
       const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
       if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
     } else {
@@ -200,8 +200,16 @@ async function main() {
   }
 
   const env = childEnv();
+  const prefetched = new Map();
   const version = agentVersion(BIN, env);
-  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN });
+  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN,
+    // One `sigmap ask` per question, cached: both repetitions of a question get the same pre-ranked text.
+    prefetch: VARIANT === 'prefetch' ? (job, arm) => {
+      const k = `${job.task.repo}/${job.task.id}`;
+      if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: job.task.query }));
+      return prefetched.get(k);
+    } : null,
+  });
 
   let n = 0;
   const entries = await runPlan({

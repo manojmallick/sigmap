@@ -25,7 +25,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
-import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS } from './agent-ab.mjs';
+import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS, PREFETCH_HEADER, PREFETCH_MAX_BYTES } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -153,6 +153,11 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
   });
   if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
+  if (variant === 'prefetch') {
+    // The index is all this arm keeps: the ranking is computed per question (`prefetchContext`) and rides in the prompt.
+    fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
+    return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), prefetch: true });
+  }
   const claudeMd = fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8');
   const section = findManagedSection(claudeMd);
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
@@ -204,4 +209,32 @@ export function probeCli({ cwd, binDir, timeoutMs = 60000 }) {
   if (r.error) return { ok: false, error: r.error.message };
   if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
   return /\S/.test(r.stdout || '') ? { ok: true, error: null } : { ok: false, error: 'sigmap ask printed nothing' };
+}
+
+/**
+ * What a prompt hook would put in front of the agent for one question: `sigmap ask "<question>"` run in the arm's checkout
+ * through the arm's own shim, before any model call. The ranking it prints, then the signatures and line anchors it writes
+ * to `.context/query-context.md`, under PREFETCH_HEADER, cut at a section boundary to stay under PREFETCH_MAX_BYTES.
+ * Deterministic for a given checkout and question, so both repetitions of a question carry the same text.
+ *
+ * @returns {string}
+ */
+export function prefetchContext({ cwd, binDir, query, timeoutMs = 60000, maxBytes = PREFETCH_MAX_BYTES }) {
+  const out = path.join(cwd, '.context', 'query-context.md');
+  fs.rmSync(out, { force: true });
+  const r = spawnSync(path.join(binDir, SIGMAP_CLI), ['ask', String(query)], { cwd, encoding: 'utf8', timeout: timeoutMs });
+  if (r.error || r.status !== 0) throw new Error(`sigmap ask failed for the prefetch arm: ${r.error ? r.error.message : `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}`}`);
+  const ranking = (r.stdout || '').trim();
+  if (!ranking) throw new Error('sigmap ask printed no ranking for the prefetch arm');
+  let body = fs.existsSync(out) ? fs.readFileSync(out, 'utf8').replace(/^# SigMap Query Context\n(?:Generated: .*\n)?/, '').trim() : '';
+  const head = `${PREFETCH_HEADER}\n\n${ranking}\n`;
+  const room = maxBytes - Buffer.byteLength(head) - 2;
+  if (Buffer.byteLength(body) > room) {
+    // Keep whole file sections, best-ranked first; say what was left out so the agent knows the list above is longer.
+    const sections = body.split(/\n(?=## )/);
+    let kept = '';
+    for (const s of sections) { if (Buffer.byteLength(kept) + Buffer.byteLength(s) + 1 > room - 60) break; kept += (kept ? '\n' : '') + s; }
+    body = `${kept}\n\n(signatures of the lower-ranked files left out to keep this short)`.trim();
+  }
+  return body ? `${head}\n${body}\n` : head;
 }

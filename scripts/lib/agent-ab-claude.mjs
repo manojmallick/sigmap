@@ -61,7 +61,7 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false }) {
   if (skills && bare) throw new Error('a skill run needs --session-auth: --bare turns skills off');
   // A skill run keeps the Skill tool in BOTH arms and passes no --disable-slash-commands in either, so the
   // arms still differ only by what SigMap adds (the CLI, and the skill file in the SigMap arm's checkout).
@@ -70,7 +70,7 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     ...tools.filter((t) => t !== 'Bash'),
     ...BASH_ALLOW.map((c) => `Bash(${c}:*)`),
   ];
-  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills ? [] : [`mcp__${SIGMAP_SERVER}`]));
+  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills || prefetch ? [] : [`mcp__${SIGMAP_SERVER}`]));
   const args = [
     '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', ...(skills ? [] : ['--disable-slash-commands'])]),
     '--output-format', 'stream-json', '--verbose',
@@ -82,7 +82,12 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     '--max-budget-usd', String(budgetUsd),
     '--strict-mcp-config',
   ];
-  if (arm === 'with' && !skills) {
+  if (arm === 'with' && prefetch) {
+    // The pre-ranked files for THIS question, and nothing else: no MCP server, no standing section.
+    if (!sigmapContext) throw new Error('the prefetch arm needs the pre-ranked files for its question');
+    if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) throw new Error(`the pre-ranked context is ${Buffer.byteLength(sigmapContext)} bytes; one argument may not exceed ${MAX_CONTEXT_BYTES}`);
+    args.push('--append-system-prompt', sigmapContext);
+  } else if (arm === 'with' && !skills) {
     if (!sigmapContext || !mcpConfig) throw new Error('the SigMap arm needs its generated context and its MCP config');
     if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) {
       throw new Error(`the generated context is ${Buffer.byteLength(sigmapContext)} bytes; one argument may not exceed ${MAX_CONTEXT_BYTES} (Linux caps it at 128 KiB)`);
@@ -327,11 +332,13 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills });
+    // `prefetch(job, arm)` returns the pre-ranked files for this question: computed per run, before the model is called.
+    const pre = prefetch && job.arm === 'with' ? prefetch(job, arm) : null;
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: pre || arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
     const r = await runClaude({ bin, args, prompt: job.prompt, cwd: arm.cwd, env: env2, timeoutMs });

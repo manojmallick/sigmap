@@ -1,0 +1,734 @@
+[
+ {
+  "repo": "gin",
+  "task": "x001",
+  "ok": true,
+  "answer": "`binding/form_mapping.go`\n`binding/mapping.go`\n`binding/query.go`\n`binding/form.go`\n`binding/uri.go`\n\nThe mapping logic lives in `binding/form_mapping.go`, which reads `form` tags, applies `default` values, and splits slices on the delimiter, while the other files are the binders that feed it query, form, and URI values. This is from memory without access to the code, so the exact file split (in particular whether `mapping.go` exists in this version) may differ.",
+  "usd": 0.0011290900000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "binding/form_mapping.go",
+   "binding/mapping.go",
+   "binding/query.go",
+   "binding/form.go",
+   "binding/uri.go"
+  ]
+ },
+ {
+  "repo": "gin",
+  "task": "x002",
+  "ok": true,
+  "answer": "`render/json.go`\n`context.go`\n`internal/json/json.go`\n\nThe first two define the `AsciiJSON`, `JsonpJSON`, and `PureJSON` renderers and their `Context` methods, which cover the `\\u` escaping, callback wrapping, and unescaped angle brackets; `internal/json/json.go` is a lower-relevance wrapper around the JSON encoder. This is from memory of the gin source, not verified against the repository.",
+  "usd": 0.0010126900000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "render/json.go",
+   "context.go",
+   "internal/json/json.go"
+  ]
+ },
+ {
+  "repo": "gin",
+  "task": "x003",
+  "ok": true,
+  "answer": "`recovery.go`\n`gin.go`\n`context.go`\n`logger.go`\n`routergroup.go`\n\nRecovery is the file that defines the panic-catching middleware, including the broken-pipe check, the 500 response, and the stack dump, and the other files are supporting context from memory: `gin.go` wires it into `Default()`, `context.go` provides `Abort`/`Error`, `logger.go` handles the request log, and `routergroup.go` handles middleware chaining.",
+  "usd": 0.0009588900000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "recovery.go",
+   "gin.go",
+   "context.go",
+   "logger.go",
+   "routergroup.go"
+  ]
+ },
+ {
+  "repo": "gin",
+  "task": "x004",
+  "ok": true,
+  "answer": "`gin.go`\n`context.go`\n\nThe client-IP logic is in the Engine (`gin.go`), which holds the trusted-proxy CIDRs and the `RemoteIPHeaders` list (by default `X-Forwarded-For` and `X-Real-IP`), and in `Context.ClientIP()` (`context.go`), which walks the forwarded headers from the right and returns the first address not in a trusted range, falling back to `RemoteAddr`. This is from memory without access to the code, so the defaults (I believe all proxies are trusted unless `SetTrustedProxies` is called) and the exact header handling should be checked against the source.",
+  "usd": 0.00116349,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "gin.go",
+   "context.go",
+   "Context.ClientIP"
+  ]
+ },
+ {
+  "repo": "gin",
+  "task": "x005",
+  "ok": true,
+  "answer": "`context.go`\n`gin.go`\n`routergroup.go`\n`tree.go`\n\n`Context.Next()` in `context.go` drives the chain by advancing an index over the handler slice that `gin.go` builds for each request from the matched route, `routergroup.go` merges group middleware with route handlers, and `tree.go` supplies the matched handlers from the route lookup.",
+  "usd": 0.0008197600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "context.go",
+   "gin.go",
+   "routergroup.go",
+   "tree.go",
+   "Context.Next"
+  ]
+ },
+ {
+  "repo": "flask",
+  "task": "x032",
+  "ok": true,
+  "answer": "Steps for each request, as I recall them from Flask 2.x/3.x (not checked against the source, since I have no tools here):\n\n1. `Flask.__call__` → `wsgi_app` creates a `RequestContext`, which pushes the app context and the request context.\n2. URL matching runs; a routing error is stored on the request and raised later.\n3. `full_dispatch_request` sends `request_started` and runs `preprocess_request`: URL value preprocessors, then `before_request` functions. If one returns a value, that becomes the response and the view is skipped.\n4. `dispatch_request` calls the view function. Exceptions go to `handle_user_exception`, which uses registered error handlers or re-raises.\n5. `finalize_request` runs `make_response`, then `process_response`: `after_request` functions in reverse order, then session save. It also sends `request_finished`.\n6. `RequestContext.pop` runs `teardown_request` and app-context teardown functions, even when an error occurred.\n\nErrors: an unhandled exception is caught in `wsgi_app` and passed to `handle_exception`. That logs it, sends `got_request_exception`, and wraps it in an `InternalServerError` (500). The 500 then goes through `finalize_request` like any other response, unless `PROPAGATE_EXCEPTIONS` is set (on in debug and testing), in which case the exception is re-raised.\n\nFiles, most relevant first:\n\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/sansio/app.py`\n`src/flask/sessions.py`\n`src/flask/sansio/scaffold.py`\n\n`app.py` holds the dispatch pipeline and the exception-to-500 path, `ctx.py` owns the context push/pop and teardown, `sansio/app.py` has the error-handler lookup, `sessions.py` does the session save in post-processing, and `sansio/scaffold.py` is where the hook decorators (`before_request`, `after_request`, `teardown_request`) register their functions.",
+  "usd": 0.0010413599999999999,
+  "turns": 1,
+  "pass": true,
+  "rank": 3,
+  "named": [
+   "2.x/3.x",
+   "RequestContext.pop",
+   "src/flask/app.py",
+   "src/flask/ctx.py",
+   "src/flask/sansio/app.py"
+  ]
+ },
+ {
+  "repo": "flask",
+  "task": "x033",
+  "ok": true,
+  "answer": "`src/flask/sansio/blueprints.py`\n`src/flask/sansio/app.py`\n`src/flask/app.py`\n`src/flask/blueprints.py`\n`tests/test_blueprints.py`\n\nBlueprint definition, URL-prefix handling, and nested registration live in `sansio/blueprints.py`, while the app-side registration and duplicate-name `ValueError` live in `sansio/app.py` (with `app.py` as the concrete subclass), and `blueprints.py` is a compatibility shim; these are from memory, not verified against the repository.",
+  "usd": 0.00071816,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/flask/sansio/blueprints.py",
+   "src/flask/sansio/app.py",
+   "src/flask/app.py",
+   "src/flask/blueprints.py",
+   "tests/test_blueprints.py"
+  ]
+ },
+ {
+  "repo": "flask",
+  "task": "x034",
+  "ok": true,
+  "answer": "`src/flask/sessions.py`\n`src/flask/app.py`\n`src/flask/ctx.py`\n`src/flask/json/tag.py`\n`src/flask/sansio/app.py`\n\n`sessions.py` holds the signed-cookie `SecureCookieSessionInterface`, which opens the session from the request cookie and decides in `save_session` whether to rewrite or delete it. `app.py` calls that save step in `process_response`, `ctx.py` opens the session when the request context is pushed, `json/tag.py` handles the serialization of session values, and `sansio/app.py` defines the `session_interface` attribute. This is from memory, not checked against the repository, so the exact details may differ by version.",
+  "usd": 0.00073176,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/flask/sessions.py",
+   "src/flask/app.py",
+   "src/flask/ctx.py",
+   "src/flask/json/tag.py",
+   "src/flask/sansio/app.py"
+  ]
+ },
+ {
+  "repo": "flask",
+  "task": "x035",
+  "ok": true,
+  "answer": "`src/flask/ctx.py`\n`src/flask/globals.py`\n`src/flask/app.py`\n\n`copy_current_request_context` in `ctx.py` wraps a function so that it captures the current `RequestContext` and re-pushes it in the worker thread, while `globals.py` defines the context-local `request`/`g` proxies that read from that stack, and `app.py` pushes the context in `wsgi_app`.",
+  "usd": 0.0006236600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/flask/ctx.py",
+   "src/flask/globals.py",
+   "src/flask/app.py",
+   "ctx.py",
+   "globals.py"
+  ]
+ },
+ {
+  "repo": "flask",
+  "task": "x036",
+  "ok": true,
+  "answer": "`src/flask/cli.py`\n`src/flask/__main__.py`\n`tests/test_cli.py`\n\n`cli.py` holds the logic: `prepare_import` turns a path into a module name, `locate_app` parses `module:name` or `module:factory(args)`, and `find_best_app` checks `app`/`application`, then a lone `Flask` instance, then `create_app`/`make_app`, calling factories through `call_factory`. This is from memory without tools, so I haven't checked line numbers.",
+  "usd": 0.00078056,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/flask/cli.py",
+   "src/flask/__main__.py",
+   "tests/test_cli.py",
+   "cli.py"
+  ]
+ },
+ {
+  "repo": "express",
+  "task": "x037",
+  "ok": true,
+  "answer": "`lib/application.js`\n`lib/router/index.js`\n`lib/router/layer.js`\n`lib/express.js`\n\n`app.use()` in `lib/application.js` sets `mountpath` and `parent` on the child app and emits `mount`, whose handler copies the parent's settings and prototypes (`request`, `response`, `engines`, `settings`) onto the child. The router files handle the prefix matching and `req.baseUrl`, and `lib/express.js` creates the app objects whose request and response prototypes get chained.\n\nThis is from memory without the source in front of me, so the exact line details may differ by version.",
+  "usd": 0.00091756,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/application.js",
+   "lib/router/index.js",
+   "lib/router/layer.js",
+   "lib/express.js",
+   "app.use"
+  ]
+ },
+ {
+  "repo": "express",
+  "task": "x038",
+  "ok": true,
+  "answer": "`lib/request.js`\n`lib/application.js`\n`lib/utils.js`\n\nThe `req.protocol` getter in `lib/request.js` checks whether the socket is encrypted, and when the `trust proxy` setting (configured in `lib/application.js` and compiled by `lib/utils.js`) trusts the direct peer, it uses the first value of `X-Forwarded-Proto` instead.\n\nI answered from memory without access to the repository, so the exact line numbers and internals may differ by Express version.",
+  "usd": 0.0007121600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/request.js",
+   "lib/application.js",
+   "lib/utils.js",
+   "req.protocol"
+  ]
+ },
+ {
+  "repo": "express",
+  "task": "x039",
+  "ok": true,
+  "answer": "`lib/response.js`\n`test/res.attachment.js`\n`test/res.download.js`\n\nA handler calls `res.attachment(filename)` (or `res.download(path, filename)`), which sets `Content-Disposition: attachment; filename=...` via the `content-disposition` package and sets `Content-Type` from the extension, so the browser saves the file under that name. This is from memory, not checked against the repository.",
+  "usd": 0.0005568600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/response.js",
+   "test/res.attachment.js",
+   "test/res.download.js",
+   "res.attachment",
+   "res.download"
+  ]
+ },
+ {
+  "repo": "express",
+  "task": "x040",
+  "ok": true,
+  "answer": "`lib/view.js`\n`lib/application.js`\n\n`lib/view.js` holds the `View` class, whose `lookup` and `resolve` methods try the bare name with the default extension and then `index<ext>` inside a directory. `lib/application.js` supplies the `views` and `view` settings and the default engine that `View` uses.",
+  "usd": 0.00049626,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/view.js",
+   "lib/application.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x137",
+  "ok": true,
+  "answer": "`lib/schemas.js`\n`lib/reply.js`\n`lib/schema-controller.js`\n`lib/context.js`\n\n`lib/schemas.js` holds the serializer lookup, which as I recall tries an exact status code first, then a class wildcard such as `2xx`, then `default`, and within each entry picks a media-type variant when the response has a content type. `lib/reply.js` calls that lookup when serializing a payload, `lib/schema-controller.js` compiles and stores the per-route response schemas, and `lib/context.js` holds the route's compiled schema data the reply reads. I'm working from memory without the source, so the exact precedence and line numbers are unverified.",
+  "usd": 0.00062746,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/schemas.js",
+   "lib/reply.js",
+   "lib/schema-controller.js",
+   "lib/context.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x138",
+  "ok": true,
+  "answer": "I'm answering from memory without the source, so the file list is a best recollection and should be checked against the repository.\n\n`lib/schemas.js`\n`lib/route.js`\n`lib/validation.js`\n\nFastify most likely lowercases the header property names in the route's headers schema when the route is registered, so the validator matches the lowercase keys that Node uses for incoming headers.",
+  "usd": 0.00081196,
+  "turns": 1,
+  "pass": true,
+  "rank": 3,
+  "named": [
+   "lib/schemas.js",
+   "lib/route.js",
+   "lib/validation.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x139",
+  "ok": true,
+  "answer": "`lib/contentTypeParser.js`\n`lib/errors.js`\n`lib/handleRequest.js`\n`fastify.js`\n`lib/request.js`\n\nThe body parser in `lib/contentTypeParser.js` compares the `Content-Length` header against the `bodyLimit` and rejects with `FST_ERR_CTP_BODY_TOO_LARGE` (defined in `lib/errors.js`) before reading anything, then counts bytes on each `data` chunk and aborts with the same error once the running total exceeds the limit. `lib/handleRequest.js` routes the request into that parser, `fastify.js` sets the default `bodyLimit`, and `lib/request.js` holds the parsed body. This comes from memory of the project, not from reading the current code, so check the exact function names and the abort behavior against the source.",
+  "usd": 0.00084776,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "lib/contentTypeParser.js",
+   "lib/errors.js",
+   "lib/handleRequest.js",
+   "fastify.js",
+   "lib/request.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x140",
+  "ok": true,
+  "answer": "`lib/fourOhFour.js`\n`lib/route.js`\n`fastify.js`\n`lib/context.js`\n\nUnmatched requests fall through to a default not-found route that `lib/fourOhFour.js` builds, and `setNotFoundHandler` in `fastify.js` stores a handler on the encapsulated context, so a plugin registered with a prefix can install its own handler for that prefix's paths, which `lib/route.js` wires up as a scoped wildcard route.\n\nI wrote this from memory without access to the repository, so the file paths and the exact mechanism may not match the current source.",
+  "usd": 0.00074526,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "lib/fourOhFour.js",
+   "lib/route.js",
+   "fastify.js",
+   "lib/context.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x141",
+  "ok": true,
+  "answer": "`fastify.js`\n`lib/pluginOverride.js`\n`lib/pluginUtils.js`\n`lib/decorate.js`\n`lib/hooks.js`\n\nFastify creates each child instance with `Object.create` on the parent, so the child inherits decorators and hooks through the prototype chain, while its own `decorate` and `addHook` calls write to properties and arrays it owns and never mutate the parent's.\n\nI answered from memory without opening the repository, so the file list and roles may differ in the current version.",
+  "usd": 0.0006586599999999999,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "fastify.js",
+   "lib/pluginOverride.js",
+   "lib/pluginUtils.js",
+   "lib/decorate.js",
+   "lib/hooks.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x142",
+  "ok": true,
+  "answer": "`lib/hooks.js`\n`lib/handleRequest.js`\n`lib/contentTypeParser.js`\n`lib/symbols.js`\n`lib/request.js`\n\nThese are from memory, not verified against the source. I believe `lib/hooks.js` detects a stream returned from a `preParsing` hook and stores it on the request under a private symbol, and that the body-reading code in `lib/contentTypeParser.js` reads from that stored stream instead of `request.raw`, with `lib/handleRequest.js` wiring the hook into the pipeline and `lib/symbols.js` defining the key.",
+  "usd": 0.00074156,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/hooks.js",
+   "lib/handleRequest.js",
+   "lib/contentTypeParser.js",
+   "lib/symbols.js",
+   "lib/request.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x143",
+  "ok": true,
+  "answer": "`lib/request.js`\n`fastify.js`\n`lib/configValidator.js`\n\n`lib/request.js` holds the `ip`, `ips`, `protocol`, and `hostname` getters, which read `X-Forwarded-*` headers only when the `trustProxy` option (boolean, hop count, address/CIDR list, or function) marks the immediate peer as trusted.",
+  "usd": 0.0009211600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/request.js",
+   "fastify.js",
+   "lib/configValidator.js"
+  ]
+ },
+ {
+  "repo": "fastify",
+  "task": "x144",
+  "ok": true,
+  "answer": "`lib/error-handler.js`\n`lib/reply.js`\n`lib/handleRequest.js`\n`lib/fourOhFour.js`\n\n`lib/error-handler.js` holds the `handleError` chain and the `fallbackErrorHandler` that writes a plain built-in 500 response. `lib/reply.js` invokes it and tracks which outer error handler to try next. `lib/handleRequest.js` and `lib/fourOhFour.js` route errors into that same path. I'm answering from memory without access to the repository, so the exact function names and line numbers are unverified.",
+  "usd": 0.0007940600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "lib/error-handler.js",
+   "lib/reply.js",
+   "lib/handleRequest.js",
+   "lib/fourOhFour.js"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x145",
+  "ok": true,
+  "answer": "`fastapi/encoders.py`\n`fastapi/routing.py`\n\nThe `jsonable_encoder` in `fastapi/encoders.py` recursively walks dicts, lists, and models, converting datetimes to ISO strings, enums to their values, Decimals to numbers, and UUIDs to strings. `fastapi/routing.py` calls it from `serialize_response` before the response is built.\n\nI answered from memory without opening the repository, so the exact function names and line details may differ in the current version.",
+  "usd": 0.00075136,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/encoders.py",
+   "fastapi/routing.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x146",
+  "ok": true,
+  "answer": "`fastapi/sse.py`\n`fastapi/responses.py`\n`fastapi/encoders.py`\n\nThe SSE framing (the `ServerSentEvent` model and the formatter that writes the `comment:`, `event:`, `id:`, `retry:` and per-line `data:` fields, ending each event with a blank line) is most likely in `fastapi/sse.py`, with `fastapi/responses.py` holding the streaming response class, and `fastapi/encoders.py` handling JSON encoding of non-string data. This is from memory with no repository access, so the exact paths and the field order are unverified.",
+  "usd": 0.0007044600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/sse.py",
+   "fastapi/responses.py",
+   "fastapi/encoders.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x147",
+  "ok": true,
+  "answer": "`fastapi/concurrency.py`\n`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/middleware/asyncexitstack.py`\n\n`contextmanager_in_threadpool` in `fastapi/concurrency.py` runs the generator's teardown (`cm.__exit__`) under a fresh, private `CapacityLimiter(1)` instead of the shared default limiter, so anyio spawns a thread for it rather than queuing it behind the busy pool.\n\nThis is from memory, not from reading the source here, so I haven't verified the line numbers or the exact current code.",
+  "usd": 0.00108706,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/concurrency.py",
+   "fastapi/dependencies/utils.py",
+   "fastapi/routing.py",
+   "fastapi/middleware/asyncexitstack.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x148",
+  "ok": true,
+  "answer": "I can't verify this from the code, since I have no copy of the repository. From memory, the page is generated in `fastapi/openapi/docs.py`, and I don't recall an explicit escaping step there, so I can't confirm how `</script>` sequences are neutralized.\n\n`fastapi/openapi/docs.py`\n`fastapi/applications.py`\n\nThe Swagger UI and ReDoc HTML is built in `docs.py`, where the config is serialized with `json.dumps` into the script block and the title is HTML-escaped. `applications.py` passes the developer-supplied docs parameters into that function.",
+  "usd": 0.0006914600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/openapi/docs.py",
+   "fastapi/applications.py",
+   "docs.py",
+   "json.dumps",
+   "applications.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x149",
+  "ok": true,
+  "answer": "`fastapi/security/oauth2.py`\n`fastapi/params.py`\n`fastapi/security/__init__.py`\n\nFrom memory, not verified against the source: `OAuth2PasswordRequestForm` splits the `scope` form field on whitespace into `scopes`, and `OAuth2PasswordRequestFormStrict` is the variant that also requires `grant_type` to match the literal `password` via a pattern constraint on its `Form` field.",
+  "usd": 0.00082296,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/security/oauth2.py",
+   "fastapi/params.py",
+   "fastapi/security/__init__.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x150",
+  "ok": true,
+  "answer": "I'm answering from memory without access to the repository, so the paths and their order are my best recollection, not verified against the code.\n\n`fastapi/dependencies/utils.py`\n`fastapi/routing.py`\n`fastapi/params.py`\n`fastapi/dependencies/models.py`\n`fastapi/_compat.py`\n\nA single body parameter is used directly unless `Body(embed=True)` is set, because `get_body_field` in `fastapi/dependencies/utils.py` builds one synthetic model keyed by parameter name only when there are several body parameters or embedding is requested, and `fastapi/routing.py` then parses the request body against that field.",
+  "usd": 0.00078856,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/dependencies/utils.py",
+   "fastapi/routing.py",
+   "fastapi/params.py",
+   "fastapi/dependencies/models.py",
+   "fastapi/_compat.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x151",
+  "ok": true,
+  "answer": "`fastapi/routing.py`\n`fastapi/dependencies/utils.py`\n`fastapi/params.py`\n\nThe decision is made in the request handler in `fastapi/routing.py`, which reads the `Content-Type` header: a missing header is parsed as JSON, `application/json` and `application/*+json` are parsed as JSON, and anything else is passed through as raw bytes. I'm answering from memory without access to the code, so the exact branches are unverified.",
+  "usd": 0.00082446,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "fastapi/routing.py",
+   "fastapi/dependencies/utils.py",
+   "fastapi/params.py"
+  ]
+ },
+ {
+  "repo": "fastapi",
+  "task": "x152",
+  "ok": true,
+  "answer": "I'm answering from memory without the source, so the exact nesting and file placement may be off in detail.\n\nOutermost to innermost, the stack is roughly: Starlette's `ServerErrorMiddleware`, then user middleware (`add_middleware` or `@app.middleware`), then FastAPI's exit-stack middleware for dependencies with `yield`, then Starlette's `ExceptionMiddleware` (which runs registered exception handlers), then the router, then the per-route handler built by `get_request_handler`. The handler's `finally` block closes the request, and with it the uploaded files.\n\nThe file-closing layer is innermost because the uploads must stay open while the endpoint and its dependencies read them, and they can be closed only once the response has been produced. Closing them any earlier would break the handler, and closing them outside the exception layers would leave them open while those layers run.\n\n`fastapi/routing.py`\n`fastapi/applications.py`\n`fastapi/datastructures.py`\n`fastapi/middleware/asyncexitstack.py`\n`fastapi/dependencies/utils.py`",
+  "usd": 0.00117066,
+  "turns": 1,
+  "pass": true,
+  "rank": 3,
+  "named": [
+   "@app.middleware",
+   "fastapi/routing.py",
+   "fastapi/applications.py",
+   "fastapi/datastructures.py",
+   "fastapi/middleware/asyncexitstack.py"
+  ]
+ },
+ {
+  "repo": "django",
+  "task": "x027",
+  "ok": true,
+  "answer": "`django/db/models/lookups.py`\n`django/db/backends/oracle/operations.py`\n`django/db/backends/base/operations.py`\n`django/db/backends/sqlite3/operations.py`\n`django/db/models/query.py`\n\nThe `In` lookup in `lookups.py` splits a long id list into chunks joined by `OR` when the backend's `max_in_list_size()` is set, which Oracle sets to 1000, and the backend operations modules supply those limits (`base/operations.py` defaults them to unlimited, `sqlite3/operations.py` derives batch sizes from the SQLite variable limit), while `query.py` batches bulk writes. This is from memory without access to the code, so the exact names and line details may differ in your version.",
+  "usd": 0.0007776599999999999,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "django/db/models/lookups.py",
+   "django/db/backends/oracle/operations.py",
+   "django/db/backends/base/operations.py",
+   "django/db/backends/sqlite3/operations.py",
+   "django/db/models/query.py"
+  ]
+ },
+ {
+  "repo": "django",
+  "task": "x028",
+  "ok": true,
+  "answer": "`django/db/migrations/recorder.py`\n`django/db/migrations/executor.py`\n`django/db/migrations/loader.py`\n`django/core/management/commands/migrate.py`\n\n`MigrationRecorder` in the first file stores applied migrations in the `django_migrations` table and creates that table on demand in `ensure_schema()`, while the executor records each migration as it runs and the loader reads the applied set back when building the migration graph.\n\nThese paths are from memory, since I had no tools to check them against the repository.",
+  "usd": 0.00068596,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "django/db/migrations/recorder.py",
+   "django/db/migrations/executor.py",
+   "django/db/migrations/loader.py",
+   "django/core/management/commands/migrate.py"
+  ]
+ },
+ {
+  "repo": "django",
+  "task": "x029",
+  "ok": true,
+  "answer": "`django/urls/resolvers.py`\n`django/urls/base.py`\n`django/urls/conf.py`\n`django/urls/converters.py`\n`django/urls/utils.py`\n\n`URLResolver.resolve()` in `resolvers.py` walks the nested `include()` tree recursively, matching each level's prefix pattern and merging its captured kwargs and args into the child match before returning the final `ResolverMatch`. This is from memory, since I had no tools to check the code.",
+  "usd": 0.0005145600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "django/urls/resolvers.py",
+   "django/urls/base.py",
+   "django/urls/conf.py",
+   "django/urls/converters.py",
+   "django/urls/utils.py"
+  ]
+ },
+ {
+  "repo": "django",
+  "task": "x030",
+  "ok": true,
+  "answer": "`django/template/loader_tags.py`\n`django/template/base.py`\n`docs/ref/templates/language.txt`\n\n`loader_tags.py` defines `ExtendsNode`, `BlockNode`, and `BlockContext`: the child's blocks are pushed onto a shared context before the parent renders, so each `{% block %}` in the parent is replaced by the child's version, and `block.super` calls `BlockNode.super()` to render the parent's original block content. (Answered from memory without access to the code, so the exact names and line numbers may be slightly off.)",
+  "usd": 0.00074376,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "django/template/loader_tags.py",
+   "django/template/base.py",
+   "docs/ref/templates/language.txt",
+   "loader_tags.py",
+   "block.super"
+  ]
+ },
+ {
+  "repo": "django",
+  "task": "x031",
+  "ok": true,
+  "answer": "`django/contrib/admin/filters.py`\n`django/contrib/admin/views/main.py`\n`django/contrib/admin/templates/admin/filter.html`\n`django/contrib/admin/templatetags/admin_list.py`\n`django/contrib/admin/templates/admin/change_list.html`\n\n`DateFieldListFilter` in `filters.py` builds the preset links (\"Any date\", \"Today\", \"Past 7 days\", \"This month\", \"This year\") as `__gte`/`__lt` query parameters, and `views/main.py` parses those GET parameters back into the queryset filters.",
+  "usd": 0.00061166,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "django/contrib/admin/filters.py",
+   "django/contrib/admin/views/main.py",
+   "django/contrib/admin/templates/admin/filter.html",
+   "django/contrib/admin/templatetags/admin_list.py",
+   "django/contrib/admin/templates/admin/change_list.html"
+  ]
+ },
+ {
+  "repo": "rails",
+  "task": "x084",
+  "ok": true,
+  "answer": "`activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb`\n`activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb`\n`activerecord/lib/active_record/connection_adapters/abstract_adapter.rb`\n\nThe nested `ConnectionPool::Reaper` runs on a periodic thread (controlled by `reaping_frequency`), releases connections whose owning thread is dead, and disconnects connections idle past `idle_timeout`; `AbstractAdapter` tracks the owner thread and the lease state the reaper checks. I'm working from memory without the repository, so the exact file split may differ by Rails version, and the `reaper.rb` path in particular may not exist in every release.",
+  "usd": 0.00077636,
+  "turns": 1,
+  "pass": true,
+  "rank": 2,
+  "named": [
+   "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb",
+   "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+   "activerecord/lib/active_record/connection_adapters/abstract_adapter.rb",
+   "reaper.rb"
+  ]
+ },
+ {
+  "repo": "rails",
+  "task": "x085",
+  "ok": true,
+  "answer": "`actionpack/lib/action_controller/metal/params_wrapper.rb`\n`actionpack/lib/action_controller/railtie.rb`\n`railties/lib/rails/generators/rails/app/templates/config/initializers/wrap_parameters.rb.tt`\n\n`ParamsWrapper` runs as a before-action on JSON requests, copies the top-level body keys into a hash keyed by the singularized controller name, and keeps only the names the model reports via `attribute_names`, so `params` gets the nested copy alongside the original keys.\n\nI answered from memory without opening the repository, so the paths and the mechanism may have drifted from the current source.",
+  "usd": 0.0008704600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "actionpack/lib/action_controller/metal/params_wrapper.rb",
+   "actionpack/lib/action_controller/railtie.rb",
+   "railties/lib/rails/generators/rails/app/templates/config/initializers/wrap_parameters.rb.tt"
+  ]
+ },
+ {
+  "repo": "rails",
+  "task": "x086",
+  "ok": true,
+  "answer": "`activesupport/lib/active_support/concurrency/share_lock.rb`\n`activesupport/lib/active_support/dependencies/interlock.rb`\n`activesupport/lib/active_support/concurrency/load_interlock_aware_monitor.rb`\n`activesupport/lib/active_support/concurrency/null_lock.rb`\n`activesupport/lib/active_support/concurrency.rb`\n\n`ShareLock` is the shared/exclusive lock, and its `start_exclusive` with `yield_shares` releases the caller's own share hold while it waits, so a thread upgrading from shared to exclusive cannot deadlock against other sharers. This is from memory without checking the tree, so the paths and line-level details may differ slightly.",
+  "usd": 0.00061926,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "activesupport/lib/active_support/concurrency/share_lock.rb",
+   "activesupport/lib/active_support/dependencies/interlock.rb",
+   "activesupport/lib/active_support/concurrency/load_interlock_aware_monitor.rb",
+   "activesupport/lib/active_support/concurrency/null_lock.rb",
+   "activesupport/lib/active_support/concurrency.rb"
+  ]
+ },
+ {
+  "repo": "rails",
+  "task": "x087",
+  "ok": true,
+  "answer": "I'm answering from memory without the source, so I can't confirm the exact markup or line-level details.\n\n`actionview/lib/action_view/helpers/form_tag_helper.rb`\n`actionview/lib/action_view/helpers/form_helper.rb`\n`actionview/lib/action_view/helpers/url_helper.rb`\n`actionview/lib/action_view/helpers/tag_helper.rb`\n\nThese files generate the form opening tag and the hidden inputs (the utf8 enforcer and authenticity token) that Rails emits right after it, which is the markup that would sit ahead of an injected unclosed tag or quote. I'm not certain Rails adds a dedicated dangling-markup defense there, so verify against the source before relying on this.",
+  "usd": 0.00138946,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "actionview/lib/action_view/helpers/form_tag_helper.rb",
+   "actionview/lib/action_view/helpers/form_helper.rb",
+   "actionview/lib/action_view/helpers/url_helper.rb",
+   "actionview/lib/action_view/helpers/tag_helper.rb"
+  ]
+ },
+ {
+  "repo": "rails",
+  "task": "x088",
+  "ok": true,
+  "answer": "`activejob/lib/active_job/continuation.rb`\n`activejob/lib/active_job/continuable.rb`\n`activejob/lib/active_job/exceptions.rb`\n`activejob/lib/active_job/core.rb`\n\nThese are my best recollection of where Rails 8.1's ActiveJob continuation lives: the interrupt is handled by the continuation module, the delayed re-enqueue uses `retry_job` from the exceptions module, and the saved cursor is serialized with the job in core. I'm answering from memory without the code, so the paths and the mechanism are unverified, and the worker-side shutdown signal is likely implemented in the queue backend (such as Solid Queue), not in the rails repo.",
+  "usd": 0.00114986,
+  "turns": 1,
+  "pass": true,
+  "rank": 2,
+  "named": [
+   "activejob/lib/active_job/continuation.rb",
+   "activejob/lib/active_job/continuable.rb",
+   "activejob/lib/active_job/exceptions.rb",
+   "activejob/lib/active_job/core.rb",
+   "8.1"
+  ]
+ },
+ {
+  "repo": "laravel",
+  "task": "x046",
+  "ok": true,
+  "answer": "`src/Illuminate/Database/Eloquent/Concerns/HasEvents.php`\n`src/Illuminate/Database/Eloquent/Concerns/HasObservers.php`\n`src/Illuminate/Database/Eloquent/Attributes/ObservedBy.php`\n`src/Illuminate/Database/Eloquent/Model.php`\n`src/Illuminate/Events/Dispatcher.php`\n\nEloquent fires the pre-write events `creating`, `updating`, and `deleting` from `HasEvents`, and a dedicated observer class registered with `observe()` or `#[ObservedBy]` receives them, with `Dispatcher` handling the underlying event routing.\n\nI'm answering from memory without the source, so the file paths and the split between `HasEvents` and `HasObservers` may not match the current codebase.",
+  "usd": 0.0010563600000000001,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/Illuminate/Database/Eloquent/Concerns/HasEvents.php",
+   "src/Illuminate/Database/Eloquent/Concerns/HasObservers.php",
+   "src/Illuminate/Database/Eloquent/Attributes/ObservedBy.php",
+   "src/Illuminate/Database/Eloquent/Model.php",
+   "src/Illuminate/Events/Dispatcher.php"
+  ]
+ },
+ {
+  "repo": "laravel",
+  "task": "x047",
+  "ok": true,
+  "answer": "`src/Illuminate/Queue/Worker.php`\n`src/Illuminate/Queue/Jobs/Job.php`\n`src/Illuminate/Queue/Jobs/RedisJob.php`\n`src/Illuminate/Queue/CallQueuedHandler.php`\n`src/Illuminate/Queue/Failed/FailedJobProviderInterface.php`\n\n`Worker` catches the exception in `process()` and `handleJobException()`, then compares attempts against `$tries`/`retryUntil()` and either calls `release()` with the backoff delay or marks the job failed. `Job` defines `maxTries()`, `retryUntil()`, and the `release`/`fail` contract that the driver-specific job classes implement. This answer is from memory, not checked against the code.",
+  "usd": 0.00077286,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/Illuminate/Queue/Worker.php",
+   "src/Illuminate/Queue/Jobs/Job.php",
+   "src/Illuminate/Queue/Jobs/RedisJob.php",
+   "src/Illuminate/Queue/CallQueuedHandler.php",
+   "src/Illuminate/Queue/Failed/FailedJobProviderInterface.php"
+  ]
+ },
+ {
+  "repo": "laravel",
+  "task": "x048",
+  "ok": true,
+  "answer": "`src/Illuminate/Routing/RouteCollection.php`\n`src/Illuminate/Routing/Router.php`\n`src/Illuminate/Routing/Route.php`\n\n`RouteCollection::match()` first looks for a route matching the request method, then checks other verbs for the same path; if one matches, it throws `MethodNotAllowedHttpException` (405 with an `Allow` header), and for `OPTIONS` it returns a synthetic 200 response listing the allowed methods, otherwise it throws `NotFoundHttpException` (404). This is from memory, not checked against a copy of the code.",
+  "usd": 0.00098156,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "src/Illuminate/Routing/RouteCollection.php",
+   "src/Illuminate/Routing/Router.php",
+   "src/Illuminate/Routing/Route.php"
+  ]
+ },
+ {
+  "repo": "laravel",
+  "task": "x049",
+  "ok": true,
+  "answer": "`src/Illuminate/Validation/Validator.php`\n`src/Illuminate/Validation/ValidationRuleParser.php`\n`src/Illuminate/Validation/Concerns/ValidatesAttributes.php`\n\n`Validator.php` holds the per-attribute loop that checks `bail`/`stopOnFirstFailure` and the `nullable`/`sometimes` skip logic. `ValidationRuleParser.php` parses rule strings into the rule names that loop inspects. `ValidatesAttributes.php` contains the individual rule implementations.\n\nI'm answering from memory without the repository, so I haven't checked these paths or the method names against the current source.",
+  "usd": 0.00101126,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/Illuminate/Validation/Validator.php",
+   "src/Illuminate/Validation/ValidationRuleParser.php",
+   "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+   "Validator.php",
+   "ValidationRuleParser.php"
+  ]
+ },
+ {
+  "repo": "laravel",
+  "task": "x050",
+  "ok": true,
+  "answer": "I can't check the repository from here, so these paths are from memory and may be off.\n\n`src/Illuminate/Cache/Repository.php`\n`src/Illuminate/Cache/CacheManager.php`\n`src/Illuminate/Support/Defer/DeferredCallback.php`\n`src/Illuminate/Cache/Lock.php`\n`tests/Cache/CacheRepositoryTest.php`\n\nThe cache repository's `flexible()` method (added in later Laravel versions) stores the value with its creation time, serves it while it is past the fresh window but within the grace window, and schedules the rebuild as deferred work so the stale value is returned immediately, with a cache lock preventing concurrent rebuilds.",
+  "usd": 0.00076116,
+  "turns": 1,
+  "pass": true,
+  "rank": 1,
+  "named": [
+   "src/Illuminate/Cache/Repository.php",
+   "src/Illuminate/Cache/CacheManager.php",
+   "src/Illuminate/Support/Defer/DeferredCallback.php",
+   "src/Illuminate/Cache/Lock.php",
+   "tests/Cache/CacheRepositoryTest.php"
+  ]
+ }
+]

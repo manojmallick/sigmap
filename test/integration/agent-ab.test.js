@@ -906,8 +906,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, skill-shipped\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'skill-shipped']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1059,7 +1059,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, skill-shipped \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1389,6 +1389,61 @@ const treeHash = (dir) => {
     assert.ok(mk('skill').caveats.some((c) => /Skill variant: both arms run with skills enabled/.test(c)));
     assert.ok(!mk('index').caveats.some((c) => /Skill variant/.test(c)), 'only a skill run says it');
     assert.strictEqual(mk('skill').method.arms.with, ab.SIGMAP_VARIANTS.skill);
+  });
+
+  // ── prefetch: the ranking is in the prompt before the first turn ───────────────────────────────────────────────
+
+  await test('a prefetch run appends the pre-ranked files for its question and nothing else: no MCP server, the same tools, the CLI only', () => {
+    const base = { model: 'm', budgetUsd: 1, bare: false, prefetch: true };
+    const without = claude.buildArgs({ arm: 'without', ...base });
+    const withSig = claude.buildArgs({ arm: 'with', ...base, sigmapContext: 'RANKED' });
+    const flag = (a, f) => a[a.indexOf(f) + 1];
+    assert.strictEqual(flag(withSig, '--append-system-prompt'), 'RANKED');
+    assert.ok(!withSig.includes('--mcp-config') && !without.includes('--append-system-prompt'));
+    assert.strictEqual(flag(without, '--tools'), flag(withSig, '--tools'));
+    assert.ok(!flag(withSig, '--tools').includes('Skill') && withSig.includes('--disable-slash-commands'), 'not a skill run');
+    const allow = (a) => flag(a, '--allowedTools').split(',');
+    assert.deepStrictEqual(allow(withSig).filter((t) => !allow(without).includes(t)), ['Bash(sigmap:*)']);
+    assert.throws(() => claude.buildArgs({ arm: 'with', ...base }), /needs the pre-ranked files/);
+    assert.doesNotThrow(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, prefetch: true, sigmapContext: 'R' }), 'it does not need --session-auth');
+    const sig = { name: 'sigmap', status: 'connected' };
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'Bash'], mcpServers: [] }, 'with', { variant: 'prefetch' }).ok, 'no MCP server is what the arm should hold');
+    assert.ok(!ab.checkIntegrity({ tools: ['Read', 'mcp__sigmap__q'], mcpServers: [sig] }, 'with', { variant: 'prefetch' }).ok);
+    assert.ok(ab.checkIntegrity({ tools: ['Read'], mcpServers: [] }, 'without', { variant: 'prefetch' }).ok);
+  });
+
+  await test('the prefetch arm keeps only the index, and its context is `sigmap ask` for the question: header, ranking, anchored signatures, capped', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-pre-'), codeRoot: ROOT, variant: 'prefetch' });
+    assert.ok(a.prefetch && a.binDir && !a.sigmapContext && !a.mcpConfig && !a.skills);
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')) && fs.existsSync(path.join(a.cwd, '.context')));
+    assert.ok(!fs.existsSync(path.join(a.cwd, '.claude')), 'no skill either');
+    const text = arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented' });
+    assert.ok(text.startsWith(ab.PREFETCH_HEADER));
+    assert.match(text, /src\/alpha\.js/, 'the ranking names the file');
+    assert.match(text, /alphaThing.*:\d+-\d+/, 'and its signature carries a line anchor');
+    assert.ok(!/^# SigMap Query Context|^Generated:/m.test(text), 'no timestamp: the same question gives the same text');
+    assert.strictEqual(text, arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented' }), 'deterministic');
+    const small = arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented', maxBytes: Buffer.byteLength(ab.PREFETCH_HEADER) + 260 });
+    assert.ok(Buffer.byteLength(small) <= Buffer.byteLength(ab.PREFETCH_HEADER) + 260 && small.startsWith(ab.PREFETCH_HEADER), 'the cap holds and the header and ranking survive it');
+    assert.ok(!/ask SigMap|call .* first|confirm with/i.test(ab.PREFETCH_HEADER), 'the header adds no step: it says what the list is');
+    assert.ok(ab.PREFETCH_MAX_BYTES <= 16 * 1024);
+  });
+
+  await test('--sigmap-variant prefetch reaches the agent: the SigMap arm alone gets a per-question block, the report records the variant', () => {
+    const f = fixture();
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch', '--session-auth', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js', r2: 'src/alpha.js' }) });
+    assert.strictEqual(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const withCalls = calls.filter((c) => c.argv.includes('--append-system-prompt'));
+    assert.ok(withCalls.length > 0 && withCalls.length === calls.length / 2, 'every SigMap run and no baseline run');
+    for (const c of withCalls) {
+      assert.ok(c.argv[c.argv.indexOf('--append-system-prompt') + 1].startsWith(ab.PREFETCH_HEADER));
+      assert.ok(!c.argv.includes('--mcp-config'));
+    }
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'prefetch');
+    assert.strictEqual(rep.method.arms.with, ab.SIGMAP_VARIANTS.prefetch);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

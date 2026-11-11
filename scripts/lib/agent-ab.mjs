@@ -68,6 +68,7 @@ export const SIGMAP_VARIANTS = Object.freeze({
   index: 'SigMap index strategy + 7-tool core MCP profile (the docs\' setup for an agent that calls the tools)',
   skill: 'SigMap as one on-demand skill (sigmap-locate) + the sigmap CLI: no MCP server, no always-on section',
   'skill-always': 'SigMap as one skill (sigmap-locate) whose description tells the agent to call it first on every where-is-it question, + the sigmap CLI: no MCP server, no always-on section',
+  prefetch: 'SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors in the prompt, + the sigmap CLI; no MCP server, no standing section, no extra tool call',
   'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });
 
@@ -82,6 +83,19 @@ export const SKILL_VARIANTS = Object.freeze({
   'skill-always': Object.freeze(['sigmap-locate']),
   'skill-shipped': Object.freeze(['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer']),
 });
+
+/**
+ * What the `prefetch` arm is told above the pre-ranked files. Deliberately not an instruction to do anything extra: `lean` and
+ * `skill-always` showed that "ask SigMap first, then confirm" becomes a step ADDED to the agent's own search. This only says
+ * what the list is and how far to trust it.
+ */
+export const PREFETCH_HEADER = [
+  '## Files SigMap ranked for this question',
+  'Before you started, SigMap ranked this repository\'s files against the question from its offline index (no model call). These are leads, not an answer: the right file is often but not always among them. Each signature carries a `:start-end` line anchor you can Read directly. If none fits, search as you normally would.',
+].join('\n');
+
+/** The pre-ranked block is capped: it is re-read on every later turn, and a hook that injects 10k tokens is not a saving. */
+export const PREFETCH_MAX_BYTES = 8 * 1024;
 
 /**
  * The `skill` variant's one SKILL.md. Written from what the earlier runs showed: an instruction to
@@ -348,6 +362,11 @@ export function checkIntegrity(init, arm, opts = {}) {
 
   const sigmap = servers.find((s) => s && s.name === SIGMAP_SERVER);
   const sigmapTools = mcp.filter((t) => t.startsWith(prefix));
+  if (opts.variant === 'prefetch') {
+    // The ranking is already in the prompt; the arm has the CLI and nothing else, so an MCP server in either arm is a contaminated run.
+    if (sigmap || sigmapTools.length) problems.push(`the prefetch variant holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
+    return { ok: problems.length === 0, problems, builtins };
+  }
   const wanted = SKILL_VARIANTS[opts.variant];
   if (wanted) {
     if (sigmap || sigmapTools.length) problems.push(`a skill variant (${opts.variant}) holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);

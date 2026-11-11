@@ -1,0 +1,1086 @@
+[
+  {
+    "repo": "sigmap-src",
+    "task": "h024",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/analysis/coverage-score.js",
+      "src/tracking/logger.js",
+      "src/util/file-class.js",
+      "src/analysis/diagnostics.js"
+    ],
+    "toolCalls": {
+      "total": 10,
+      "byTool": {
+        "Grep": 8,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 18,
+      "out": 3137,
+      "cacheRead": 167912,
+      "cacheWrite": 25081
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.008265620000000001,
+      "source": "agent-reported"
+    },
+    "turns": 11,
+    "durationMs": 26987,
+    "answer": "`gen-context.js`\n`src/analysis/coverage-score.js`\n`src/tracking/logger.js`\n`src/util/file-class.js`\n`src/analysis/diagnostics.js`\n\nThe count is `droppedCount = beforeCount - budgeted.length` in `gen-context.js:46301`, where `budgeted` is the output of `applyTokenBudget` (defined at `gen-context.js:43886`, which drops files lowest-priority first). The other four read or report that number: `coverage-score.js` derives `dropped = total - included`, `logger.js` writes `droppedCount` to the usage log, `file-class.js` documents the drop order, and `diagnostics.js` explains the over-budget drop. `gen-context.js` is a bundled build, so the budget logic exists only there, not in `src/`."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h024",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/tracking/logger.js",
+      "src/analysis/coverage-score.js",
+      "src/analysis/diagnostics.js",
+      "fileEntries.length"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Grep": 6,
+        "mcp__sigmap__get_lines": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 16,
+      "out": 3016,
+      "cacheRead": 153690,
+      "cacheWrite": 21031
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.007252700000000001,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 25027,
+    "answer": "`gen-context.js`\n`src/tracking/logger.js`\n`src/analysis/coverage-score.js`\n`src/analysis/diagnostics.js`\n\nThe count is `droppedCount = beforeCount - fileEntries.length` (`gen-context.js:46229`, and again at `:46301` for the per-module path), where `applyTokenBudget` (`gen-context.js:43886`) drops a file only when even its anchor-only form does not fit, and files that were merely collapsed to anchors still count as kept. The `src/` files are not the implementation: `applyTokenBudget` exists only in the root `gen-context.js` bundle. `src/tracking/logger.js` records that `droppedCount` in the run log, `coverage-score.js` derives `dropped = total - included` for the coverage report, and `diagnostics.js` prints the \"files will be dropped\" warning."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h024",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/evidence/pack.js",
+      "src/analysis/coverage-score.js",
+      "src/analysis/diagnostics.js",
+      "pack.js",
+      "coverage-score.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1370,
+      "cacheRead": 64228,
+      "cacheWrite": 8671
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00306248,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 13656,
+    "answer": "`src/evidence/pack.js`\n`src/analysis/coverage-score.js`\n`src/analysis/diagnostics.js`\n\n`pack.js` runs the greedy budget fill and records each file it skips in `droppedFiles`, so the number left out is that array's length. `coverage-score.js` derives the same figure as `dropped = total - included` after the budget is applied, and `diagnostics.js` reports whether files will be dropped. I did not modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h024",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/analysis/coverage-score.js",
+      "budgeted.length"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Grep": 4,
+        "Bash": 1,
+        "Read": 4
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 14,
+      "out": 2449,
+      "cacheRead": 132675,
+      "cacheWrite": 22842
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0071210499999999986,
+      "source": "agent-reported"
+    },
+    "turns": 10,
+    "durationMs": 20732,
+    "answer": "`gen-context.js`\n`src/analysis/coverage-score.js`\n\n`gen-context.js` holds the budget logic: `applyTokenBudget` (line 43886) decides which files survive, and the count is `beforeCount - budgeted.length` at lines 46229 and 46301, which is what the report prints as \"files dropped.\" `src/analysis/coverage-score.js` computes `dropped = total - included` (line 99) for the coverage score, so it is the other place a \"left out\" count is derived."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h025",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/routing/hints.js",
+      "src/routing/classifier.js",
+      "src/config/models.js",
+      "hints.js",
+      "classifier.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 1,
+        "Bash": 2,
+        "Read": 3
+      },
+      "byCommand": {
+        "cat": 2
+      }
+    },
+    "usage": {
+      "in": 8,
+      "out": 1409,
+      "cacheRead": 38271,
+      "cacheWrite": 14965
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00408101,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 13003,
+    "answer": "`src/routing/hints.js`\n`src/routing/classifier.js`\n`src/config/models.js`\n\n`hints.js` maps each task type to a tier (fast, balanced, powerful) and tells the agent to select a tier by task complexity, while `classifier.js` assigns files to tiers by path and signature heuristics, and `models.js` defines which models belong to each tier.\n\nI used Grep and Read only because the Bash sandbox failed to start (`socat` not installed), so I could not run shell commands. I modified nothing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h025",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/routing/classifier.js",
+      "src/routing/hints.js",
+      "src/config/models.js",
+      "hints.js",
+      "models.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 764,
+      "cacheRead": 36890,
+      "cacheWrite": 8805
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025125,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10349,
+    "answer": "`src/routing/classifier.js`\n`src/routing/hints.js`\n`src/config/models.js`\n\nThe classifier assigns each file a `fast`, `balanced`, or `powerful` tier from its path and signature count, `hints.js` turns those tiers into routing advice, and `models.js` maps each tier to concrete model names and prices."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h025",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/routing/hints.js",
+      "src/routing/classifier.js",
+      "src/config/models.js",
+      "hints.js",
+      "classifier.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 868,
+      "cacheRead": 37223,
+      "cacheWrite": 8518
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00251043,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 17064,
+    "answer": "`src/routing/hints.js`\n`src/routing/classifier.js`\n`src/config/models.js`\n\n`hints.js` maps each tier (fast, balanced, powerful) to the task types it covers, and `classifier.js` picks a tier from a file's type and complexity. `models.js` then resolves each tier to concrete model names and prices. Nothing was modified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h025",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/routing/hints.js",
+      "src/routing/classifier.js",
+      "src/config/models.js",
+      "hints.js",
+      "e.g"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1224,
+      "cacheRead": 40273,
+      "cacheWrite": 8147
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00264493,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 12072,
+    "answer": "`src/routing/hints.js`\n`src/routing/classifier.js`\n`src/config/models.js`\n\n`hints.js` holds the task-to-tier table (`TIER_TASKS`, e.g. \"Fix typos\" maps to fast, \"Security audit\" to powerful) and renders it as routing advice. `classifier.js` picks a tier per file from path heuristics, not per task. `config/models.js` defines the tier order and which models sit in each tier."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h026",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/extractors/todos.js",
+      "gen-context.js",
+      "src/config/defaults.js",
+      "src/cache/extract-cache.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 4,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1598,
+      "cacheRead": 40048,
+      "cacheWrite": 7523
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027048800000000002,
+      "source": "agent-reported"
+    },
+    "turns": 7,
+    "durationMs": 15021,
+    "answer": "`src/extractors/todos.js`\n`gen-context.js`\n`src/config/defaults.js`\n`src/cache/extract-cache.js`\n\n`src/extractors/todos.js` does the work: it scans each line's comments for TODO/FIXME/HACK/XXX markers (and the lowercase `todo:` shorthand) and returns their line numbers, tags and messages. `gen-context.js` is the bundled build that contains `buildTodoSection`, which turns those results into the `## todos` section of the generated context. `src/config/defaults.js` holds the `todos: true` toggle, and `src/cache/extract-cache.js` caches the per-file TODO lines."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h026",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/extractors/todos.js",
+      "src/config/defaults.js",
+      "src/extractors/scan.js",
+      "test/integration/todos-comment-markers.test.js",
+      "todos.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 973,
+      "cacheRead": 34866,
+      "cacheWrite": 6138
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00206336,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12122,
+    "answer": "`src/extractors/todos.js`\n`src/config/defaults.js`\n`src/extractors/scan.js`\n`test/integration/todos-comment-markers.test.js`\n\n`todos.js` is the extractor that collects TODO/FIXME-style markers, `defaults.js` holds its on/off setting (`todos: true`), `scan.js` provides the string- and comment-aware scanning core, and the integration test covers comment markers. I did not open the full bodies of `scan.js` or the test, so their roles are inferred from names and the grep hits. Nothing was modified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h026",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/extractors/todos.js",
+      "src/extractors/scan.js",
+      "src/config/defaults.js",
+      "test/integration/todos-comment-markers.test.js",
+      "scan.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 804,
+      "cacheRead": 35628,
+      "cacheWrite": 5678
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00189448,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 9433,
+    "answer": "`src/extractors/todos.js`\n`src/extractors/scan.js`\n`src/config/defaults.js`\n`test/integration/todos-comment-markers.test.js`\n\n`src/extractors/todos.js` holds `extractTodos`, which scans source for TODO/FIXME-style markers in comments; `scan.js` supplies the string- and comment-aware scanning it relies on to skip false matches, `defaults.js` turns the `todos` feature on (line 234), and the integration test exercises comment markers end to end. I did not modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h026",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/extractors/todos.js",
+      "src/config/defaults.js",
+      "src/cache/extract-cache.js",
+      "src/extractors/scan.js",
+      "test/integration/todos-comment-markers.test.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1074,
+      "cacheRead": 28128,
+      "cacheWrite": 5243
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018674800000000001,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 10470,
+    "answer": "`src/extractors/todos.js`\n`src/config/defaults.js`\n`src/cache/extract-cache.js`\n`src/extractors/scan.js`\n`test/integration/todos-comment-markers.test.js`\n\n`todos.js` holds `extractTodos`, which matches `TODO`/`FIXME`/`HACK`/`XXX` markers in line comments and block comments. The other four support it: `defaults.js` turns the `todos` section on, `extract-cache.js` caches the extracted lines, `scan.js` skips markers that sit inside string literals, and the integration test covers the comment-marker behaviour."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h027",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/class-hierarchy.js",
+      "src/extractors/pipeline.js",
+      "src/extractors/typescript.js",
+      "src/extractors/php.js",
+      "src/extractors/patterns.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 10,
+      "out": 1095,
+      "cacheRead": 53318,
+      "cacheWrite": 10213
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00312428,
+      "source": "agent-reported"
+    },
+    "turns": 5,
+    "durationMs": 12814,
+    "answer": "`src/map/class-hierarchy.js`\n`src/extractors/pipeline.js`\n`src/extractors/typescript.js`\n`src/extractors/php.js`\n`src/extractors/patterns.js`\n\n`class-hierarchy.js` is the core implementation: it regex-scans TS/JS, Python, Java, Kotlin and C# files for `class X extends Y implements Z` and emits each class's first parent as `extends` and the rest as `implements`. The other four are secondary: `pipeline.js` renders an `extends` field, `typescript.js` keeps the `extends` target for components, `php.js` and `patterns.js` capture extends/implements for PHP and repository-pattern detection, and the remaining extractors (dart, gdscript, objc, graphql, scala) also parse heritage but into their own signatures. I did not modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h027",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/class-hierarchy.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 621,
+      "cacheRead": 34423,
+      "cacheWrite": 6127
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00188073,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9619,
+    "answer": "`src/map/class-hierarchy.js`\n\nIt implements the mapping: its `analyze(files, cwd)` function scans each TypeScript, JavaScript, Python, Java, Kotlin, and C# file with regexes to pull out each class's `extends` parent and `implements` interfaces. I didn't open the other ranked files because none of them looked like an inheritance mapper."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h027",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/class-hierarchy.js",
+      "src/extractors/typescript.js",
+      "src/extractors/javascript.js",
+      "class-hierarchy.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 775,
+      "cacheRead": 21318,
+      "cacheWrite": 7482
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00209748,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 10543,
+    "answer": "`src/map/class-hierarchy.js`\n`src/extractors/typescript.js`\n`src/extractors/javascript.js`\n\n`class-hierarchy.js` is the module whose stated purpose is extracting `extends`/`implements` relationships across languages (its `analyze(files, cwd)` builds the map). The two extractors are the per-language sources of the `extends` data, so they explain how the parent of each class is recognized. I based this on the search index and grep results and did not open the full bodies, and I changed nothing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h027",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/class-hierarchy.js",
+      "src/graph/call-graph.js",
+      "src/extractors/typescript.js",
+      "src/extractors/javascript.js",
+      "src/extractors/pipeline.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 1
+      },
+      "byCommand": {
+        "git": 1
+      }
+    },
+    "usage": {
+      "in": 6,
+      "out": 918,
+      "cacheRead": 27560,
+      "cacheWrite": 7892
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0023136000000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10055,
+    "answer": "`src/map/class-hierarchy.js`\n`src/graph/call-graph.js`\n`src/extractors/typescript.js`\n`src/extractors/javascript.js`\n`src/extractors/pipeline.js`\n\n`class-hierarchy.js` is the module whose header says it extracts `extends`/`implements` relationships across languages, with per-language regexes that build the parent and interface edges; `call-graph.js` (Java heritage parsing) and the JS/TS extractors supply the `extends` clauses it works from, and `pipeline.js` renders them in the output."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h028",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/import-graph.js",
+      "src/map/knowledge-map.js",
+      "src/wiki/generate.js",
+      "src/graph/impact.js",
+      "test/integration/lib-index-barrels.test.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 952,
+      "cacheRead": 26759,
+      "cacheWrite": 6421
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00202839,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10342,
+    "answer": "`src/map/import-graph.js`\n`src/map/knowledge-map.js`\n`src/wiki/generate.js`\n`src/graph/impact.js`\n`test/integration/lib-index-barrels.test.js`\n\n`import-graph.js` implements the detection: `detectCycles()` runs a DFS with path tracking over the module import graph and reports each cycle, and `analyze()` prints them as \"Circular dependencies detected\". The other files consume that cycle count or handle cycles in their own traversal, and the barrel test covers a cyclic `export *` case."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h028",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/import-graph.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 452,
+      "cacheRead": 20694,
+      "cacheWrite": 5309
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0014951400000000003,
+      "source": "agent-reported"
+    },
+    "turns": 2,
+    "durationMs": 8168,
+    "answer": "`src/map/import-graph.js`\n\nIt exports `detectCycles(graph)` (lines 100-126), which runs on the import graph built by `extractImports` and `resolveJsPath`, so it finds circular imports between JS/TS and Python modules. I ranked from the index signatures only and did not open the file body, and the other ranked hits didn't show cycle detection, so I'm leaving them out."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h028",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/import-graph.js",
+      "src/map/knowledge-map.js",
+      "src/wiki/generate.js",
+      "src/extractors/patterns.js",
+      "src/graph/impact.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 997,
+      "cacheRead": 50490,
+      "cacheWrite": 7546
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025134000000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 12630,
+    "answer": "`src/map/import-graph.js`\n`src/map/knowledge-map.js`\n`src/wiki/generate.js`\n`src/extractors/patterns.js`\n`src/graph/impact.js`\n\n`import-graph.js` implements the cycle detection itself (`detectCycles`, a DFS with path tracking), and the other files either call it for a cycle count or handle cycles in their own analysis. `patterns.js` only emits a heuristic \"circular dependency hint\" rather than doing real detection, and `impact.js` just traverses cycle-safely, so those two are the weakest matches."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h028",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/map/import-graph.js",
+      "src/map/knowledge-map.js",
+      "src/wiki/generate.js",
+      "src/mcp/handlers.js",
+      "src/extractors/patterns.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 760,
+      "cacheRead": 27371,
+      "cacheWrite": 5445
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00174331,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9917,
+    "answer": "`src/map/import-graph.js`\n`src/map/knowledge-map.js`\n`src/wiki/generate.js`\n`src/mcp/handlers.js`\n`src/extractors/patterns.js`\n\n`import-graph.js` implements the detection: `detectCycles` runs a DFS with path tracking over the import graph, and `analyze` reports the cycles it finds. The other four consume that result, for the cycle count in the knowledge map and wiki, the MCP overview output, and the \"circular deps\" hint in the pattern extractor."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h029",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/bm25.js",
+      "src/retrieval/tokenizer.js",
+      "src/conventions/conflicts.js",
+      "bm25.js",
+      "tokenizer.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1113,
+      "cacheRead": 29422,
+      "cacheWrite": 9706
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00279252,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11743,
+    "answer": "`src/retrieval/bm25.js`\n`src/retrieval/tokenizer.js`\n`src/conventions/conflicts.js`\n\n`bm25.js` has the ranker's `tokenize()`, which inserts spaces at lower-to-upper and acronym boundaries (lines 114–115), and the docs cite it as the camelCase splitter. `tokenizer.js` has a near-identical `tokenize()` (lines 40–41) that the judge command shares, and `conflicts.js` (line 23) splits camel/Pascal boundaries to build rename suggestions."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h029",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/tokenizer.js",
+      "src/retrieval/bm25.js",
+      "src/conventions/conflicts.js",
+      "bm25.js",
+      "conflicts.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 788,
+      "cacheRead": 20690,
+      "cacheWrite": 9551
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025115,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 8600,
+    "answer": "`src/retrieval/tokenizer.js`\n`src/retrieval/bm25.js`\n`src/conventions/conflicts.js`\n\nThe first is the dedicated tokenizer, documented as splitting camelCase, snake_case, kebab-case and PascalCase identifiers; `bm25.js` has its own camelCase-aware `tokenize` (lines 110-121), and `conflicts.js` breaks file-name stems into lowercase word parts regardless of their case style (`_words`, lines 21-29)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h029",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/tokenizer.js",
+      "src/retrieval/bm25.js",
+      "src/conventions/conflicts.js",
+      "bm25.js",
+      "conflicts.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 4,
+      "out": 796,
+      "cacheRead": 21336,
+      "cacheWrite": 5178
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00164736,
+      "source": "agent-reported"
+    },
+    "turns": 3,
+    "durationMs": 9147,
+    "answer": "`src/retrieval/tokenizer.js`\n`src/retrieval/bm25.js`\n`src/conventions/conflicts.js`\n\nThe tokenizer is the main implementation: its `tokenize` splits camelCase, snake_case, kebab-case and PascalCase identifiers into lowercase words. `bm25.js` has its own `tokenize` that does the same camelCase splitting for search, and `conflicts.js` breaks file stems into word parts regardless of their casing. I took these from the signature index and did not open the function bodies to confirm the split logic line by line."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h029",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/tokenizer.js",
+      "src/retrieval/bm25.js",
+      "src/conventions/conflicts.js",
+      "src/extractors/coverage.js",
+      "src/graph/builder.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 1139,
+      "cacheRead": 46928,
+      "cacheWrite": 11722
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00338398,
+      "source": "agent-reported"
+    },
+    "turns": 6,
+    "durationMs": 11931,
+    "answer": "`src/retrieval/tokenizer.js`\n`src/retrieval/bm25.js`\n`src/conventions/conflicts.js`\n`src/extractors/coverage.js`\n`src/graph/builder.js`\n\nThe first two contain the core camelCase split: `tokenizer.js` (lines 39–41) turns `camelCase` into `camel case` for query and signature tokenization, and `bm25.js` (lines 110–115) has its own copy of that split for the BM25 ranker. The other three apply the same kind of boundary split for other purposes (naming-convention classification and conflict detection, coverage matching, and graph node naming)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h030",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/cache.js",
+      "src/format/cache-layout.js",
+      "src/config/models.js",
+      "src/cli/command-table.js",
+      "cache.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1112,
+      "cacheRead": 26553,
+      "cacheWrite": 9094
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0026409300000000005,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11213,
+    "answer": "`src/format/cache.js`\n`src/format/cache-layout.js`\n`src/config/models.js`\n`src/cli/command-table.js`\n\nPrompt caching is implemented by `cache.js`, which wraps the context as an Anthropic `system` array with `cache_control`, and `cache-layout.js`, which builds that block and splits the stable prefix from the volatile tail. `models.js` supplies the per-model `cacheMin` the fit check needs, and `command-table.js` exposes the `--format cache` option. I didn't modify anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h030",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/cache.js",
+      "src/format/cache-layout.js",
+      "src/config/defaults.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 856,
+      "cacheRead": 38628,
+      "cacheWrite": 9763
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00276748,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11273,
+    "answer": "`src/format/cache.js`\n`src/format/cache-layout.js`\n`src/config/defaults.js`\n\n`src/format/cache.js` wraps the context as an Anthropic `system` array with `cache_control` (`formatCache`, `formatCachePayload`). `src/format/cache-layout.js` holds the stable-prefix logic: it splits off the volatile tail, sets the `cache_control` TTL, and builds the blocks. `src/config/defaults.js` is the only other source file that references the cache settings (`cacheTtl`, `cacheLayout`), so it is the least direct of the three."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h030",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/cache.js",
+      "src/format/cache-layout.js",
+      "src/config/defaults.js",
+      "cache.js",
+      "cache-layout.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 8,
+      "out": 937,
+      "cacheRead": 54423,
+      "cacheWrite": 8675
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0027485300000000003,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 11674,
+    "answer": "`src/format/cache.js`\n`src/format/cache-layout.js`\n`src/config/defaults.js`\n\n`cache.js` builds the Anthropic `system` array, with `cache_control` on the stable signature body and no marker on the volatile tail. `cache-layout.js` defines the `cache_control` helper, the TTL, and the split between stable and volatile content. `defaults.js` holds the `format` and `cacheTtl` settings that switch this on."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h030",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/format/cache-layout.js",
+      "src/format/cache.js",
+      "src/config/defaults.js",
+      "src/cli/command-table.js",
+      "cache-layout.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 6,
+      "out": 1012,
+      "cacheRead": 27203,
+      "cacheWrite": 5376
+    },
+    "usageSource": "result",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00185383,
+      "source": "agent-reported"
+    },
+    "turns": 4,
+    "durationMs": 10338,
+    "answer": "`src/format/cache-layout.js`\n`src/format/cache.js`\n`src/config/defaults.js`\n`src/cli/command-table.js`\n\n`cache-layout.js` does the work: it builds the system blocks with a `cache_control` marker on the stable prefix and leaves the volatile tail unmarked, so Anthropic's exact-prefix cache can match across calls. `cache.js` wraps that into the prompt-cache JSON output, while `defaults.js` and `command-table.js` only expose the `cache` output format and its `--format cache` flag."
+  }
+]
