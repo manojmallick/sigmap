@@ -474,7 +474,7 @@ export const METRICS = Object.freeze([
       return parts.every((x) => Number.isFinite(x)) ? parts.reduce((a, b) => a + b, 0) : null;
     },
   },
-  { key: 'costUsd', label: 'Cost', unit: 'usd', provenance: 'agent-reported (the agent\'s own total_cost_usd)', pick: (r) => (r.cost && r.cost.source === 'agent-reported' ? r.cost.usd : null) },
+  { key: 'costUsd', label: 'Cost', unit: 'usd', provenance: 'agent-reported (the agent\'s own total_cost_usd), or computed from the API\'s usage and a price table when the run went through the Messages API directly', pick: (r) => (r.cost && (r.cost.source === 'agent-reported' || r.cost.source === 'computed') ? r.cost.usd : null) },
   { key: 'costFloorUsd', label: 'Cost floor', unit: 'usd', provenance: `table (as of ${PRICE_AS_OF}): uncached input only, a floor`, pick: (r) => (r.cost && r.cost.source === 'table' ? r.cost.usd : null) },
   { key: 'durationMs', label: 'Wall time', unit: 'ms', provenance: 'measured (wall clock of the agent process)', pick: (r) => r.durationMs },
 ]);
@@ -499,7 +499,7 @@ export function spendOf(records) {
     s.runs++;
     const c = r && r.cost;
     const usd = c && typeof c.usd === 'number' && Number.isFinite(c.usd) && c.usd >= 0 ? c.usd : null;
-    if (usd !== null && c.source === 'agent-reported') { s.agentReportedUsd = (s.agentReportedUsd || 0) + usd; s.agentReportedRuns++; }
+    if (usd !== null && (c.source === 'agent-reported' || c.source === 'computed')) { s.agentReportedUsd = (s.agentReportedUsd || 0) + usd; s.agentReportedRuns++; }
     else if (usd !== null && c.source === 'table') { s.floorUsd = (s.floorUsd || 0) + usd; s.floorRuns++; }
     else s.unknownRuns++;
   }
@@ -732,6 +732,9 @@ export const CAVEATS = Object.freeze([
   'Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.',
 ]);
 
+/** Added to a report produced with `--agent api`. */
+export const API_AGENT_CAVEAT = 'Direct Messages API agent (scripts/lib/agent-ab-api.mjs), not Claude Code: a short neutral system prompt (about 150 tokens) and four read-only tools, so the prefix each turn re-reads is far smaller than Claude Code\'s and SigMap\'s per-turn addition is a larger share of a turn. Cost is computed from the usage the API reports and a price table (the Console\'s usage page is the authority), with 5-minute prompt caching. Not comparable cell by cell with Claude Code runs.';
+
 /** Added to a report whose SigMap arm is a skill variant. */
 export const SKILL_CAVEAT = 'Skill variant: both arms run with skills enabled (the Skill tool, and the agent\'s own bundled skills listed in the prompt, about 2k tokens), which the earlier no-skill runs did not have, so these figures are against this run\'s own baseline and not comparable cell by cell with the index, lean or current runs. The SigMap arm adds only its skill file(s) and the sigmap CLI: no MCP server and no appended section.';
 
@@ -763,7 +766,7 @@ export function buildReport({ entries, tasks, method }) {
       publishable: pub.publishable,
       notPublishableBecause: pub.reasons,
     }),
-    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : []), ...(SKILL_VARIANTS[method.variant] ? [SKILL_CAVEAT] : [])],
+    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : []), ...(SKILL_VARIANTS[method.variant] ? [SKILL_CAVEAT] : []), ...(method.runner === 'api' ? [API_AGENT_CAVEAT] : [])],
     cells,
     ...rollup(cells),
     repetitions: repetitionEstimates(entries, tasks),

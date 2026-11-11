@@ -1454,7 +1454,7 @@ const treeHash = (dir) => {
   await test('run-token-saving.sh checks first and starts nothing without GO=1, never prints the key, and refuses to start with a problem', () => {
     const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
     const f = fixture();
-    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts'), KEY_CHECK: '0' }, extra);
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts'), KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 240000, env: env(extra) });
 
     const plan = sh({});
@@ -1487,7 +1487,7 @@ const treeHash = (dir) => {
   await test('run-token-saving.sh makes one test call with the key before anything else, and stops on a refusal with what to do', () => {
     const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
     const f = fixture();
-    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'kc') }, extra);
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'kc'), BENCH_ANTHROPIC_KEY: '' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
 
     const good = sh({});
@@ -1510,7 +1510,7 @@ const treeHash = (dir) => {
     const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
     const f = fixture();
     const out = path.join(f.out, 'ts');
-    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1', KEY_CHECK: '0' }, extra);
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1', KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 300000, env: env(extra) });
 
     // The fake agent reports $0.03 without SigMap and $0.01 with it: the first batch (8 questions) records $0.32.
@@ -1528,6 +1528,209 @@ const treeHash = (dir) => {
     assert.strictEqual(second.status, 3, second.stdout + second.stderr);
     assert.match(second.stdout, /skip\s+index sigmap-src:h001/, 'the finished batch is not paid for twice');
     assert.strictEqual(batches().length, 2, 'it carried on with the next batch, then stopped again');
+  });
+
+  // ── the direct Messages API runner (agent-ab-api.mjs) ───────────────────────────────────────────────────────────
+
+  const api = await import('../../scripts/lib/agent-ab-api.mjs');
+  const http = require('http');
+
+  /** A fake Messages API: `script(reqBody, n)` returns { status, body } for the n-th request; every request is kept. */
+  const fakeApi = (script) => new Promise((resolve) => {
+    const seen = [];
+    const server = http.createServer((req, res) => {
+      const chunks = [];
+      req.on('data', (d) => chunks.push(d));
+      req.on('end', () => {
+        let body = null; try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch (_) { /* leave null */ }
+        seen.push({ headers: req.headers, body, url: req.url });
+        const r = script(body, seen.length, req) || {};
+        res.writeHead(r.status || 200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(r.body));
+      });
+    });
+    server.listen(0, '127.0.0.1', () => resolve({ url: `http://127.0.0.1:${server.address().port}`, seen, close: () => server.close() }));
+  });
+  const toolTurn = (name, input, usage) => ({ body: { stop_reason: 'tool_use', content: [{ type: 'tool_use', id: `tu_${name}_${Math.random().toString(36).slice(2, 8)}`, name, input }], usage: usage || U(100, 20, 0, 50) } });
+  const textTurn = (text, usage) => ({ body: { stop_reason: 'end_turn', content: [{ type: 'text', text }], usage: usage || U(10, 5, 150, 0) } });
+
+  await test('splitCommand runs plain commands and refuses shell syntax; the tools stay inside the repository and read-only', async () => {
+    assert.deepStrictEqual(api.splitCommand('grep -rn "two words" src'), ['grep', '-rn', 'two words', 'src']);
+    assert.deepStrictEqual(api.splitCommand("ls -la 'a b'"), ['ls', '-la', 'a b']);
+    for (const bad of ['ls | wc -l', 'cat a > b', 'echo $(id)', 'ls *.js', 'cat `x`', 'ls; rm x', 'grep "open']) assert.strictEqual(api.splitCommand(bad), null, bad);
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-api-'), codeRoot: ROOT, variant: 'index' });
+    const ctx = { cwd: a.cwd, withSigmap: true, binDir: a.binDir };
+    const read = await api.runBuiltin('Read', { file_path: 'src/alpha.js' }, ctx);
+    assert.ok(!read.isError && /^\s+1\tfunction alphaThing/.test(read.text), read.text);
+    assert.match((await api.runBuiltin('Read', { file_path: 'src/alpha.js', offset: 2, limit: 1 }, ctx)).text, /^\s+2\t/);
+    assert.ok((await api.runBuiltin('Read', { file_path: '../../etc/passwd' }, ctx)).isError, 'outside the repository');
+    assert.ok((await api.runBuiltin('Read', { file_path: '/etc/passwd' }, ctx)).isError);
+    assert.match((await api.runBuiltin('Grep', { pattern: 'betaThing' }, ctx)).text, /src\/beta\.js:1:/);
+    assert.strictEqual((await api.runBuiltin('Grep', { pattern: 'no_such_thing_anywhere' }, ctx)).text, 'No matches found');
+    assert.ok(!/\.context\//.test((await api.runBuiltin('Grep', { pattern: 'alphaThing' }, ctx)).text), 'the index directory is gitignored and stays out of a search');
+    assert.match((await api.runBuiltin('Glob', { pattern: '**/*.js' }, ctx)).text, /src\/alpha\.js/);
+    assert.match((await api.runBuiltin('Bash', { command: 'grep -n alphaThing src/alpha.js' }, ctx)).text, /alphaThing/);
+    for (const cmd of ['rm -rf src', 'ls | wc', 'cat /etc/passwd', 'cat ../x', 'curl http://x', 'node -e 1']) assert.ok((await api.runBuiltin('Bash', { command: cmd }, ctx)).isError, cmd);
+    assert.ok(!(await api.runBuiltin('Bash', { command: 'sigmap ask where is alpha' }, ctx)).text.startsWith('refused'), 'the SigMap arm may run the sigmap CLI');
+    assert.match((await api.runBuiltin('Bash', { command: 'sigmap ask x' }, { cwd: a.cwd, withSigmap: false })).text, /refused: "sigmap" is not allowed/, 'the baseline may not');
+    assert.ok((await api.runBuiltin('Edit', {}, ctx)).isError, 'no write tool exists');
+  });
+
+  await test('cost is computed from usage and a price table, exactly, and a model without a price has no cost', () => {
+    const one = { in: 1e6, out: 1e6, cacheRead: 1e6, cacheWrite: 1e6 };
+    assert.ok(Math.abs(api.costOf(one, 'claude-haiku-5-5', {}) - (0.1 + 0.5 + 0.01 + 0.125)) < 1e-12);
+    assert.ok(Math.abs(api.costOf(one, 'claude-haiku-4-5', {}) - (1 + 5 + 0.1 + 1.25)) < 1e-12);
+    assert.strictEqual(api.costOf(one, 'some-future-model', {}), null);
+    assert.ok(Math.abs(api.costOf(one, 'some-future-model', { PRICE_IN_PER_MTOK: '3', PRICE_OUT_PER_MTOK: '15' }) - (3 + 15 + 0.3 + 3.75)) < 1e-12, 'an override prices any model');
+    assert.strictEqual(api.priceFor('claude-haiku-5.5', {}).in, 0.1, 'a dot in the version is read as a dash');
+  });
+
+  await test('the runner loops tool_use to an answer, sends the key and cache breakpoints, and records usage, tools and a computed cost', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-api-');
+    const armFor = {};
+    for (const arm of ['without', 'with']) armFor[arm] = arms.prepareArm({ root, repo: manifest.repos[0], arm, tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    const fake = await fakeApi((body, n) => {
+      const withMcp = body.tools.some((t) => /^mcp__sigmap__/.test(t.name));
+      if (n % 2 === 1) return withMcp ? toolTurn('mcp__sigmap__query_context', { query: 'alpha thing' }) : toolTurn('Grep', { pattern: 'alphaThing' });
+      return textTurn('It is in `src/alpha.js`.');
+    });
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'sk-test-KEY', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 60000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} });
+      const job = { task: { repo: 'r1', id: 'x001', query: 'where is the alpha thing' }, run: 1, prompt: ab.buildPrompt({ query: 'where is the alpha thing' }) };
+      const base = await runner({ ...job, arm: 'without' });
+      assert.strictEqual(base.ok, true, base.error);
+      assert.strictEqual(base.answer, 'It is in `src/alpha.js`.');
+      assert.deepStrictEqual(base.toolCalls, { total: 1, byTool: { Grep: 1 }, byCommand: {} });
+      assert.deepStrictEqual(base.usage, { in: 110, out: 25, cacheRead: 150, cacheWrite: 50 });
+      assert.strictEqual(base.turns, 2);
+      assert.strictEqual(base.cost.source, 'computed');
+      assert.ok(Math.abs(base.cost.usd - api.costOf(base.usage, 'claude-haiku-5-5', {})) < 1e-15);
+      assert.deepStrictEqual(base.init.mcpServers, []);
+      assert.ok(ab.checkIntegrity(base.init, 'without').ok);
+
+      const first = fake.seen[0];
+      assert.strictEqual(first.headers['x-api-key'], 'sk-test-KEY');
+      assert.strictEqual(first.headers['anthropic-version'], api.API_VERSION);
+      assert.strictEqual(first.body.model, 'claude-haiku-5-5');
+      assert.strictEqual(first.body.system[0].cache_control.type, 'ephemeral', 'the system prompt is a cache breakpoint');
+      assert.strictEqual(first.body.tools[first.body.tools.length - 1].cache_control.type, 'ephemeral', 'so is the end of the tool list');
+      assert.ok(!first.body.tools.some((t) => /^mcp__/.test(t.name)) && first.body.system[0].text === api.SYSTEM_PROMPT, 'the baseline has no SigMap tool and no SigMap text');
+      const second = fake.seen[1].body;
+      const marks = JSON.stringify(second.messages).split('cache_control').length - 1;
+      assert.strictEqual(marks, 1, 'one breakpoint on the newest message, none left on older ones');
+      assert.ok(second.messages[2].content[0].type === 'tool_result' && /src\/alpha\.js/.test(second.messages[2].content[0].content));
+
+      const withRec = await runner({ ...job, arm: 'with' });
+      assert.strictEqual(withRec.ok, true, withRec.error);
+      assert.deepStrictEqual(Object.keys(withRec.toolCalls.byTool), ['mcp__sigmap__query_context'], 'the SigMap arm called the MCP tool and it answered');
+      const req = fake.seen[2].body;
+      assert.ok(req.tools.filter((t) => /^mcp__sigmap__/.test(t.name)).length === 7, 'the core profile: seven SigMap tools');
+      assert.ok(req.system[0].text.startsWith(api.SYSTEM_PROMPT) && req.system[0].text.length > api.SYSTEM_PROMPT.length, 'the generated section rides in the system prompt');
+      assert.ok(ab.checkIntegrity(withRec.init, 'with').ok, 'the arm reports a connected sigmap server');
+      assert.match(JSON.stringify(fake.seen[3].body.messages[2]), /src\/alpha\.js/, 'the MCP tool result reached the model');
+    } finally { fake.close(); }
+  });
+
+  await test('a prefetch run puts the ranking after the question for the SigMap arm only, and the run fails loudly on an API refusal, a budget or a turn limit', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'alpha', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-api-');
+    const armFor = {};
+    for (const arm of ['without', 'with']) armFor[arm] = arms.prepareArm({ root, repo: manifest.repos[0], arm, tmpRoot: tmp, codeRoot: ROOT, variant: 'prefetch' });
+    const job = (arm) => ({ arm, run: 1, task: { repo: 'r1', id: 'x001', query: 'alpha' }, prompt: 'Question: alpha' });
+
+    let fake = await fakeApi(() => textTurn('`src/alpha.js`'));
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {}, prefetch: () => 'RANKED-BLOCK' });
+      await runner(job('without')); await runner(job('with'));
+      assert.ok(!JSON.stringify(fake.seen[0].body).includes('RANKED-BLOCK'));
+      const sent = fake.seen[1].body;
+      assert.ok(sent.messages[0].content[0].text.endsWith('\n\nRANKED-BLOCK') && sent.messages[0].content[0].text.startsWith('Question: alpha'));
+      assert.strictEqual(sent.system[0].text, api.SYSTEM_PROMPT, 'the system prompt is the same in both arms');
+      assert.ok(!sent.tools.some((t) => /^mcp__/.test(t.name)), 'no MCP server in a prefetch run');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => ({ status: 400, body: { type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } } }));
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} });
+      const rec = await runner(job('without'));
+      assert.strictEqual(rec.ok, false);
+      assert.match(rec.error, /api 400: invalid_request_error: Your credit balance is too low/);
+      assert.strictEqual(fake.seen.length, 1, 'a 400 is not retried');
+      assert.ok(rec.init && ab.checkIntegrity(rec.init, 'without', { variant: 'prefetch' }).ok, 'a failed run still reports the arm it ran in, and that arm is the right one');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => toolTurn('Grep', { pattern: 'alphaThing' }, U(1e6, 1e5, 0, 0)));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 0.05, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} })(job('without'));
+      assert.match(rec.error, /^budget: \$0\.1500 passed the per-run cap of \$0\.05/);
+      assert.strictEqual(fake.seen.length, 1);
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => toolTurn('Glob', { pattern: '*.js' }, U(1, 1, 0, 0)));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, maxTurns: 3, env: {} })(job('without'));
+      assert.match(rec.error, /turn limit \(3\)/);
+      assert.strictEqual(rec.toolCalls.total, 3);
+    } finally { fake.close(); }
+
+    fake = await fakeApi((_b, n) => (n === 1 ? { status: 429, body: { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } } } : textTurn('`src/alpha.js`')));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 60000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} })(job('without'));
+      assert.strictEqual(rec.ok, true, rec.error);
+      assert.strictEqual(fake.seen.length, 2, 'a 429 is retried');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => textTurn('ok'));
+    try {
+      assert.deepStrictEqual(await api.pingKey({ apiKey: 'k', model: 'm', baseUrl: fake.url }), { ok: true });
+    } finally { fake.close(); }
+    fake = await fakeApi(() => ({ status: 401, body: { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } } }));
+    try {
+      const p = await api.pingKey({ apiKey: 'k', model: 'm', baseUrl: fake.url });
+      assert.strictEqual(p.ok, false); assert.match(p.error, /401 authentication_error: invalid x-api-key/);
+    } finally { fake.close(); }
+  });
+
+  const runCliAsync = (args, env) => new Promise((resolve) => {
+    const p = require('child_process').spawn(process.execPath, [CLI, ...args], { cwd: ROOT, env: Object.assign({}, process.env, { ANTHROPIC_API_KEY: '', SIGMAP_XREPO_DATA: '' }, env) });
+    let stdout = ''; let stderr = '';
+    p.stdout.on('data', (d) => { stdout += d; }); p.stderr.on('data', (d) => { stderr += d; });
+    const timer = setTimeout(() => p.kill('SIGKILL'), 120000);
+    p.on('close', (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); });
+  });
+
+  await test('--agent api runs the plan through the Messages API, labels the report, refuses the combinations it cannot honour, and never prints the key', async () => {
+    const f = fixture();
+    const dry = runCli(['--dry-run', '--agent', 'api', '--model', 'claude-haiku-5-5'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /agent\s+the Messages API directly \(scripts\/lib\/agent-ab-api\.mjs, not Claude Code\), model claude-haiku-5-5; cost computed from usage x the built-in table \(\$0\.1 in \/ \$0\.5 out per Mtok\)/);
+    assert.match(runCli(['--dry-run', '--agent', 'nope'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent must be claude/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--session-auth'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent api uses ANTHROPIC_API_KEY/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill', '--session-auth'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent api uses ANTHROPIC_API_KEY/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill'], { SIGMAP_XREPO_DATA: f.root }).stderr, /Claude Code skills, which the direct API agent does not have/);
+
+    const fake = await fakeApi((body, n) => {
+      const withMcp = body.tools.some((t) => /^mcp__sigmap__/.test(t.name));
+      if (body.messages.length === 1) return withMcp ? toolTurn('mcp__sigmap__query_context', { query: 'alpha' }, U(300, 30, 0, 800)) : toolTurn('Grep', { pattern: 'alpha' }, U(200, 30, 0, 400));
+      return textTurn(`\`${body.messages[0].content[0].text.includes('beta') ? 'src/beta.js' : 'src/alpha.js'}\``);
+    });
+    try {
+      const r = await runCliAsync(['--agent', 'api', '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', f.out, '--repos', 'r1'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', ANTHROPIC_BASE_URL: fake.url });
+      assert.strictEqual(r.status, 0, r.stderr + r.stdout);
+      assert.ok(!(r.stdout + r.stderr).includes('SECRET-VALUE'), 'the key is never echoed');
+      const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+      assert.strictEqual(rep.method.agent, 'anthropic-messages-api');
+      assert.strictEqual(rep.method.runner, 'api');
+      assert.ok(rep.caveats.some((c) => /Direct Messages API agent/.test(c)));
+      const md = fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8');
+      assert.ok(/\*\*anthropic-messages-api direct Messages API/.test(md));
+      const withCell = rep.cells.find((c) => c.arm === 'with');
+      assert.ok(withCell.spend.all.agentReportedUsd > 0 && withCell.spend.all.unknownRuns === 0, 'the computed cost is counted as a cost, not as unknown');
+      assert.ok(fake.seen.every((s) => s.headers['x-api-key'] === 'sk-test-SECRET-VALUE'));
+    } finally { fake.close(); }
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

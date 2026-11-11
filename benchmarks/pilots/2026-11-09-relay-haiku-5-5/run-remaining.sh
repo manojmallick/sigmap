@@ -15,6 +15,7 @@
 #   BUDGET    per-run spend cap in USD, the agent's own      (default: 0.3)
 #   FORCE=1   ignore the questions already done in this directory
 #   ORDER     "repo:id ..." to run instead of the fixed list     CLAUDE_BIN  the claude executable (tests use a fake one)
+#   AGENT=api       talk to the Messages API directly with ANTHROPIC_API_KEY (scripts/lib/agent-ab-api.mjs), not through Claude Code
 #   SESSION_AUTH=1  run on the logged-in session, no API key (counts against that account's plan); the relay runs' DONE lists are then ignored
 #
 # Through a relay that rejects Claude Code's empty system message, start scripts/agent-ab-compat-shim.mjs first and point
@@ -43,6 +44,7 @@ for variant in $VARIANTS; do
           --out-dir "$out" --raw-out "$out/raw.json")
     [ -n "${CLAUDE_BIN:-}" ] && args+=(--claude "$CLAUDE_BIN")
     [ "${SESSION_AUTH:-0}" = "1" ] && args+=(--session-auth)
+    [ "${AGENT:-claude}" = "api" ] && args+=(--agent api)
     if [ "${DRY:-0}" = "1" ]; then node "${args[@]}" --dry-run 2>&1 | sed -n '/tasks /p;/runs /p'; continue; fi
     mkdir -p "$out"
     if ! node "${args[@]}" > "$out/stdout.md" 2> "$out/stderr.log"; then

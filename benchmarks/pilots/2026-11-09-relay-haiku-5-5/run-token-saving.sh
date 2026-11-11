@@ -8,7 +8,7 @@
 #
 # One tiny test call (about $0.002) runs with the checks unless KEY_CHECK=0; the batches start only with GO=1.
 # It runs the agent A/B (scripts/run-agent-ab.mjs: the same questions with and without SigMap, in clean copies of pinned
-# repositories, Claude Code under --bare) on two sets of questions and prints one report per set:
+# repositories, Claude Code under --bare, or with AGENT=api the Messages API directly) on two sets of questions and prints one report per set:
 #   unfamiliar   30 labelled questions about THIS repository's source, which a model has not memorised (closed-book.mjs: 0 of 30
 #                answered from memory). This is the case that resembles a private codebase.
 #   famous       the pilot's 45 questions about 8 well-known frameworks (40 of 45 answered from memory, so little to save).
@@ -23,6 +23,10 @@
 #   MAX_TOTAL_USD   25                          stop before the next batch once the spend recorded so far passes this
 #   BUDGET          0.25                        the agent's own cap for ONE run, in USD
 #   OUT             ./token-saving-runs         where reports, raw records and the unfamiliar data root go
+#   AGENT           claude                      claude = Claude Code under --bare; api = the Messages API directly (scripts/lib/agent-ab-api.mjs).
+#                                               Use api when Claude Code requests are refused for the key ("credit balance is too low" while plain
+#                                               API calls work): it needs nothing but the key, but it is a different agent (a ~150-token prompt and
+#                                               four tools, not Claude Code's ~12k-token prefix), so its numbers are not Claude Code's
 #   KEY_CHECK       1                           make one tiny Claude Code call with the key first (about $0.002): a key that plain API
 #                                               calls accept can still be refused for Claude Code requests, and it is better to know now
 #   CLAUDE_BIN                                  another claude executable (the tests use a fake one)
@@ -38,6 +42,8 @@ cd "$(dirname "$0")/../../.." || exit 1
 HERE=benchmarks/pilots/2026-11-09-relay-haiku-5-5
 SETS=${SETS:-"unfamiliar famous"}; VARIANTS=${VARIANTS:-"index prefetch"}; MODEL=${MODEL:-claude-haiku-5-5}
 RUNS=${RUNS:-4}; MAX_TOTAL_USD=${MAX_TOTAL_USD:-25}; BUDGET=${BUDGET:-0.25}; OUT=${OUT:-./token-saving-runs}
+AGENT=${AGENT:-claude}; export AGENT
+case "$AGENT" in claude|api) ;; *) echo "AGENT must be claude or api, got: $AGENT" >&2; exit 2 ;; esac
 CLAUDE=${CLAUDE_BIN:-claude}
 
 UNFAMILIAR="sigmap-src:h001,h002,h003,h004,h005,h006,h007,h008 sigmap-src:h009,h010,h011,h012,h013,h014,h015 sigmap-src:h016,h017,h018,h019,h020,h021,h022,h023 sigmap-src:h024,h025,h026,h027,h028,h029,h030"
@@ -52,8 +58,13 @@ ok() { printf '  ✓ %s\n' "$*"; }
 say "SigMap token-saving A/B: checks"
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then ok "ANTHROPIC_API_KEY is set (not shown)"; else bad "ANTHROPIC_API_KEY is not set: export it in this shell (console.anthropic.com → API keys)"; fi
 if command -v node >/dev/null 2>&1; then ok "node $(node --version)"; else bad "node is not installed"; fi
-if command -v "$CLAUDE" >/dev/null 2>&1; then ok "claude $("$CLAUDE" --version 2>/dev/null | head -1)"; else bad "the claude CLI is not installed (npm install -g @anthropic-ai/claude-code)"; fi
-if [ "$(uname -s)" = "Linux" ] && ! command -v bwrap >/dev/null 2>&1; then bad "bubblewrap is missing, and --bare needs it on Linux (apt-get install bubblewrap)"; fi
+if [ "$AGENT" = "claude" ]; then
+  if command -v "$CLAUDE" >/dev/null 2>&1; then ok "claude $("$CLAUDE" --version 2>/dev/null | head -1)"; else bad "the claude CLI is not installed (npm install -g @anthropic-ai/claude-code)"; fi
+  if [ "$(uname -s)" = "Linux" ] && ! command -v bwrap >/dev/null 2>&1; then bad "bubblewrap is missing, and --bare needs it on Linux (apt-get install bubblewrap)"; fi
+else
+  ok "AGENT=api: the Messages API directly, no claude CLI needed"
+  if command -v rg >/dev/null 2>&1; then ok "ripgrep is installed (the agent's Grep and Glob tools use it)"; else bad "ripgrep (rg) is not installed: apt-get install ripgrep / brew install ripgrep"; fi
+fi
 for set in $SETS; do
   case "$set" in
     unfamiliar) ok "unfamiliar: built from this checkout into $OUT/unfamiliar-root (no download)" ;;
@@ -64,7 +75,17 @@ for set in $SETS; do
     *) bad "unknown set \"$set\" (unfamiliar, famous)" ;;
   esac
 done
-if [ "$problems" -eq 0 ] && [ "${KEY_CHECK:-1}" = "1" ]; then
+if [ "$problems" -eq 0 ] && [ "${KEY_CHECK:-1}" = "1" ] && [ "$AGENT" = "api" ]; then
+  verdict=$(node --input-type=module -e '
+import { pingKey } from "./scripts/lib/agent-ab-api.mjs";
+const r = await pingKey({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.argv[1], baseUrl: process.env.ANTHROPIC_BASE_URL || undefined });
+console.log(r.ok ? "OK" : "REFUSED " + r.error);' "$MODEL" 2>/dev/null)
+  case "$verdict" in
+    OK) ok "the API accepts this key (one test call to $MODEL)" ;;
+    REFUSED*) bad "the API refused this key: ${verdict#REFUSED }" ;;
+    *) bad "the test call returned nothing readable: check the network and the key" ;;
+  esac
+elif [ "$problems" -eq 0 ] && [ "${KEY_CHECK:-1}" = "1" ]; then
   probe_dir=$(mktemp -d)
   verdict=$(cd "$probe_dir" && printf 'Reply with the single word: ok' | "$CLAUDE" -p --bare --output-format json --no-session-persistence --model "$MODEL" --tools "" --permission-mode dontAsk --max-budget-usd 0.05 --strict-mcp-config 2>/dev/null | node -e '
 let t = ""; process.stdin.on("data", (d) => { t += d; }).on("end", () => {
@@ -76,7 +97,7 @@ let t = ""; process.stdin.on("data", (d) => { t += d; }).on("end", () => {
   rm -rf "$probe_dir"
   case "$verdict" in
     OK) ok "Claude Code accepts this key (one test call to $MODEL)" ;;
-    REFUSED*) bad "Claude Code was refused with this key: ${verdict#REFUSED }. A key that plain API calls accept can still fail here (a user-scoped sk-ant-usr key did); create a standard key in Console → API keys under the organisation that holds the credit, and check Plans & Billing" ;;
+    REFUSED*) bad "Claude Code was refused with this key: ${verdict#REFUSED }. A key that plain API calls accept can still fail here (a user-scoped sk-ant-usr key did); create a standard key in Console → API keys under the organisation that holds the credit and check Plans & Billing; if plain API calls work with it, run with AGENT=api (the Messages API directly)" ;;
     *) bad "the test call to Claude Code returned nothing readable (run: echo ok | $CLAUDE -p --bare --model $MODEL) — fix that before spending anything" ;;
   esac
 fi
@@ -93,6 +114,7 @@ say ""
 say "Plan"
 say "  sets       $SETS"
 say "  SigMap     $VARIANTS   (each against its own no-SigMap baseline)"
+say "  agent      $AGENT"
 say "  model      $MODEL"
 say "  questions  $questions per SigMap setup, $RUNS repetitions per arm → $runs agent runs in $((batches * nvar)) batches"
 say "  spend      stops before the next batch once \$$MAX_TOTAL_USD is passed; one run is capped at \$$BUDGET by the agent"
@@ -130,7 +152,7 @@ for set in $SETS; do
 $(spent)
 EOF
       if over "$usd"; then say ""; say "STOPPED: \$$usd recorded over $n runs, past MAX_TOTAL_USD=\$$MAX_TOTAL_USD. Raise it and rerun to carry on; finished batches are kept."; exit 3; fi
-      VARIANTS="$v" MODEL="$MODEL" RUNS="$RUNS" BUDGET="$BUDGET" ORDER="$spec" OUT="$OUT/$set" SESSION_AUTH=0 bash "$HERE/run-remaining.sh" || { say "a batch failed (see the message above); nothing from it was recorded. Fix it and rerun: finished batches are skipped."; exit 1; }
+      VARIANTS="$v" MODEL="$MODEL" RUNS="$RUNS" BUDGET="$BUDGET" ORDER="$spec" OUT="$OUT/$set" SESSION_AUTH=0 AGENT="$AGENT" bash "$HERE/run-remaining.sh" || { say "a batch failed (see the message above); nothing from it was recorded. Fix it and rerun: finished batches are skipped."; exit 1; }
     done
   done
 done
@@ -143,5 +165,5 @@ say "done: $n runs recorded, \$$usd spent by the agent's own count"
 for set in $SETS; do
   say ""
   say "──────────────── $set ────────────────"
-  node "$HERE/variant-combined.mjs" "$OUT/$set" "$MODEL, API key"
+  node "$HERE/variant-combined.mjs" "$OUT/$set" "$MODEL, API key, $AGENT"
 done

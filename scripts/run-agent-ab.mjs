@@ -53,6 +53,7 @@ import {
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeMcp, probeCli, prefetchContext } from './lib/agent-ab-arms.mjs';
+import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
 } from './lib/agent-ab-claude.mjs';
@@ -65,7 +66,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -116,7 +117,12 @@ const VARIANT = val('--sigmap-variant', 'current');
 if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
   fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
 }
+const AGENT = val('--agent', 'claude');
+if (AGENT !== 'claude' && AGENT !== 'api') fail('--agent must be claude (Claude Code, the default) or api (the Messages API directly), got "' + AGENT + '"', 2);
+const API_AGENT = AGENT === 'api';
+if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
 const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
+if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);
 if (SKILL_RUN && !SESSION_AUTH) fail(`--sigmap-variant ${VARIANT} hands SigMap over as skills, and --bare turns skills off: add --session-auth`, 2);
 
 function selectRepos(manifest, tasks) {
@@ -139,7 +145,9 @@ function printPlan(plan) {
   const lines = [
     `SigMap agent-level A/B (#812)${DRY ? ' — dry run' : ''}`,
     '',
-    `  agent     claude (${SESSION_AUTH ? 'the logged-in session, no API key; ~40k tokens of cached prefix' : '--bare'}), model ${MODEL}`,
+    API_AGENT
+      ? '  agent     the Messages API directly (scripts/lib/agent-ab-api.mjs, not Claude Code), model ' + MODEL + '; cost computed from usage x ' + (priceFor(MODEL) ? 'the ' + priceFor(MODEL).source + ' ($' + priceFor(MODEL).in + ' in / $' + priceFor(MODEL).out + ' out per Mtok)' : 'a price this model does not have: cost will be n/a')
+      : `  agent     claude (${SESSION_AUTH ? 'the logged-in session, no API key; ~40k tokens of cached prefix' : '--bare'}), model ${MODEL}`,
     `  repos     ${plan.repos.length}${plan.skipped.length ? ` (${plan.skipped.length} skipped: ${plan.skipped.map((s) => `${s.name} ${s.why}`).join(', ')})` : ''}`,
     `  tasks     ${plan.tasks} (${TASK_IDS ? `task id(s) ${TASK_IDS.join(', ')}` : `first ${PER_REPO} per repo, by id`})`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
@@ -201,15 +209,16 @@ async function main() {
 
   const env = childEnv();
   const prefetched = new Map();
-  const version = agentVersion(BIN, env);
-  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN,
-    // One `sigmap ask` per question, cached: both repetitions of a question get the same pre-ranked text.
-    prefetch: VARIANT === 'prefetch' ? (job, arm) => {
-      const k = `${job.task.repo}/${job.task.id}`;
-      if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: job.task.query }));
-      return prefetched.get(k);
-    } : null,
-  });
+  const version = API_AGENT ? 'direct Messages API' : agentVersion(BIN, env);
+  // One `sigmap ask` per question, cached: both repetitions of a question get the same pre-ranked text.
+  const prefetchFor = VARIANT === 'prefetch' ? (job, arm) => {
+    const k = `${job.task.repo}/${job.task.id}`;
+    if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: job.task.query }));
+    return prefetched.get(k);
+  } : null;
+  const runner = API_AGENT
+    ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: (repo, arm) => prepared[repo][arm], prefetch: prefetchFor })
+    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor });
 
   let n = 0;
   const entries = await runPlan({
@@ -224,12 +233,13 @@ async function main() {
   });
 
   const method = {
-    agent: 'claude-code',
+    agent: API_AGENT ? 'anthropic-messages-api' : 'claude-code',
     agentVersion: version,
     model: MODEL,
     runs: RUNS,
     variant: VARIANT,
     auth: SESSION_AUTH ? 'session' : 'api-key',
+    runner: AGENT,
     taskIds: TASK_IDS,
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,
