@@ -18,14 +18,14 @@ node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails
 |---|---|
 | `series` | one invocation of the harness (route, model, question set, SigMap setup, both arms); pairs never cross series |
 | `route` | `claude-code` or `api` (the Messages API directly) |
-| `model`, `set`, `variant` | the model; `famous` or `unfamiliar`; the SigMap setup (`index`, `prefetch`, `lean`, `current`, `skill*`) |
+| `model`, `set`, `variant` | the model; `famous`, `unfamiliar` or `change`; the SigMap setup (`index`, `prefetch`, `lean`, `current`, `skill*`) |
 | `repo`, `task`, `arm`, `run` | the question, `with` or `without` SigMap, the repetition |
-| `ok`, `pass` | the run finished; the expected file was among the five named |
+| `ok`, `pass` | the run finished; the expected file was among the five named (for `change`: the hidden tests passed) |
 | `turns`, `calls`, `mcp`, `cli`, `skill` | model turns; tool calls; of those, SigMap MCP calls, `sigmap` CLI commands and Skill calls |
 | `in`, `out`, `cacheRead`, `cacheWrite` | tokens by class |
 | `usd`, `ms`, `limit` | cost (the agent's own figure, or computed from usage for `api`); wall-clock milliseconds; the cap that stopped the run, if any |
 
-Rows with `limit` set hit the 25-turn cap and are scored as a miss.
+Rows with `limit` set hit a cap (25 turns, 40 for `change`, the per-run budget or the timeout) and are scored as they stand: a miss, never a dropped pair. `change` rows also carry `files`, `added`, `removed` (the size of the patch) and `why` (which hidden tests failed).
 
 ## Running it yourself
 
@@ -45,7 +45,20 @@ node benchmarks/agent-study/to-runs.mjs token-saving-runs --model claude-haiku-5
 | `MAX_TOTAL_USD` | `25` | stop before the next batch once the recorded spend passes this |
 | `KEY_CHECK` | `1` | one tiny call with the key before anything else |
 
-The script is resumable (a finished batch is skipped). The famous set needs the eight pinned checkouts (`npm run fetch:xrepo`); the
+The script is resumable (a finished batch is skipped).
+
+### Change tasks (stage 2)
+
+```bash
+node scripts/build-change-tasks.mjs --out change-root --max 16                      # needs git history and `gh` (or a cached issues/ folder)
+node benchmarks/agent-study/screen-change-tasks.mjs change-root --skip c08,c10     # describe the tasks and flag tests that need invented names
+DATA=change-root bash benchmarks/agent-study/run-change.sh                         # plan and worst-case spend; GO=1 ANTHROPIC_API_KEY=... runs it
+node benchmarks/agent-study/to-runs.mjs raw/change/claude-haiku-5-5/index --variant index --model claude-haiku-5-5 > change.ndjson
+node benchmarks/agent-study/summarize.mjs --runs change.ndjson --tasks c04,c05,c06,c09
+```
+
+`data/change-tasks.json` describes the nine tasks that ran and the two left out; `data/change-excluded.txt` is why each other fix commit
+was not made a task. The famous set needs the eight pinned checkouts (`npm run fetch:xrepo`); the
 unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 
 ## Files
@@ -57,6 +70,8 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `make-unfamiliar-root.mjs` | builds the sanitised data root of this repository's own source with its hard questions |
 | `closed-book.mjs` | the control: the same questions with no repository and no tools |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
+| `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
+| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented |
 | `summarize.mjs` | every number in the study, from `data/runs.ndjson` |
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 

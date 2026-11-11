@@ -6,8 +6,8 @@ The plan these runs follow was fixed first and is on [the protocol page](/guide/
 article [*"I Tested Six Ways to Save $$$ on 5.6 Sol"*](https://www.stet.sh/blog/gpt-56-token-saving-modes): a baseline against treatments,
 every arm repeated, the whole-batch estimate beside a paired typical-task estimate, an interval on every claim.
 
-**What was run:** 4,920 agent runs for the question study (2,520 in Claude Code at $46.18 as the agent reported it; 2,400 in a small
-Messages-API agent at $41.81 computed from usage and prices), then the change-task stage below. Every run is one row of
+**What was run:** 5,064 agent runs: 4,920 for the question study (2,520 in Claude Code at $46.18 as the agent reported it; 2,400 in a
+small Messages-API agent at $41.81 computed from usage and prices) and 144 for the change-task stage below ($5.39). Every run is one row of
 [`benchmarks/agent-study/data/runs.ndjson`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/agent-study/data/runs.ndjson);
 every number on this page is `node benchmarks/agent-study/summarize.mjs` over that file.
 
@@ -142,7 +142,34 @@ the noise floor of a 90-pair row.
 
 ### Change tasks
 
-*Stage 2 of the protocol. Added below when the runs finish.*
+Stage 2 of the protocol moves from "name the file" to the article's task: the agent gets a bug report and the code as it was before a
+merged fix, edits it, may run the repository's tests, and its patch is graded by the fix's own tests, which it never sees. Nine tasks
+from SigMap's history after the models' cutoff, 144 runs, $5.39.
+
+| Agent · model | setup | pairs | tests passed with (without) | real cost | tool calls |
+|---|---|---:|---:|---:|---:|
+| API agent · Haiku 5.5 | `index` | 27 | 3/27 (3/27) | −7% [−17, +3] ~ | −6% [−15, +4] ~ |
+| API agent · Haiku 5.5 | `prefetch` | 27 | 3/27 (3/27) | −14% [−27, 0] ~ | **−19%** [−29, −10] |
+| API agent · Sonnet 5.5 | `index` | 18 | 1/18 (2/18) | −4% [−18, +12] ~ | −8% [−26, +9] ~ |
+
+**This stage did not work as a test of patch quality, and it says nothing for or against SigMap there.** Of 9 tasks, one (c09, a small
+well-specified bug) was solved, and it was solved in both arms. Every other run, with and without SigMap, failed the hidden tests.
+The reason is in the grading, not only in the models: `screen-change-tasks.mjs` lists the names each task's hidden tests take out of a
+module that do not exist in that module before the fix. For five of the nine tasks (c01, c02, c03, c07, c11) the test needs a name the
+real fix *invented* (`maskStrings` in c07, `generatedReason` in c11, `STAGE_NEEDS` in c01), which no bug report can contain. A test
+file passes only if every test in it does, so such a file cannot pass without the invented name, whatever the rest of the patch does
+(in c07, one of the nine tests in the file calls `maskStrings` directly; the agents' own summaries describe the behaviour the report
+asked for, but how many of the other eight tests their patches passed was not recorded). On the other four tasks (c04, c05, c06, c09)
+the tests use only names the code already had, and Haiku 5.5 and Sonnet 5.5 solved only c09.
+
+What the runs do show is effort on attempts that mostly failed. The point estimates for cost are below zero (−4% to −14%) and for tool
+calls too, but only one interval clears zero (tool calls under `prefetch`), and the repetitions do not agree (`--study`: tokens "saved
+both times?" no for all three). Restricted to the four tasks whose tests use no invented names, `index` on Haiku 5.5 reads −17% [−26, −8]
+in cost over 12 pairs; that cut was chosen after the results were seen and is exploratory, not evidence.
+
+What would make this stage informative: screen the tasks for invented names *before* running anything (the script is there, and the
+next version of `build-change-tasks.mjs` should apply it as a rule), add the equivalence and review graders the article used instead of
+only a test file, use more tasks than nine, and a model strong enough to clear them. None of that was done here.
 
 ## Where this can mislead
 
@@ -159,7 +186,8 @@ the noise floor of a 90-pair row.
 - **Small samples.** 30 to 45 questions and two to four repetitions see a change of about 10% in the typical task and not a smaller one.
   `~` means exactly that.
 - **Localisation, not quality.** The question stage scores whether the agent names the right file, not the quality of anything it
-  writes. That is what the change-task stage is for.
+  writes. The change-task stage was meant to measure quality and could not (above), so nothing here says whether SigMap changes the
+  quality of a patch.
 
 ## Repeat it
 

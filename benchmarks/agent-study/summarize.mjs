@@ -5,6 +5,7 @@
 //   node benchmarks/agent-study/summarize.mjs --model claude-sonnet-5-5 --set unfamiliar
 //   node benchmarks/agent-study/summarize.mjs --route api --variant prefetch
 //   node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails     # a sensitivity cut
+//   node benchmarks/agent-study/summarize.mjs --set change --tasks c04,c05,c06,c09   # only these questions or tasks
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
 //
@@ -24,10 +25,11 @@ const val = (name, dflt = null) => { const i = argv.indexOf(name); return i >= 0
 const file = val('--runs', path.join(here, 'data', 'runs.ndjson'));
 const want = { route: val('--route'), model: val('--model'), set: val('--set'), variant: val('--variant'), series: val('--series') };
 const dropRepos = new Set((val('--exclude-repos', '') || '').split(',').filter(Boolean));
+const onlyTasks = new Set((val('--tasks', '') || '').split(',').filter(Boolean));
 const STUDY = argv.includes('--study');
 
 const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
-  .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo));
+  .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)));
 
 const tot = (r) => r.in + r.out + r.cacheRead + r.cacheWrite;
 const pct = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
@@ -72,13 +74,13 @@ if (STUDY) {
   process.exit(0);
 }
 
-console.log('| run | SigMap setup | pairs | real cost | total tokens | tool calls | seconds | file found (baseline) | baseline a run |');
+console.log('| run | SigMap setup | pairs | real cost | total tokens | tool calls | seconds | file found, or tests passed (baseline) | baseline a run |');
 console.log('|---|---|---:|---:|---:|---:|---:|---:|---|');
 for (const s of all) {
   const g = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairsOf(s, fn))]));
   const hit = (xs) => xs.filter((r) => r.pass).length;
   const caps = [...s.withRuns, ...s.baseRuns].filter((r) => r.limit).length;
-  console.log(`| ${label(s)} | \`${s.head.variant}\` (${s.name}) | ${s.keys.length}${s.dropped ? ` (${s.dropped} dropped)` : ''} | **${cell(g.cost)}** | ${cell(g.tokens)} | ${cell(g.calls)} | ${cell(g.seconds)} | ${hit(s.withRuns)}/${s.withRuns.length} (${hit(s.baseRuns)}/${s.baseRuns.length})${caps ? ` · ${caps} hit the turn cap` : ''} | ${mean(s.baseRuns.map((r) => r.calls)).toFixed(1)} calls, $${mean(s.baseRuns.map((r) => r.usd)).toFixed(4)} |`);
+  console.log(`| ${label(s)} | \`${s.head.variant}\` (${s.name}) | ${s.keys.length}${s.dropped ? ` (${s.dropped} dropped)` : ''} | **${cell(g.cost)}** | ${cell(g.tokens)} | ${cell(g.calls)} | ${cell(g.seconds)} | ${hit(s.withRuns)}/${s.withRuns.length} (${hit(s.baseRuns)}/${s.baseRuns.length})${s.head.set === 'change' ? ' tests' : ''}${caps ? ` · ${caps} hit a cap` : ''} | ${mean(s.baseRuns.map((r) => r.calls)).toFixed(1)} calls, $${mean(s.baseRuns.map((r) => r.usd)).toFixed(4)} |`);
 }
 const usd = rows.reduce((a, r) => a + (r.usd || 0), 0);
 console.log(`\n${rows.length} runs, ${usd.toFixed(2)} USD by the agent's own count (Claude Code) or computed from usage x a price table (Messages API)${dropRepos.size ? `; repos left out: ${[...dropRepos].join(', ')}` : ''}`);

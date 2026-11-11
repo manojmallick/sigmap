@@ -1,0 +1,31 @@
+6070fb8 fix(ranker): rank the implementation over tests, CI and docs; add --ex → more than 6 source files
+bdd9a8e fix(discovery): index a flat repo root, and give the monorepo verdict  → more than 6 source files
+7a7c658 fix(index): one definition of the index population and its age (closes → 432 changed source lines
+f4cfcd6 fix(ask): emit the rankedFiles the docs promised, and pin the JSON con → changes only gen-context.js
+312ad63 fix(cli): one canonical command table, one coverage ratio (closes #848 → 338 changed source lines
+ad4b709 fix(extractors): address PowerShell review feedback → names no issue
+f7a0745 fix(extractors): ObjC reads declarations only — no signatures from met → names no issue
+a90bc2f fix(plan,analyze): the change list and "tested" rest on evidence (clos → 325 changed source lines
+eceba46 fix(adapters): never delete human content that quotes the marker (clos → the hidden tests name a file the fix creates (src/util/managed-section.js): nobody could guess it
+2acaa83 fix(retrieval): stemmer conflates a word with its inflections (closes  → the hidden tests are 31 KB
+623d50c fix(retrieval): a doc basename is documentation only when it is not so → issue #900 already gave a task: an umbrella issue does not say what this commit tests
+6c0574f fix(cli): make review-pr, the git hook, summary boxes and docs say wha → more than 6 source files
+5578691 fix(watch): re-attach the watcher when its root is replaced (Linux say → the hidden tests are 53 KB
+a2856ac fix(context): .context/ keeps itself out of git, and doctor says when  → the hidden tests name a file the fix creates (src/util/context-dir.js): nobody could guess it
+56e17ba fix(python): one python3 process per 1,000 files, not one per file (re → the hidden tests are 43 KB
+511181a fix(graph): answer "not tracked" for languages the dependency graphs c → more than 6 source files
+7bd588a fix(graph): guard the other blast-radius surfaces, fix review findings → more than 6 source files
+4d64c5c fix(ruby): find classes and modules at any indentation and list each d → 364 changed source lines
+6645a94 fix(index): keep what ranking reads exactly as before, and the rest ap → removes or renames a source file
+cbe4e1e fix(index): second review pass — lookups read everything, odd settings → the hidden tests are 84 KB
+dbb1c1f fix(cache): review findings on the extraction cache (refs #971) → the hidden tests are 42 KB
+28fc53e fix(graph): read import lists that span lines in component scripts (re → the issue asks for a feature, not a fix
+91aec34 fix(graph): read an Astro frontmatter after blank lines, and a recursi → the issue asks for a feature, not a fix
+f502dd2 fix(graph): find a Dart package's pubspec.yaml by the directory's real → the issue asks for a feature, not a fix
+c5377a3 fix(verify): name the skipped symbol check instead of reporting a clea → changes only gen-context.js
+f3e2d7f fix(cli): deliver verify and review-pr output whole through a pipe, an → the hidden tests are 42 KB
+24cd5fa fix(budget): make the generated map independent of the checkout path a → changes only gen-context.js
+8edba8f fix(extractors): read $ names, generic and wrapped consts, anonymous d → 253 changed source lines
+eb0ec98 fix(discovery): count a directory's code through its whole tree, take  → the hidden tests are 50 KB
+06ee6da fix(extractors): no lookbehind over a blank run — excalidraw's wasm fi → the hidden tests name a file the fix creates (src/util/statement-start.js): nobody could guess it
+c1eb5cc fix(index): never walk a Python virtualenv; feat(agent-ab): prefetch v → more than 6 source files

@@ -94,20 +94,32 @@ times the input price; percentages between arms do not depend on it).
 
 ## Stage 2: change tasks (the article's task type)
 
-To test the claim the article actually tests, the next stage replays **merged bug fixes** from the repository's history after the models'
+To test the claim the article actually tests, Stage 2 replays **merged bug fixes** from the repository's history after the models'
 knowledge cutoff, with the fix's tests hidden from the agent:
 
-1. **Pool**: commits since 2026-07-01 that change source under `src/` and add or change a test, create no new source file, and whose
-   message closes an issue. The rule is mechanical and fixed before any run.
+1. **Pool**: commits since 2026-07-01 that change source under `src/` (and, where needed, the bundled `gen-context.js`) and add or change
+   a test, remove or rename no source file, whose message closes an issue; one task per issue; not a feature request; hidden tests under
+   25 KB; and the tests must not name a file the fix creates. The rule is mechanical (`scripts/build-change-tasks.mjs`) and was fixed
+   before any agent ran; 31 fix commits were examined and the reason for each one left out is in `data/change-excluded.txt`.
 2. **Task text**: the issue's title and first paragraph, with every path and file name of the real fix redacted. The location is the
    thing SigMap claims to find, so it is not handed over.
-3. **Validity**: a task is kept only if the hidden tests fail on the parent commit and pass with the real fix applied (twice, so a flaky
-   test is out), and finish in under a minute.
-4. **Grading**: the agent's patch is applied to the parent commit, the hidden test files are put on top, and the tests are run. Pass or
-   fail, plus the size of the patch against the real one. No LLM grader is used in this stage.
-5. **Same arms, estimators and hygiene checks** as above, with the agent allowed to edit files and run the repository's tests.
+3. **Validity**: a task is kept only if the hidden tests fail on the parent commit (with an assertion, not a missing module) and pass
+   with the real fix applied, twice, each under the time limit.
+4. **Grading**: the agent's patch is applied to a pristine copy of the parent commit, the hidden test files are put on top (overwriting
+   anything the agent did to them), and the tests are run with no API key in the environment. Pass or fail, plus the size of the patch.
+   No LLM grader is used in this stage.
+5. **Same arms, estimators and hygiene checks** as above, with the agent allowed to edit files (`Edit`, `Write`) and run the repository's
+   tests (`RunTest`, under `test/` only), a fresh checkout for every run, a 40-turn cap, and a run stopped by a cap or a timeout graded
+   on what it had left.
 
-**Status:** specified here; not yet run. Until it is, nothing on these pages says anything about patch quality.
+**Two decisions made after the pool was built and before any agent ran:** two of the eleven tasks (#900, #943) are umbrella issues whose
+text does not say what their tests check, and were left out (they are listed in `data/change-tasks.json` as not run). Nine tasks remain.
+
+**Status: run, and it did not work as a test of patch quality.** After the first Haiku 5.5 runs, `screen-change-tasks.mjs` was written to
+check one more validity condition, which the rule above lacks: a hidden test that takes a name out of a module that does not exist before
+the fix cannot pass unless the fix invents it. Five of the nine tasks fail that screen. The nine tasks were still run as planned and
+reported as a whole; the screen is a diagnostic added afterwards, and any cut by it is exploratory. The results are on
+[the results page](/guide/agent-study#change-tasks).
 
 ## What went wrong along the way
 
