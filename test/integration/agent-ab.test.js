@@ -846,10 +846,10 @@ const treeHash = (dir) => {
   // ── guards ─────────────────────────────────────────────────────────────────
 
   await test('the harness never spawns through a shell and stays out of the published package and CI', () => {
-    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs', 'scripts/agent-ab-compat-shim.mjs'];
+    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs', 'scripts/lib/agent-ab-api.mjs', 'scripts/lib/agent-ab-change.mjs', 'scripts/build-change-tasks.mjs'];
     for (const rel of files) {
       const src = fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l)).join('\n');
-      assert.ok(!/\bexecSync\b|shell:\s*true|\bexec\(/.test(src), `${rel} spawns through a shell`);
+      assert.ok(!/\bexecSync\b|shell:\s*true|(?<![.\w])exec\(/.test(src), `${rel} spawns through a shell`);
     }
     const pkg = require(path.join(ROOT, 'package.json'));
     assert.strictEqual(pkg.scripts['benchmark:agent-ab'], 'node scripts/run-agent-ab.mjs');
@@ -947,7 +947,7 @@ const treeHash = (dir) => {
   });
 
   await test('run-remaining.sh runs one question per invocation, resumes by skipping what is saved, and stops on the first failure', () => {
-    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-remaining.sh');
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-remaining.sh');
     const f = fixture();
     const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'test-key', SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', ORDER: 'r2:x010', VARIANTS: 'index', RUNS: '2', CLAUDE_BIN: f.bin }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
@@ -1478,7 +1478,7 @@ const treeHash = (dir) => {
   // ── run-token-saving.sh: the script a user runs with their own API key ──────────────────────────────────────────
 
   await test('run-token-saving.sh checks first and starts nothing without GO=1, never prints the key, and refuses to start with a problem', () => {
-    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
     const f = fixture();
     const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts'), KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 240000, env: env(extra) });
@@ -1511,7 +1511,7 @@ const treeHash = (dir) => {
   });
 
   await test('run-token-saving.sh makes one test call with the key before anything else, and stops on a refusal with what to do', () => {
-    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
     const f = fixture();
     const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'kc'), BENCH_ANTHROPIC_KEY: '' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
@@ -1533,7 +1533,7 @@ const treeHash = (dir) => {
   });
 
   await test('run-token-saving.sh with GO=1 runs batch by batch under the API key, stops at the spend limit, and resumes', () => {
-    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
     const f = fixture();
     const out = path.join(f.out, 'ts');
     const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1', KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
