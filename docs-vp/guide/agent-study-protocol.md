@@ -179,6 +179,44 @@ and `flamingock-java`).
 Sonnet 5.5 with 2 (`prefetch` was left out there to keep the spend down). The same "saves" rule as above. Results are on
 [the results page](/guide/agent-study#is-it-sigmap-or-just-text-in-the-prompt).
 
+## Second round: more repositories, and a smaller tool list
+
+The held-out result (five repositories, one of which carried the saving) leaves the question open at the level that matters: **across
+repositories, how often does SigMap save?** And it showed where the cost sits: `index` adds 2,266 tokens to every turn, 1,197 of them tool
+definitions, while agents called only two of the seven tools. Both are tested next, with the rules written before any run.
+
+### Experiment A: about twenty repositories
+
+**Repositories.** The rule of the first held-out round, continued down the same list: for each of Python, TypeScript, Go, Rust and Java the
+next two repositories in star order that qualify (at least 15 merged pull requests since 2026-07-01, a non-list description, at least 8
+usable questions), and for JavaScript, Ruby and PHP the first two. The five repositories of the first round stay as they are, on their
+existing runs. `scripts/select-heldout-repos.mjs` applies the rule and `scripts/build-heldout-set.mjs` builds the questions, unchanged.
+
+**Runs.** `index`, `prefetch` and `locate` (below), each against its own no-SigMap baseline, Haiku 5.5, 4 repetitions.
+
+**Unit and estimate.** The repository. For each repository the typical-task change in real cost of a setup against its baseline; the
+repository is classed *saves* when its 95% interval is entirely below zero, *costs more* when entirely above, *no clear change* otherwise.
+The pooled estimate is the geometric mean of the per-repository ratios, with a 95% interval from resampling repositories (10,000 times,
+seed 1), so a large repository cannot stand in for several small ones.
+
+**Bar for "saves reliably".** All three, for one setup: the pooled repository-level interval entirely below zero; at least half of the
+repositories *save* and at most 15% *cost more*; and the file found in at least as many runs as without SigMap, to within 2 percentage
+points over all runs. Anything short of that is reported as what it is, with the number that failed.
+
+### Experiment B: `locate`, a two-tool profile
+
+`--sigmap-variant locate` is `index` with the tool list cut to `query_context` and `get_lines` (`mcp.tools: ["query_context",
+"get_lines"]`, a setting that already exists), the two tools the agents used. Same section, same index. It drops about 860 of the 1,197
+tokens of tool definitions. It is a probe for locate questions only: the tools it drops (`get_impact`, `verify_suggestion` and others) are
+for editing and checking, which these questions do not exercise, so a saving here says nothing about their value.
+
+**Runs.** On the five repositories of the first round (existing `index` runs are the comparison): Haiku 5.5 with 4 repetitions and
+Sonnet 5.5 with 2; and on every repository of Experiment A for Haiku 5.5.
+
+**Decision rule.** `locate` against `index`, paired on the same questions and repetitions: cost interval entirely below zero in the pooled
+runs and every repetition pointing the same way means the smaller tool list helps; an interval that includes zero means it does not
+matter at this size; entirely above zero means it hurts.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
