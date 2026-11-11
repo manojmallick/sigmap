@@ -69,6 +69,7 @@ export const SIGMAP_VARIANTS = Object.freeze({
   skill: 'SigMap as one on-demand skill (sigmap-locate) + the sigmap CLI: no MCP server, no always-on section',
   'skill-always': 'SigMap as one skill (sigmap-locate) whose description tells the agent to call it first on every where-is-it question, + the sigmap CLI: no MCP server, no always-on section',
   prefetch: 'SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors after the question in the user turn, + the sigmap CLI; no MCP server, no standing section, no extra tool call',
+  locate: 'SigMap index strategy + a two-tool MCP profile (query_context and get_lines only): the tools the agents used, without the five they did not',
   placebo: 'NOT SigMap: a size-matched block of generic code-search guidance in the system prompt, no repository information, no tools added (the control for "is it SigMap or just prompt text?")',
   'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });

@@ -28,7 +28,7 @@ VARIANTS=${VARIANTS:-"index lean"}; MODEL=${MODEL:-claude-haiku-5.5}; RUNS=${RUN
 ORDER=${ORDER:-"gin:x001 gin:x002 express:x038 express:x037 flask:x033 fastapi:x145 fastify:x137 fastapi:x146 fastify:x138 flask:x032"}
 
 for variant in $VARIANTS; do
-  case "$variant" in current|lean|index|skill|skill-always|skill-shipped|prefetch|placebo) ;; *) echo "unknown variant: $variant" >&2; exit 2 ;; esac
+  case "$variant" in current|lean|index|skill|skill-always|skill-shipped|prefetch|placebo|locate) ;; *) echo "unknown variant: $variant" >&2; exit 2 ;; esac
   for spec in $ORDER; do
     repo=${spec%%:*}; id=${spec##*:}; out="$OUT/$variant/$repo-$id"
     if [ "${FORCE:-0}" != "1" ] && [ -f "$out/raw.json" ]; then echo "skip   $variant $spec (done: $out)"; continue; fi

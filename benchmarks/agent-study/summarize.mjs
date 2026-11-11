@@ -8,6 +8,7 @@
 //   node benchmarks/agent-study/summarize.mjs --set change --tasks c04,c05,c06,c09   # only these questions or tasks
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
 //   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
+//   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
 //
 // data/runs.ndjson has one row per agent run (see README.md for the fields). A series is one invocation of the harness: one route
@@ -29,6 +30,7 @@ const dropRepos = new Set((val('--exclude-repos', '') || '').split(',').filter(B
 const onlyTasks = new Set((val('--tasks', '') || '').split(',').filter(Boolean));
 const STUDY = argv.includes('--study');
 const VS_PLACEBO = argv.includes('--vs-placebo');
+const BY_REPO = argv.includes('--by-repo');
 
 const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
   .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)));
@@ -62,6 +64,48 @@ const label = (s) => `${s.head.route === 'api' ? 'Messages API' : 'Claude Code'}
 
 const all = series();
 if (!all.length) { console.log('no runs match'); process.exit(0); }
+
+if (BY_REPO) {
+  // The unit is the repository. Per repository: the typical-task change in real cost, classed saves / no clear change / costs more by its 95%
+  // interval. Pooled: the geometric mean of the per-repository ratios, with an interval from resampling REPOSITORIES (10,000 times, seed 1), so a
+  // large repository cannot stand in for several small ones. The bar (docs-vp/guide/agent-study-protocol.md): the pooled interval entirely
+  // below zero; at least half of the repositories save and at most 15% cost more; the file found to within 2 points of the baseline.
+  const rng = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const repoRows = [];
+  console.log('| run | SigMap setup | repositories | pooled real cost (resampling repositories) | saves | no clear change | costs more | file found (baseline) | the bar |');
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|---|');
+  for (const sr of all) {
+    const byRepo = new Map();
+    for (const k of sr.keys) { const repo = sr.m.get(`${k}|with`).repo; if (!byRepo.has(repo)) byRepo.set(repo, []); byRepo.get(repo).push(k); }
+    const rs = [];
+    for (const [repo, ks] of byRepo) {
+      const pairs = ks.map((k) => ({ without: sr.m.get(`${k}|without`).usd, with: sr.m.get(`${k}|with`).usd }));
+      const g = geometricChange(pairs);
+      rs.push({ repo, pairs: pairs.length, ...g, cls: g.hi < 0 ? 'saves' : g.lo > 0 ? 'costs' : 'none', logr: Math.log(1 + g.change) });
+      repoRows.push({ series: sr.name, ...rs[rs.length - 1] });
+    }
+    const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const pooled = mean(rs.map((r) => r.logr));
+    const rand = rng(1); const boots = [];
+    for (let b = 0; b < 10000; b++) { let sum = 0; for (let i = 0; i < rs.length; i++) sum += rs[Math.floor(rand() * rs.length)].logr; boots.push(sum / rs.length); }
+    boots.sort((x, y) => x - y);
+    const lo = Math.exp(boots[Math.floor(0.025 * boots.length)]) - 1; const hi = Math.exp(boots[Math.floor(0.975 * boots.length)]) - 1; const ch = Math.exp(pooled) - 1;
+    const n = { saves: rs.filter((r) => r.cls === 'saves').length, none: rs.filter((r) => r.cls === 'none').length, costs: rs.filter((r) => r.cls === 'costs').length };
+    const wRuns = sr.withRuns; const bRuns = sr.baseRuns; const fw = wRuns.filter((r) => r.pass).length; const fb = bRuns.filter((r) => r.pass).length;
+    const diffPp = 100 * (fw / wRuns.length - fb / bRuns.length);
+    const fails = [];
+    if (!(hi < 0)) fails.push('pooled interval not below zero');
+    if (n.saves < rs.length / 2) fails.push(`only ${n.saves} of ${rs.length} repositories save`);
+    if (n.costs > 0.15 * rs.length) fails.push(`${n.costs} of ${rs.length} cost more`);
+    if (diffPp < -2) fails.push(`file found ${diffPp.toFixed(1)} points lower`);
+    console.log(`| ${label(sr)} | \`${sr.head.variant}\` | ${rs.length} | **${pct(ch)} [${pct(lo)}, ${pct(hi)}]**${lo < 0 && hi >= 0 ? ' ~' : ''} | ${n.saves} | ${n.none} | ${n.costs} | ${fw}/${wRuns.length} (${fb}/${bRuns.length}) | ${fails.length ? `not met: ${fails.join('; ')}` : 'met'} |`);
+  }
+  if (argv.includes('--per-repo')) {
+    console.log('\n| setup | repository | pairs | real cost | class |\n|---|---|---:|---:|---|');
+    for (const r of repoRows) console.log(`| ${r.series.replace(/^.*-heldout-/, '')} | ${r.repo} | ${r.pairs} | ${cell(r)} | ${r.cls} |`);
+  }
+  process.exit(0);
+}
 
 if (VS_PLACEBO) {
   // For each route, model and question set that has a placebo series: every SigMap setup against no SigMap, the placebo against no SigMap, and

@@ -3,6 +3,7 @@
 // after a date, and its label is the source file(s) that change touched.
 //
 //   node scripts/build-heldout-set.mjs --out <dir> --repos owner/name,owner/name [--since 2026-07-01] [--max-per-repo 12] [--min-per-repo 8]
+//   node scripts/build-heldout-set.mjs --out <dir> --repos python:owner/a,python:owner/b,go:owner/c --keep-per-language 2   (stop a language after 2 usable repositories)
 //
 // The rule is mechanical and fixed before any agent runs (it reads a repository's own git history, nothing else):
 //   - the commits on the default branch since --since, first-parent: a squash-merged pull request is one commit, a merge-commit pull
@@ -23,7 +24,10 @@ import { spawnSync } from 'child_process';
 const argv = process.argv.slice(2);
 const val = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
 const OUT = val('--out', null);
-const REPOS = (val('--repos', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
+const ENTRIES = (val('--repos', '') || '').split(',').map((s) => s.trim()).filter(Boolean).map((e) => (e.includes(':') ? { lang: e.split(':')[0], slug: e.split(':').slice(1).join(':') } : { lang: null, slug: e }));
+const REPOS = ENTRIES.map((e) => e.slug);
+const KEEP = val('--keep-per-language', null) ? Number(val('--keep-per-language', '0')) : null;
+const keptBy = {};
 const SINCE = val('--since', '2026-07-01');
 const MAX = Number(val('--max-per-repo', '12'));
 const MIN = Number(val('--min-per-repo', '8'));
@@ -52,7 +56,8 @@ function cleanTitle(s) {
 const manifest = { _comment: `held-out questions: merged changes since ${SINCE} in repositories SigMap was not tuned on (scripts/build-heldout-set.mjs)`, repos: [] };
 const tasks = []; const report = [];
 let n = 0;
-for (const slug of REPOS) {
+for (const { slug, lang: wantLang } of ENTRIES) {
+  if (KEEP && wantLang && (keptBy[wantLang] || 0) >= KEEP) { report.push(`${slug}: not tried (${KEEP} ${wantLang} repositories already usable)`); continue; }
   const name = slug.replace('/', '__');
   const dir = path.join(out, 'benchmarks', 'repos', name);
   if (!fs.existsSync(path.join(dir, '.git'))) {
@@ -85,6 +90,7 @@ for (const slug of REPOS) {
   if (chosen.length < MIN) { report.push(`${slug}: ${chosen.length} qualifying question(s) (< ${MIN}); left out. Skipped: ${JSON.stringify(why)}`); fs.rmSync(dir, { recursive: true, force: true }); continue; }
   const langs = {}; for (const c of chosen) for (const f of c.src) { const l = CODE[f.split('.').pop().toLowerCase()]; langs[l] = (langs[l] || 0) + 1; }
   const language = Object.entries(langs).sort((a, b) => b[1] - a[1])[0][0];
+  if (wantLang) keptBy[wantLang] = (keptBy[wantLang] || 0) + 1;
   manifest.repos.push({ name, url: `https://github.com/${slug}.git`, commit: head, language, layout: 'heldout' });
   for (const c of chosen) { n++; tasks.push({ id: `p${String(n).padStart(3, '0')}`, split: 'heldout', source: 'merged-commit', repo: name, project: slug, query: c.title, expected_files: c.src, goldCommit: c.sha }); }
   report.push(`${slug}: ${chosen.length} questions (of ${picks.length} qualifying; ${log.length} commits since ${SINCE}); pinned ${head.slice(0, 10)}; language ${language}. Skipped: ${JSON.stringify(why)}`);

@@ -907,8 +907,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, placebo, skill-shipped\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'placebo', 'skill-shipped']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, placebo, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'placebo', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1056,7 +1056,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, placebo, skill-shipped \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, placebo, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1828,6 +1828,24 @@ const treeHash = (dir) => {
 
     assert.match(runCli(['--dry-run', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).stderr, /placebo puts its text in the system prompt, which only --agent api controls/);
     assert.strictEqual(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).status, 0);
+  });
+
+  await test('the locate variant is the index setup with the tool list cut to query_context and get_lines, and nothing else changes', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-locate-');
+    const idx = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'a'), codeRoot: ROOT, variant: 'index' });
+    const loc = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'b'), codeRoot: ROOT, variant: 'locate' });
+    const cfg = (a) => JSON.parse(fs.readFileSync(path.join(a.cwd, 'gen-context.config.json'), 'utf8'));
+    assert.strictEqual(cfg(idx).strategy, 'index');
+    assert.strictEqual(cfg(loc).strategy, 'index');
+    assert.deepStrictEqual(cfg(loc).mcp, { tools: ['query_context', 'get_lines'] });
+    assert.deepStrictEqual(cfg(idx).mcp, { tools: 'core' });
+    assert.strictEqual(loc.sigmapContext, idx.sigmapContext, 'the same section');
+    assert.ok(loc.mcpConfig && loc.binDir);
+    const probe = arms.probeMcp({ cwd: loc.cwd, codeRoot: ROOT });
+    assert.ok(probe.ok, probe.error);
+    assert.strictEqual(probe.tools, 2, 'the server advertises exactly the two tools');
+    assert.strictEqual(arms.probeMcp({ cwd: idx.cwd, codeRoot: ROOT }).tools, 7);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

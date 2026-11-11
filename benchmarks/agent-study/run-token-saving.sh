@@ -17,7 +17,7 @@
 #
 # Variables (all optional):
 #   SETS            "unfamiliar famous"         which question sets (also: heldout, with HELDOUT_ROOT=<data root from scripts/build-heldout-set.mjs>)
-#   VARIANTS        "index prefetch"            which SigMap setups (also: lean, current; placebo, API agent only: the size-matched control)
+#   VARIANTS        "index prefetch"            which SigMap setups (also: lean, current, locate; placebo, API agent only: the size-matched control)
 #   MODEL           claude-haiku-5-5            the model both arms use (claude-sonnet-5-5 costs several times more a run)
 #   RUNS            4                           repetitions per arm per question (4 is the fewest the harness calls a result)
 #   MAX_TOTAL_USD   25                          stop before the next batch once the spend recorded so far passes this
@@ -103,13 +103,14 @@ let t = ""; process.stdin.on("data", (d) => { t += d; }).on("end", () => {
     *) bad "the test call to Claude Code returned nothing readable (run: echo ok | $CLAUDE -p --bare --model $MODEL) — fix that before spending anything" ;;
   esac
 fi
-for v in $VARIANTS; do case "$v" in index|prefetch|lean|current|placebo) ;; *) bad "variant \"$v\" is not one this script runs with an API key (index, prefetch, lean, current, placebo; the skill variants need --session-auth)" ;; esac; done
+for v in $VARIANTS; do case "$v" in index|prefetch|lean|current|placebo|locate) ;; *) bad "variant \"$v\" is not one this script runs with an API key (index, prefetch, lean, current, placebo, locate; the skill variants need --session-auth)" ;; esac; done
 
-# A held-out set is a data root from scripts/build-heldout-set.mjs (HELDOUT_ROOT): one batch per repository, every question in it.
+# A held-out set is a data root from scripts/build-heldout-set.mjs (HELDOUT_ROOT): one batch per repository, every question in it
+# (HELDOUT_REPOS=a,b limits it to those repositories, so a set can be run in parallel shards).
 HELDOUT=""
 case " $SETS " in *" heldout "*)
   if [ -f "${HELDOUT_ROOT:-/nonexistent}/benchmarks/tasks/retrieval-xrepo.jsonl" ]; then
-    HELDOUT=$(node -e 'const by={};for(const l of require("fs").readFileSync(process.argv[1]+"/benchmarks/tasks/retrieval-xrepo.jsonl","utf8").split("\n").filter(Boolean)){const t=JSON.parse(l);(by[t.repo]=by[t.repo]||[]).push(t.id);}console.log(Object.entries(by).map(([r,ids])=>r+":"+ids.join(",")).join(" "));' "$HELDOUT_ROOT")
+    HELDOUT=$(node -e 'const only=(process.env.HELDOUT_REPOS||"").split(",").filter(Boolean);const by={};for(const l of require("fs").readFileSync(process.argv[1]+"/benchmarks/tasks/retrieval-xrepo.jsonl","utf8").split("\n").filter(Boolean)){const t=JSON.parse(l);if(only.length&&!only.includes(t.repo))continue;(by[t.repo]=by[t.repo]||[]).push(t.id);}console.log(Object.entries(by).map(([r,ids])=>r+":"+ids.join(",")).join(" "));' "$HELDOUT_ROOT")
     ok "heldout: $(printf '%s\n' $HELDOUT | wc -l) repositories from $HELDOUT_ROOT"
   else bad "the heldout set needs HELDOUT_ROOT=<a data root built by scripts/build-heldout-set.mjs>"; fi ;;
 esac
