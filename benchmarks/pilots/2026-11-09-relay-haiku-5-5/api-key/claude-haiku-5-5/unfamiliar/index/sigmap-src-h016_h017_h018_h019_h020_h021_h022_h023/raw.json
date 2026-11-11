@@ -1,0 +1,2447 @@
+[
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "src/mcp/tools.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 178,
+      "out": 705,
+      "cacheRead": 8203,
+      "cacheWrite": 6474
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00126158,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4753,
+    "answer": "I can't give you your actual session token count from this repo. What the code tracks is an estimate of tokens SigMap itself emitted (chars/4, from the local gain log), not your full chat usage.\n\n`src/tracking/budget.js`\n`src/mcp/handlers.js`\n`src/mcp/tools.js`\n\nThe budget module computes `spentTokens` and the remaining budget, the handler formats that output for the `get_budget` MCP tool, and the tool definition exposes it to agents."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "src/mcp/tools.js",
+      "src/mcp/profile.js",
+      "test/integration/budget.test.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 176,
+      "out": 566,
+      "cacheRead": 6160,
+      "cacheWrite": 5843
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0010925750000000001,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3543,
+    "answer": "`src/tracking/budget.js`\n`src/mcp/handlers.js`\n`src/mcp/tools.js`\n`src/mcp/profile.js`\n`test/integration/budget.test.js`\n\n`budget.js` computes the session spend ledger (`budgetStatus`), and `handlers.js` exposes it through the `get_budget` MCP tool, but both count only estimated tokens that SigMap itself emitted (chars/4), not your total token usage for this session. I didn't run the tool, so I can't give you a number."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "src/session/capture.js",
+      "budget.js",
+      "handlers.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 178,
+      "out": 875,
+      "cacheRead": 15205,
+      "cacheWrite": 7291
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0015187249999999998,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5515,
+    "answer": "I can't tell you your session's total token count from this repository. The closest thing here is SigMap's own session spend ledger, which only estimates tokens that SigMap itself emitted (chars/4), not your model usage. For that figure, run `sigmap budget` (or `sigmap budget --json`).\n\n`src/tracking/budget.js`\n`src/mcp/handlers.js`\n`src/session/capture.js`\n\nThe ledger in `budget.js` computes the estimated SigMap-emitted spend, `handlers.js` (`getBudget`) renders it for `sigmap budget` and the `get_budget` MCP tool, and `capture.js` records usage that an MCP agent reports through `log_session_usage`."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "budget.js",
+      "handlers.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 752,
+      "cacheRead": 15038,
+      "cacheWrite": 6661
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001377005,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 4780,
+    "answer": "`src/tracking/budget.js`\n`src/mcp/handlers.js`\n\n`budget.js` defines `budgetStatus()`, which sums the tokens SigMap itself emitted for the current session (chars/4 from the local gain log). `handlers.js` exposes that as the `get_budget` MCP tool and prints the \"Spent\" figure. The project only counts SigMap-emitted tokens, not your full chat usage, so this is an estimate and not your total session spend."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "budget.js",
+      "handlers.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 178,
+      "out": 549,
+      "cacheRead": 8228,
+      "cacheWrite": 6368
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00117058,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 3919,
+    "answer": "`src/tracking/budget.js`\n`src/mcp/handlers.js`\n\n`budget.js` computes the session spend (`spentTokens`) from the usage log, and the `get_budget` handler in `handlers.js` reports it. This is SigMap's estimate of tokens it emitted for the current session, not a count of your model's actual token usage. I didn't open the files, so I haven't confirmed the exact formula."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "budget.js",
+      "handlers.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 825,
+      "cacheRead": 24056,
+      "cacheWrite": 6386
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00146931,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5837,
+    "answer": "`src/tracking/budget.js`\n`src/mcp/handlers.js`\n\n`budget.js` computes the session spend (`spentTokens`, with `sessionKey` identifying the session), and `handlers.js` renders that figure for the MCP budget tool. These track only the tokens SigMap itself emitted, estimated as chars/4, so they won't give your total for this conversation. I searched and did not read the full files or run anything."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "src/mcp/tools.js",
+      "src/session/summary.js",
+      "src/session/report.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 176,
+      "out": 807,
+      "cacheRead": 6160,
+      "cacheWrite": 5770
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00120395,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 4623,
+    "answer": "I can't give you a number from this repo. Nothing here reads your actual session usage. The closest thing is SigMap's session spend ledger, which only counts tokens SigMap itself emitted (chars/4 estimates), not your total model usage. Running `sigmap budget` in this checkout would show that ledger.\n\n`src/tracking/budget.js`\n`src/mcp/handlers.js`\n`src/mcp/tools.js`\n`src/session/summary.js`\n`src/session/report.js`\n\nThe budget ledger in `budget.js` sums `actualTokens` across this session's entries to produce `spentTokens`, and the `get_budget` handler in `handlers.js` formats it. `tools.js` defines that tool's schema, `summary.js` covers the billed-token figures from captured agent sessions, and `report.js` is the per-model billed-token breakdown."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h016",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/budget.js",
+      "src/mcp/handlers.js",
+      "budget.js",
+      "handlers.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 178,
+      "out": 694,
+      "cacheRead": 8148,
+      "cacheWrite": 6106
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00120953,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4480,
+    "answer": "`src/tracking/budget.js`\n`src/mcp/handlers.js`\n\n`budget.js` computes the session spend ledger (`budgetStatus`, with the session identity from `sessionKey`), and `handlers.js` exposes it as the `get_budget` MCP tool. The figure is an estimate of tokens SigMap itself emitted (chars/4, from the local gain log), not your full chat usage, so the source can't tell you your actual total. Run `sigmap budget` in your project to see the number."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/tokenizer.js",
+      "src/retrieval/body-words.js",
+      "src/util/file-class.js",
+      "ranker.js"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Grep": 4,
+        "Glob": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 189,
+      "out": 1644,
+      "cacheRead": 36475,
+      "cacheWrite": 11239
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002610525,
+      "source": "computed"
+    },
+    "turns": 7,
+    "durationMs": 9944,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/tokenizer.js`\n`src/retrieval/body-words.js`\n`src/util/file-class.js`\n\n`ranker.js` is the core: `rank()` tokenizes the natural-language query, `scoreFile()` applies the `DEFAULT_WEIGHTS` signals (exact token, symbol, path, prefix matches), `_queryWants` and `detectIntents` read the query's intent, and penalty multipliers are applied. `tokenizer.js` produces the query tokens it scores against, `body-words.js` handles question-framing words, and `file-class.js` supplies the test/docs/CI classifications behind the penalty signals. I did not open `tokenizer.js`, `body-words.js`, or `file-class.js` beyond their header comments and the ranker's references to them, so their roles are inferred from those."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/bm25.js",
+      "src/retrieval/tokenizer.js",
+      "packages/core/index.js",
+      "src/session/note-relevance.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 588,
+      "cacheRead": 11086,
+      "cacheWrite": 2258
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00070521,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5390,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/bm25.js`\n`src/retrieval/tokenizer.js`\n`packages/core/index.js`\n`src/session/note-relevance.js`\n\nThe ranker is where the question becomes weighted signals: `detectIntents` and `DEFAULT_WEIGHTS` sit alongside the keyword, symbol, prefix, and path scoring in `rank`. `bm25.js` provides query tokenization and term expansion (`tokenize`, `expandQuery`), `tokenizer.js` has a second `tokenize`, `packages/core/index.js` re-exports `rank` as the public entry point, and `note-relevance.js` was a lower-ranked match I did not inspect in depth."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "packages/core/index.js",
+      "src/retrieval/bm25.js",
+      "ranker.js",
+      "bm25.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 573,
+      "cacheRead": 6160,
+      "cacheWrite": 1889
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.000602125,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3802,
+    "answer": "`src/retrieval/ranker.js`\n`packages/core/index.js`\n`src/retrieval/bm25.js`\n\n`ranker.js` is the core: its header documents the weighted signals (exact token overlap, symbol match, prefix match, path relevance, recency), and it exports `rank`, `detectIntents`, and `DEFAULT_WEIGHTS`. `packages/core/index.js` is the public entry point that wraps `rank`. `bm25.js` is the lexical scorer that the ranker builds on. I went from the ranked query results and the exported symbols and did not open `bm25.js` in full, so its role is inferred from its name and rank."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/bm25.js",
+      "src/retrieval/tokenizer.js",
+      "ranker.js",
+      "bm25.js"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 2,
+        "Read": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 187,
+      "out": 1569,
+      "cacheRead": 40988,
+      "cacheWrite": 13275
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002872455,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 7921,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/bm25.js`\n`src/retrieval/tokenizer.js`\n\n`ranker.js` turns a query into weighted signals: it defines the per-signal weights (`DEFAULT_WEIGHTS`), derives query intents and \"wants\" categories from the tokens (`detectIntents`, `_queryWants`), and scores each file with those weights. `bm25.js` weights expanded synonym terms (`EXPANSION_WEIGHT`) and the doc and body fields (`expandQuery`, `DOC_WEIGHT`, `BODY_WEIGHT`). `tokenizer.js` supplies the `tokenize` and `STOP_WORDS` step that produces the query tokens everything else consumes."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/bm25.js",
+      "ranker.js",
+      "bm25.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 1098,
+      "cacheRead": 15253,
+      "cacheWrite": 7943
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017127050000000001,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5857,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/bm25.js`\n\n`ranker.js` is the core: `detectIntents` maps query text to weighted intent labels via regex patterns, `_queryWants` derives which signals the query asks for, and `scoreFile` combines keyword, symbol and path signals with `DEFAULT_WEIGHTS`. `bm25.js` supplies the weighted query-token side, with `expandQuery` giving original tokens weight 1 and synonyms a lower weight (`EXPANSION_WEIGHT`)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/bm25.js",
+      "src/retrieval/tokenizer.js",
+      "packages/core/index.js",
+      "bm25.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 719,
+      "cacheRead": 11035,
+      "cacheWrite": 2265
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.000771075,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4713,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/bm25.js`\n`src/retrieval/tokenizer.js`\n`packages/core/index.js`\n\nThe ranker holds the weighted scoring signals (exact token, symbol, prefix, path, penalties) and intent detection, `bm25.js` and `tokenizer.js` turn query text into the tokens and expanded terms those signals consume, and `packages/core/index.js` exposes `rank` as the public entry point. I found these from the signature index and a grep for tokenizing/intent functions, so I did not open the bodies to confirm the exact weighting logic."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "packages/core/index.js",
+      "src/retrieval/bm25.js",
+      "bm25.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 568,
+      "cacheRead": 6160,
+      "cacheWrite": 1789
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.000587125,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3514,
+    "answer": "`src/retrieval/ranker.js`\n`packages/core/index.js`\n`src/retrieval/bm25.js`\n\nThe ranker's module header lists the weighted signals (keyword overlap, symbol match, prefix match, path relevance, recency), and `rank(query, ...)` scores files against the natural-language query with them. `packages/core/index.js` re-exports that `rank` entry point, and `bm25.js` provides another term-weighting scorer. I did not open the files to confirm the code, so this rests on the signature index and the query ranking."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h017",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/tokenizer.js",
+      "ranker.js",
+      "tokenizer.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 1253,
+      "cacheRead": 16577,
+      "cacheWrite": 9740
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00202807,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 6652,
+    "answer": "`src/retrieval/ranker.js`\n`src/retrieval/tokenizer.js`\n\n`ranker.js` does the conversion: `detectIntents` and `_queryWants` read the question's terms (for example \"test\", \"docs\", \"ci\", \"model\") and turn them into flags that adjust the weighted per-file scores in `scoreFile` and `rank`. `tokenizer.js` comes second because it supplies the lower-cased query tokens those steps match against. I didn't open the other retrieval modules, so there may be other contributors I haven't checked."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/monorepo.js",
+      "src/graph/src-dirs.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 184,
+      "out": 859,
+      "cacheRead": 17431,
+      "cacheWrite": 10103
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018850849999999999,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5327,
+    "answer": "The core logic is the source-root resolver, which walks candidate directories, scores them by code-file counts and penalties, and picks the roots.\n\n1. `src/discovery/source-root-resolver.js`\n2. `src/discovery/source-root-scorer.js`\n3. `src/discovery/source-root-registry.js`\n4. `src/discovery/monorepo.js`\n5. `src/graph/src-dirs.js`\n\nThe resolver's `resolveSourceRoots` decides which directories hold the code, using the scorer for per-directory code-file counts, the registry for language markers, and the monorepo detector for multi-package layouts; `src-dirs.js` then consumes that result as the directories `generate` walks."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/graph/src-dirs.js",
+      "src/config/loader.js",
+      "src/verify/source-confirm.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 535,
+      "cacheRead": 6160,
+      "cacheWrite": 2039
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.000601975,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3329,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/discovery/source-root-scorer.js`\n`src/graph/src-dirs.js`\n`src/config/loader.js`\n`src/verify/source-confirm.js`\n\n`resolveSourceRoots` in the resolver walks the candidate directories and scores them, the scorer ranks them, and `src-dirs.js` and `loader.js` (`detectAutoSrcDirs`) turn the result into the directories a graph walk starts from. `source-confirm.js` ranks fifth because it checks source directories, but I did not open it, so that placement rests only on the search score."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/graph/src-dirs.js",
+      "src/extractors/scan.js",
+      "src/config/loader.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 489,
+      "cacheRead": 6160,
+      "cacheWrite": 2304
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0006121,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 2996,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/discovery/source-root-scorer.js`\n`src/graph/src-dirs.js`\n`src/extractors/scan.js`\n`src/config/loader.js`\n\n`resolveSourceRoots` in the resolver walks the tree (`_treeCodeFiles`, `_directCodeFiles`, JVM source-set detection) to pick the source roots, the scorer ranks those candidates, and `src-dirs.js` turns the result into the directories a graph walk starts from. The last two are lower confidence: `scan.js` and `loader.js` were ranked by the query tool but I did not open them."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/monorepo.js",
+      "src/discovery/framework-detector.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 182,
+      "out": 883,
+      "cacheRead": 12768,
+      "cacheWrite": 12727
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0021782549999999996,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5265,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/discovery/source-root-scorer.js`\n`src/discovery/source-root-registry.js`\n`src/discovery/monorepo.js`\n`src/discovery/framework-detector.js`\n\nThe resolver's `resolveSourceRoots(cwd)` is the entry point that decides where source lives. It is built on the scorer, which rates candidate directories, and the registry, which supplies the per-language layout rules such as `lib/` for packages. I identified these from the file names and the cross-references in the code, and only read the resolver's entry signature and its description comments, not the walk logic itself. The monorepo and framework-detector files are supporting helpers that handle multi-package layouts and framework conventions."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/discovery/monorepo.js",
+      "src/discovery/language-detector.js",
+      "src/workspace/detector.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 182,
+      "out": 678,
+      "cacheRead": 8446,
+      "cacheWrite": 7892
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00142816,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4073,
+    "answer": "The core logic is in `src/discovery/source-root-resolver.js`, which walks the repo (top level, then monorepo packages and nested directories) to decide which directories are the source roots. The files below are ordered by relevance:\n\n- `src/discovery/source-root-resolver.js`\n- `src/discovery/source-root-scorer.js`\n- `src/discovery/monorepo.js`\n- `src/discovery/language-detector.js`\n- `src/workspace/detector.js`\n\nThe resolver makes the final decision: it calls the scorer to rank candidate directories by code-file counts, with penalties for test, docs and example folders and skips for build output, and it uses the monorepo and language/framework detectors to add per-package roots. I picked these from grep hits and the headers of the first two files, not from a full read of the other three."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/graph/src-dirs.js",
+      "src/config/loader.js",
+      "src-dirs.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 485,
+      "cacheRead": 8199,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00034249,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3101,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/discovery/source-root-scorer.js`\n`src/graph/src-dirs.js`\n`src/config/loader.js`\n\nThe resolver walks candidate directories (`_treeCodeFiles`, `_directCodeFiles`) and picks the source roots (`resolveSourceRoots`), the scorer ranks those candidates, `src-dirs.js` turns the result into the directories a graph walk starts from, and `loader.js` holds the auto-detection (`detectAutoSrcDirs`) that the config uses. I went by the ranked signatures and did not open the function bodies, so the ranking is inferred rather than verified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/discovery/source-root-scorer.js",
+      "src/graph/src-dirs.js",
+      "src/config/loader.js",
+      "src/verify/source-confirm.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 575,
+      "cacheRead": 6160,
+      "cacheWrite": 2108
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0006306,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3619,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/discovery/source-root-scorer.js`\n`src/graph/src-dirs.js`\n`src/config/loader.js`\n`src/verify/source-confirm.js`\n\n`resolveSourceRoots` in the resolver walks candidate directories (including the tree-walking `_treeCodeFiles` helper) and picks the real source roots. The scorer ranks those candidates, `src-dirs.js` decides which directories graph walks start from, and `loader.js` holds the auto-detection fallback (`detectAutoSrcDirs`). `source-confirm.js` is a lower-confidence fifth match that I only saw in the ranking, not in the code."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h018",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/source-root-resolver.js",
+      "src/graph/src-dirs.js",
+      "src/config/loader.js",
+      "src-dirs.js",
+      "loader.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 188,
+      "out": 1231,
+      "cacheRead": 30748,
+      "cacheWrite": 23777
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.003913905,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 7808,
+    "answer": "`src/discovery/source-root-resolver.js`\n`src/graph/src-dirs.js`\n`src/config/loader.js`\n\n`resolveSourceRoots` is the core: it lists root-level and monorepo candidate directories, adds JVM source sets and a flat-layout `.` root, scores each candidate by the code in its subtree, dedupes nested paths, and caps the result. `src-dirs.js` and `loader.js` are its callers, which use the detected roots when no `srcDirs` is pinned in config. I did not open `source-root-scorer.js`, which supplies the scoring and file counts, so I left it out of the list."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      "src/retrieval/ranker.js",
+      "src/judge/judge-engine.js",
+      "src/evidence/pack.js",
+      "weights.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 766,
+      "cacheRead": 8563,
+      "cacheWrite": 9560
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0016819299999999999,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4362,
+    "answer": "`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/judge/judge-engine.js`\n`src/evidence/pack.js`\n\n`weights.js` holds the boost and penalize logic and the persisted per-file multipliers in `.context/weights.json`, `ranker.js` applies those multipliers at ranking time, `judge-engine.js` feeds `--learn` boosts and penalties into that file from past answers, and `pack.js` reports the learned weight as a signal. I matched on keywords and read only the relevant hits, so the CLI `learn` command handler, which I did not open, may be a further match."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      "src/retrieval/ranker.js",
+      "src/judge/judge-engine.js",
+      "weights.js",
+      "ranker.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 624,
+      "cacheRead": 11435,
+      "cacheWrite": 2957
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0008142749999999999,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4325,
+    "answer": "`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/judge/judge-engine.js`\n\n`weights.js` stores per-file multipliers and updates them (`updateWeights`, `boostFiles`, `penalizeFiles`); `ranker.js` loads those learned weights via `loadWeights` at ranking time, and `judge-engine.js` calls `boostFiles` after scoring past runs."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      "src/retrieval/ranker.js",
+      "src/eval/usefulness-scorer.js",
+      "weights.js",
+      "ranker.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 493,
+      "cacheRead": 11599,
+      "cacheWrite": 3995
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0008801649999999999,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 3664,
+    "answer": "`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/eval/usefulness-scorer.js`\n\n`weights.js` stores per-file multipliers that `boostFiles`/`penalizeFiles`/`updateWeights` adjust from past runs, and `ranker.js` is where those multipliers get applied to the retrieval score. `usefulness-scorer.js` is a lower-confidence third pick because it likely scores past outcomes, but I did not open it to confirm."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      ".context/weights.json",
+      "src/retrieval/ranker.js",
+      "src/judge/judge-engine.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 187,
+      "out": 886,
+      "cacheRead": 28336,
+      "cacheWrite": 11567
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0021909349999999998,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 5870,
+    "answer": "The core logic is in `src/learning/weights.js`, which stores per-file multipliers in `.context/weights.json` and raises or lowers them after good or bad runs (with decay and clamping). `src/retrieval/ranker.js` applies those learned multipliers at ranking time, and `src/judge/judge-engine.js` calls the boost and penalty functions to record outcomes.\n\n`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/judge/judge-engine.js`\n\nThe weights module does the adjusting, the ranker is where the weights take effect, and the judge engine is what feeds in the good and bad outcomes from past runs."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      ".context/weights.json",
+      "1.0",
+      "src/session/memory.js",
+      "+0.2"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 189,
+      "out": 974,
+      "cacheRead": 15836,
+      "cacheWrite": 5146
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00130751,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 6252,
+    "answer": "`src/learning/weights.js` is the core implementation: it stores per-file multipliers in `.context/weights.json`, boosts or penalizes them via `updateWeights`/`boostFiles`/`penalizeFiles`, and decays them toward the neutral baseline of 1.0 on each update. The ranker applies those multipliers at query time, so it is the second file.\n\n`src/session/memory.js` is a related but separate mechanism: it adds a fixed +0.2 boost to files from the previous session's top results.\n\nFiles, most relevant first:\n`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/session/memory.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      "src/tracking/usage-source.js",
+      "src/retrieval/ranker.js",
+      "weights.js",
+      "usage-source.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 546,
+      "cacheRead": 6160,
+      "cacheWrite": 2048
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0006087,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3549,
+    "answer": "`src/learning/weights.js`\n`src/tracking/usage-source.js`\n`src/retrieval/ranker.js`\n\n`weights.js` is the core: it stores per-file multipliers and adjusts them with `updateWeights`, `boostFiles`, and `penalizeFiles`. `usage-source.js` supplies the past-run history those updates draw on. `ranker.js` is the likely consumer that applies the scores to ranking, but I only saw its header and signatures, not the code that reads the weights, so that link is inferred."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/learning/weights.js",
+      "src/retrieval/ranker.js",
+      "src/session/note-relevance.js",
+      "weights.js",
+      "ranker.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 458,
+      "cacheRead": 11589,
+      "cacheWrite": 3997
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.000862815,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 3432,
+    "answer": "`src/learning/weights.js`\n`src/retrieval/ranker.js`\n`src/session/note-relevance.js`\n\n`weights.js` persists per-file multipliers that `boostFiles` and `penalizeFiles` adjust from past feedback, and `ranker.js` is where those multipliers are applied to the retrieval scores. I included `note-relevance.js` as a weaker third candidate because it came up in the first ranking query, but I did not open it, so its place in the list is unverified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h019",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/session/memory.js",
+      "+0.20",
+      "+0.10",
+      "src/session/note-relevance.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Grep": 5,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 191,
+      "out": 1361,
+      "cacheRead": 64410,
+      "cacheWrite": 15107
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.003232075,
+      "source": "computed"
+    },
+    "turns": 7,
+    "durationMs": 8311,
+    "answer": "`src/session/memory.js` is the best match: `mergeSessionContext` adds a +0.20 score boost to files that were in the previous session's top 5 (dropping to +0.10 when the intent changes), and `saveSession` records those top files. Next is `src/session/note-relevance.js`, which boosts files named by relevant notes, though those are human-written notes rather than past runs.\n\n`src/session/memory.js`\n`src/session/note-relevance.js`\n\nThe first is the only code I found that boosts files from earlier runs' results; `mergeSessionContext` is defined there but I found no caller inside `src/`, and the second only matches the idea loosely."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "gen-context.js",
+      "test/integration/v6100-monorepo.test.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Bash": 2,
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 186,
+      "out": 984,
+      "cacheRead": 22484,
+      "cacheWrite": 8044
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0017409399999999998,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 5443,
+    "answer": "`src/workspace/detector.js` implements it: `inferPackage` picks the workspace package whose directory name best matches the query's tokens, and `scopeToPackage` boosts files inside that package's directory.\n\n`src/workspace/detector.js`\n`gen-context.js`\n`test/integration/v6100-monorepo.test.js`\n\nThe first is the implementation, the second is the bundled build that calls `inferPackage` and `detectWorkspaces` during query handling (around line 47396), and the third exercises `inferPackage` and `scopeToPackage` directly."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "src/discovery/monorepo.js",
+      "src/map/config-manifest.js",
+      "detector.js",
+      "monorepo.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 182,
+      "out": 607,
+      "cacheRead": 11120,
+      "cacheWrite": 3340
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0008504000000000001,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4976,
+    "answer": "`src/workspace/detector.js`\n`src/discovery/monorepo.js`\n`src/map/config-manifest.js`\n\n`detector.js` is the direct match: `inferPackage(query, workspaceDirs, cwd)` takes a question and matches it to a workspace package, and `scopeToPackage` narrows a file to its package. `monorepo.js` supplies the layout and workspace detection that decides which packages exist, and `config-manifest.js` lists each package's manifest, which is the evidence for the package boundary."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "src/discovery/monorepo.js",
+      "detector.js",
+      "monorepo.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 186,
+      "out": 1115,
+      "cacheRead": 25901,
+      "cacheWrite": 5122
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00147536,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 6891,
+    "answer": "The package-routing logic is in `src/workspace/detector.js`. The other files I found are only loosely related, so I'm listing just these two:\n\n`src/workspace/detector.js`\n`src/discovery/monorepo.js`\n\n`detector.js` does the job directly: `inferPackage(query, workspaceDirs, cwd)` tokenizes the question, matches the tokens against workspace directory names, and returns the best-matching package directory, while `scopeToPackage` boosts files inside that package. `monorepo.js` only decides whether the repo is a monorepo and lists its sibling packages, so it supports the question but doesn't pick the package. I found no callers of `inferPackage` under `src/`, so I couldn't confirm where it's wired into the query path."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "test/integration/v6100-monorepo.test.js",
+      "detector.js",
+      "gen-context.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 4,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 188,
+      "out": 1092,
+      "cacheRead": 33612,
+      "cacheWrite": 8691
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001987295,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 6915,
+    "answer": "`src/workspace/detector.js`\n`test/integration/v6100-monorepo.test.js`\n\n`detector.js` does the work: `inferPackage(query, workspaceDirs, cwd)` tokenizes the question and picks the workspace directory whose basename best matches a token (exact match scores highest, then prefix matches), and `scopeToPackage` then boosts files inside that directory. The test file exercises these three functions directly, and `gen-context.js` (the bundled build) calls them to scope a query to one package."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "src/discovery/monorepo.js"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Grep": 5,
+        "Glob": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 188,
+      "out": 1420,
+      "cacheRead": 36662,
+      "cacheWrite": 14408
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0028964200000000002,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 8244,
+    "answer": "`src/workspace/detector.js`\n`src/discovery/monorepo.js`\n\n`inferPackage()` in `src/workspace/detector.js` picks the workspace package whose directory name best matches the query's tokens, and `scopeToPackage()` in the same file checks whether a file sits inside that package. `src/discovery/monorepo.js` supplies the workspace list via `workspaceMarker` and `layoutPackages`. I did not check where the ranker calls these functions."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/discovery/monorepo.js",
+      "src/graph/swift-modules.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 184,
+      "out": 883,
+      "cacheRead": 16846,
+      "cacheWrite": 2656
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00096036,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5589,
+    "answer": "`src/discovery/monorepo.js` is the file that decides which package of a monorepo a path belongs to. It holds `detectMonorepo`, which gives the monorepo verdict, and `layoutPackages`, which scans for sibling packages.\n\n- `src/discovery/monorepo.js`\n\nThe search only turned up one other candidate that does per-package attribution: `src/graph/swift-modules.js`, which maps a Swift file to the SwiftPM target whose directory holds it (`targetOf`). It is a narrower, Swift-only mechanism, so I left it out. I did not open the function bodies beyond the signatures and grep hits, so this rests on the index and names rather than a full read."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "src/discovery/monorepo.js",
+      "src/config/defaults.js",
+      "src/util/file-class.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 184,
+      "out": 709,
+      "cacheRead": 16346,
+      "cacheWrite": 3404
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00096186,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 4565,
+    "answer": "The most relevant file is `src/workspace/detector.js`. Its `inferPackage(query, workspaceDirs, cwd)` takes a question's tokens, matches them against workspace package directory names, and returns the best match, and `scopeToPackage` then boosts files inside that package. The other four are supporting: `src/discovery/monorepo.js` decides whether the repo is a monorepo and lists its packages, `src/config/defaults.js` is a plausible config location, and `src/util/file-class.js` is a lower-confidence guess I did not open.\n\n`src/workspace/detector.js`\n`src/discovery/monorepo.js`\n`src/config/defaults.js`\n`src/util/file-class.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h020",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/workspace/detector.js",
+      "test/integration/v6100-monorepo.test.js",
+      "src/discovery/monorepo.js",
+      "gen-context.js",
+      "detector.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 4,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 188,
+      "out": 1259,
+      "cacheRead": 33781,
+      "cacheWrite": 9956
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00223061,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 7678,
+    "answer": "`src/workspace/detector.js`\n`test/integration/v6100-monorepo.test.js`\n`src/discovery/monorepo.js`\n`gen-context.js`\n\n`detector.js` holds the logic: `inferPackage` matches query tokens against workspace directory names (exact match preferred, then prefix), and `scopeToPackage` boosts files inside the chosen package. The test file exercises those functions directly. `monorepo.js` handles workspace detection, which the test file imports alongside them. `gen-context.js` is the bundled build that calls `inferPackage` at about line 47396; I found no call site for it in `src/`, so the caller there is bundled output, not source."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 175,
+      "out": 213,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00013214000000000002,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 1623,
+    "answer": "I can't tell which files you mean. This conversation has no previous question, so I don't have a file list to carry forward.\n\nCould you restate the original question, or name the feature or behavior you want traced? Once I know that, I'll find the implementing files in this repository and list up to five, most relevant first, with a one-sentence reason."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/memory.js",
+      "src/mcp/handlers.js",
+      ".context/session.json",
+      "+0.2",
+      "+0.1"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 187,
+      "out": 1393,
+      "cacheRead": 54685,
+      "cacheWrite": 9934
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0025038,
+      "source": "computed"
+    },
+    "turns": 7,
+    "durationMs": 8886,
+    "answer": "I couldn't see the previous question in this conversation, so I took \"carry the previous question's files into a follow-up\" to mean SigMap's session carry-over feature.\n\n- `src/session/memory.js`\n- `src/mcp/handlers.js`\n\nThis file stores the top-5 files from the last `ask` in `.context/session.json` and boosts those files in later rankings. `mergeSessionContext` applies a +0.2 boost, or +0.1 when the intent changes. `src/mcp/handlers.js` (`readMemory`) reads the saved session back out and reports it as \"Focus files\".\n\nCaveat: I found no call site for `mergeSessionContext` or `saveSession` outside `memory.js` itself, so the ranker-side wiring that applies the boost isn't confirmed."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/memory.js",
+      "src/mcp/handlers.js",
+      "src/session/summary.js",
+      "src/retrieval/ranker.js",
+      "docs-vp/guide/roadmap.md"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 4
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 185,
+      "out": 1199,
+      "cacheRead": 44253,
+      "cacheWrite": 8570
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00213178,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 7297,
+    "answer": "There's no earlier question in this conversation, so I can't tell which files the \"previous question\" touched. I went by the question's wording instead, and the closest match is the session-memory feature for carrying files into a follow-up.\n\n- `src/session/memory.js`\n- `src/mcp/handlers.js`\n- `src/session/summary.js`\n- `src/retrieval/ranker.js`\n- `docs-vp/guide/roadmap.md`\n\n`src/session/memory.js` stores the top files from the last query and merges them into the next ranking as a score boost, and `src/mcp/handlers.js` surfaces them as \"Focus files\". The ranker and summary are the remaining consumers I found, and the roadmap describes the planned `sigmap ask --followup` flag. I did not find a `--followup` flag wired into the CLI source, and nothing in `src` calls `saveSession` or `mergeSessionContext`, so the carry-over may be incomplete."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 175,
+      "out": 168,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00010964,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 1374,
+    "answer": "I don't have a previous question in this conversation, so I don't know which files you mean. Could you restate the original question, or name the feature or files you want traced? Once I have that, I'll find the files that implement it and list them with a one-sentence reason."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 175,
+      "out": 189,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00012014,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 1312,
+    "answer": "I can't do this yet because this conversation has no previous question, so I don't know which files to carry forward. Please restate the original question (or paste the file list from that answer) and I'll look up the implementing files for the follow-up."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/memory.js",
+      "src/mcp/handlers.js",
+      "memory.js",
+      ".context/session.json",
+      "+0.2"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 185,
+      "out": 1145,
+      "cacheRead": 51479,
+      "cacheWrite": 9505
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002293915,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 7670,
+    "answer": "I can't identify \"the previous question's files\" because this conversation contains no earlier question, so I'm inferring the feature from the code. The closest match is session memory, which saves the top files from one query and boosts them in the next. The `ask --followup` flag appears only in the roadmap docs, and I found no `followup` symbol in `src/`, so the wiring that would load the session during `ask` may be missing.\n\n`src/session/memory.js`\n`src/mcp/handlers.js`\n\nThese are the two places that implement the carry-forward: `memory.js` saves the last query and top-5 files to `.context/session.json` (4-hour TTL) and adds a +0.2 (same intent) or +0.1 (topic switch) boost to those files in `mergeSessionContext`, while `handlers.js` reads that session to report the last query and top files. If you tell me which previous question you meant, I can check whether its files appear in this session state."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/retrieval/bm25.js",
+      "src/session/store.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 809,
+      "cacheRead": 11615,
+      "cacheWrite": 5239
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001193425,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5668,
+    "answer": "I can't answer this as asked. This conversation has no previous question, so I don't know which files it involved. A search for follow-up or carry-over logic found nothing that clearly carries files between queries.\n\nThe closest candidates from a topic search for \"carry previous question files into follow-up query\" are below. These are guesses based on keywords, not confirmed matches:\n\n1. `src/retrieval/ranker.js`\n2. `src/retrieval/bm25.js`\n3. `src/session/store.js`\n\nThese are the ranking and session-log modules. The ranker and BM25 modules score files against a query, and the session store is an append-only event log, which is the most plausible place for state to persist across queries. None of them is verified to carry prior-question files forward.\n\nIf you tell me the previous question or its file list, I can check which of these, if any, actually handles the follow-up."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h021",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 175,
+      "out": 212,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00013164,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 1679,
+    "answer": "I can't tell which files you mean. This is the first message I've received, so I have no record of a previous question or its answer.\n\nCould you restate the original question, or name the feature or behavior you want traced? Once I know what to look for, I'll find the implementing files in the repository and list up to five, most relevant first, with a one-sentence explanation."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "manage.py",
+      "config/routes.rb"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 636,
+      "cacheRead": 15668,
+      "cacheWrite": 13113
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002131905,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 4196,
+    "answer": "`src/discovery/framework-detector.js`\n`src/discovery/source-root-registry.js`\n`src/discovery/source-root-resolver.js`\n\nThe detector checks each framework's `detectionFiles` and `detectionDeps` against the repo, and the registry defines Django (`manage.py`, `Django` dependency) and Rails (`config/routes.rb`, plus Gemfile parsing). The resolver then uses the detected Django framework to pick source roots."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "framework-detector.js",
+      "source-root-registry.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 177,
+      "out": 624,
+      "cacheRead": 6160,
+      "cacheWrite": 2654
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00072305,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3903,
+    "answer": "`src/discovery/framework-detector.js`\n`src/discovery/source-root-registry.js`\n`src/discovery/source-root-resolver.js`\n\n`framework-detector.js` has `detectFrameworks(cwd)`, which is the detector itself. `source-root-registry.js` holds the Django and Rails entries, each with the marker files (`manage.py`, `config/routes.rb`) and dependency names that identify the framework. `source-root-resolver.js` then acts on the Django detection by walking for `models.py`/`views.py`. The other matches I saw (`src/map/migrations.js`, `src/util/file-class.js`) only mention these frameworks in other contexts, so I left them out."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "src/map/migrations.js",
+      "src/graph/src-dirs.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 724,
+      "cacheRead": 11911,
+      "cacheWrite": 4444
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00105451,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4136,
+    "answer": "The main detection logic is in `src/discovery/framework-detector.js`, which `detectFrameworks` runs over the registry. The per-framework rules for Django and Rails are in `src/discovery/source-root-registry.js`.\n\n- `src/discovery/framework-detector.js`\n- `src/discovery/source-root-registry.js`\n- `src/discovery/source-root-resolver.js`\n- `src/map/migrations.js`\n- `src/graph/src-dirs.js`\n\nThe detector scores each registered framework by checking for detection files (Django's `manage.py`, Rails' `config/routes.rb`) and detection dependencies (`Django` in the Python manifests), so the registry supplies the Django and Rails signals that the detector uses. I did not open the Rails entry's surrounding ruby block; I saw it only at line 123, and I took the framework rule from that line."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "framework-detector.js",
+      "manage.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 720,
+      "cacheRead": 15476,
+      "cacheWrite": 14474
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0023421099999999997,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 4799,
+    "answer": "- `src/discovery/framework-detector.js`\n- `src/discovery/source-root-registry.js`\n- `src/discovery/source-root-resolver.js`\n\n`framework-detector.js` (`detectFrameworks`) does the actual recognition: it checks each framework's detection files, dependency names, and the Django `manage.py` special rule, and assigns a confidence score. `source-root-registry.js` holds the Django entry (`manage.py`, `Django` dep) and the Rails entry (`config/routes.rb`). `source-root-resolver.js` then uses the detected framework to pick source roots, with a Django-specific branch at line 403."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/config/loader.js",
+      "framework-detector.js",
+      "manage.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 841,
+      "cacheRead": 15447,
+      "cacheWrite": 14465
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002401195,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5373,
+    "answer": "- `src/discovery/framework-detector.js`\n- `src/discovery/source-root-registry.js`\n- `src/config/loader.js`\n\n`framework-detector.js` `detectFrameworks()` decides a project uses Django or Rails by checking marker files (`manage.py`, `config/routes.rb`) and dependencies (`Django` in requirements, `Gemfile`), and `source-root-registry.js` holds the `django` and `rails` entries with those markers. `src/config/loader.js` checks for a `Gemfile` at line 182, but I only saw that match in a grep and did not read it."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "src/map/migrations.js",
+      "manage.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1,
+        "mcp__sigmap__get_lines": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 720,
+      "cacheRead": 11894,
+      "cacheWrite": 4103
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001009715,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4358,
+    "answer": "The framework detection logic lives in `src/discovery/framework-detector.js`, and the Django and Rails entries it reads are in `src/discovery/source-root-registry.js`.\n\n`src/discovery/framework-detector.js`\n`src/discovery/source-root-registry.js`\n`src/discovery/source-root-resolver.js`\n`src/map/migrations.js`\n\nThe detector scores each framework in the registry by checking for marker files (Django's `manage.py`, Rails' `config/routes.rb`) and for dependency names such as `Django` in the manifests, with a special `manage.py` rule for Django. The registry holds those per-framework markers, and the resolver then uses the detected Django flag to find `models.py`/`views.py` roots. `migrations.js` is the lower-ranked fourth file: it is a consumer that recognises Rails `db/migrate` and Django migration layouts, not a detector."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "package.json",
+      "go.mod",
+      "Cargo.toml",
+      "manage.py"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 886,
+      "cacheRead": 25316,
+      "cacheWrite": 9371
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0018856349999999999,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5437,
+    "answer": "The detection logic is in `src/discovery/framework-detector.js`, which scores each registered framework from marker files, `package.json`/`go.mod`/`Cargo.toml` dependencies, and a Django-specific `manage.py` rule. The framework entries it checks are in `src/discovery/source-root-registry.js`, where Django is keyed on `manage.py` and `Django`, and Rails on `config/routes.rb`.\n\n- `src/discovery/framework-detector.js`\n- `src/discovery/source-root-registry.js`\n- `src/discovery/source-root-resolver.js`\n- `src/map/migrations.js`\n- `src/util/file-class.js`\n\nThe first two do the detection itself. The resolver adds a Django-specific source-root walk, and the last two use Rails and Django naming conventions for migrations and file classification respectively. I did not open the resolver or the last two files, so their roles are from grep hits and comments only."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h022",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/discovery/framework-detector.js",
+      "src/discovery/source-root-registry.js",
+      "src/discovery/source-root-resolver.js",
+      "src/deps/inventory.js",
+      "src/config/loader.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 797,
+      "cacheRead": 15554,
+      "cacheWrite": 7672
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00153114,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5128,
+    "answer": "- `src/discovery/framework-detector.js`\n- `src/discovery/source-root-registry.js`\n- `src/discovery/source-root-resolver.js`\n- `src/deps/inventory.js`\n- `src/config/loader.js`\n\n`framework-detector.js` is the core: `detectFrameworks()` scores each registered framework by checking its detection files, its dependencies, and special rules, so Django is recognised by `manage.py` or a `Django` dependency. `source-root-registry.js` defines those signals for Django (`manage.py`, `Django`) and Rails (`config/routes.rb`, with `Gemfile` as the manifest). The resolver branches on the detected Django framework, and the inventory and config loader read `Gemfile` for Ruby dependencies. I did not open the Rails entry in `inventory.js` or `loader.js` beyond the matched lines, and I did not confirm whether the Rails detection in `framework-detector.js` uses the `Gemfile` manifest, so treat the ordering of the last three as approximate."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/sig-cache.js",
+      "sig-cache.js",
+      "src/cache/extract-cache.js",
+      "src/extractors/python.js",
+      "src/extractors/scip_symbols.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 910,
+      "cacheRead": 8813,
+      "cacheWrite": 15463
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002493905,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5221,
+    "answer": "`src/cache/sig-cache.js` matches the question most directly: its header says it stores extracted signatures keyed by file path and mtime so only changed files are re-extracted. I did not open `sig-cache.js` in full; that description and its `mtime !== mtime` check at line 78 come from the grep output.\n\n`src/cache/extract-cache.js` is the broader version. It keys entries on a content hash and uses size and mtime as a shortcut that skips even reading the file. The other two are narrower caches that also skip re-extraction on an unchanged stat.\n\n`src/cache/sig-cache.js`\n`src/cache/extract-cache.js`\n`src/extractors/python.js`\n`src/extractors/scip_symbols.js`\n`src/extractors/lsp_symbols.js`\n\nThese are most relevant because they compare a stored stat (mtime, size) or content hash against the file's current state and reuse the cached result when they match. The Python, SCIP and LSP caches are narrower, and I only saw their stat checks in grep output."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/sig-cache.js",
+      "src/cache/extract-cache.js",
+      "src/cache/freshen.js",
+      "sig-cache.js",
+      "extract-cache.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 177,
+      "out": 422,
+      "cacheRead": 6160,
+      "cacheWrite": 1924
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0005307999999999999,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 2855,
+    "answer": "`src/cache/sig-cache.js`\n`src/cache/extract-cache.js`\n`src/cache/freshen.js`\n\n`sig-cache.js` keeps per-file mtimes and returns only the changed files via `getChangedFiles`, and `extract-cache.js` reuses cached extraction results keyed by content hash (with stat-based trust). `freshen.js` then re-extracts only source files modified since the index was built. These come from the ranked signatures only; I did not open the bodies to confirm."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/sig-cache.js",
+      "src/cache/extract-cache.js",
+      "src/cache/freshen.js",
+      "sig-cache.js",
+      "extract-cache.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 720,
+      "cacheRead": 10865,
+      "cacheWrite": 3426
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0009147999999999999,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4549,
+    "answer": "`src/cache/sig-cache.js`\n`src/cache/extract-cache.js`\n`src/cache/freshen.js`\n\n`sig-cache.js` returns only files whose mtime differs from the cached entry, so unchanged files keep their stored signatures. `extract-cache.js` reuses stored facts when size and mtime match (or the content hash matches), and `freshen.js` re-extracts only files modified since the last generate."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/sig-cache.js",
+      "src/verify/lib-index.js",
+      "src/retrieval/ranker.js",
+      "sig-cache.js",
+      "lib-index.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 3,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 704,
+      "cacheRead": 14716,
+      "cacheWrite": 8373
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.001563885,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 4758,
+    "answer": "`src/cache/sig-cache.js`\n`src/verify/lib-index.js`\n`src/retrieval/ranker.js`\n\n`sig-cache.js` holds the mtime-keyed cache, and its `getChangedFiles` returns only files whose mtime differs from the cached value, so unchanged files are not re-extracted. `lib-index.js` imports those helpers to drive the build, and `ranker.js` loads the same `.sigmap-cache.json` when building the signature index. I did not find a `sigCache` reader outside `defaults.js`, so the wiring that reads that config key may be elsewhere."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "without",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/extract-cache.js",
+      "src/cache/sig-cache.js",
+      "src/cache/entry.js",
+      "src/cache/freshen.js",
+      "src/cache/overlay.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 181,
+      "out": 851,
+      "cacheRead": 16613,
+      "cacheWrite": 8211
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0016361050000000001,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 5287,
+    "answer": "I'd rank these by how directly they implement the skip. The main one is the extraction cache, which reuses per-file results when size and mtime match. The sig-cache's changed/unchanged split is a related but separate mechanism, and the rest are supporting pieces.\n\n`src/cache/extract-cache.js`\n`src/cache/sig-cache.js`\n`src/cache/entry.js`\n`src/cache/freshen.js`\n`src/cache/overlay.js`\n\nThe extraction cache (`extract-cache.js`) skips re-extraction by trusting a remembered size and mtime, so an unchanged file gets its stored facts back without being read, and it falls back to a content hash when the stat can't be trusted. I did not open `entry.js`, `freshen.js`, or `overlay.js`; I included them only because their names fit the cache layer, so treat their places in the list as unverified."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "with",
+    "run": 3,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/cache/extract-cache.js",
+      "src/cache/freshen.js",
+      "src/util/git.js",
+      "extract-cache.js",
+      "freshen.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "mcp__sigmap__query_context": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 525,
+      "cacheRead": 10874,
+      "cacheWrite": 2328
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00068014,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 3588,
+    "answer": "Files, most relevant first:\n\n`src/cache/extract-cache.js`\n`src/cache/freshen.js`\n`src/util/git.js`\n\nWhy: `extract-cache.js` is the content-hash extraction cache that reuses stored facts for a file when its size and mtime match (with a hash fallback), so unchanged files are not re-extracted; `freshen.js` re-extracts only files whose mtime is newer than the last generate; and `git.js` `changedFiles` lists files changed per diff mode, which can narrow the set to re-process."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "with",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/sig-cache.js",
+      "src/cache/extract-cache.js",
+      "src/cache/freshen.js",
+      "sig-cache.js",
+      "extract-cache.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "mcp__sigmap__query_context": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 179,
+      "out": 704,
+      "cacheRead": 14947,
+      "cacheWrite": 7546
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.00146262,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 4510,
+    "answer": "`src/cache/sig-cache.js`\n`src/cache/extract-cache.js`\n`src/cache/freshen.js`\n\n`sig-cache.js` does the core work: its `getChangedFiles` splits files into changed and unchanged by mtime, and `updateCacheEntries` stores fresh results. I haven't opened `extract-cache.js` (ranked 5th) and only inferred its role from the ranking, so treat it as less certain. `freshen.js` re-extracts only files modified since the last generate, which is the same idea applied at read time."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h023",
+    "arm": "without",
+    "run": 4,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/cache/extract-cache.js",
+      "src/cache/sig-cache.js",
+      "src/extractors/python.js",
+      "src/verify/lib-index.js",
+      "src/config/defaults.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 3,
+        "Glob": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 1059,
+      "cacheRead": 32532,
+      "cacheWrite": 12379
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.002420495,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 6540,
+    "answer": "The main implementation is the content-hash extraction cache. Its header says a re-run skips re-extracting unchanged files by checking size and mtime first, and only falls back to a SHA-1 content hash when those are untrusted. The other files are related but narrower:\n\n- `src/cache/extract-cache.js`\n- `src/cache/sig-cache.js`\n- `src/extractors/python.js`\n- `src/verify/lib-index.js`\n- `src/config/defaults.js`\n\n`src/cache/extract-cache.js` is the primary one: it stores per-file extraction results keyed by content hash, with size/mtime as a fast path, so an unchanged file yields its cached result instead of being re-extracted. `sig-cache.js` is a separate mtime-keyed signature cache, used by `lib-index.js` and `ranker.js`. `python.js` keeps its own size/mtime cache for Python extraction. `defaults.js` only holds the `sigCache: false` config flag, and I did not confirm that anything in `src` reads it."
+  }
+]
