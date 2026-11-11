@@ -5,7 +5,7 @@
 //   node benchmarks/agent-study/make-unfamiliar-root.mjs <dir> [how-many-questions=30] [corpus=retrieval-hard.jsonl]
 //   SIGMAP_XREPO_DATA=<dir> node scripts/run-agent-ab.mjs --repos sigmap-src --task-ids h001,... --session-auth ...
 //
-// The eight repos of the pilot are famous frameworks: closed-book.mjs shows a model names the right file for most of those
+// The eight repos of the famous set are well-known frameworks: closed-book.mjs shows a model names the right file for most of those
 // questions with no repository at all, so they cannot show what retrieval is worth on code a model has never seen. SigMap's own
 // source is public but obscure and changes weekly; closed-book.mjs on these questions measures how much of it a model knows.
 //
@@ -30,7 +30,7 @@ const N = Number(nArg) || 30;
 const NAME = 'sigmap-src';
 const root = path.resolve(dest);
 const clone = path.join(root, 'benchmarks', 'repos', NAME);
-const git = (dir, args) => execFileSync('git', ['-c', 'user.name=pilot', '-c', 'user.email=pilot@example.invalid', '-C', dir, ...args], { encoding: 'utf8' }).trim();
+const git = (dir, args) => execFileSync('git', ['-c', 'user.name=study', '-c', 'user.email=study@example.invalid', '-C', dir, ...args], { encoding: 'utf8' }).trim();
 
 fs.rmSync(root, { recursive: true, force: true });
 fs.mkdirSync(path.join(root, 'benchmarks', 'tasks'), { recursive: true });

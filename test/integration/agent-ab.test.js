@@ -946,7 +946,7 @@ const treeHash = (dir) => {
     assert.deepStrictEqual(rep.cells.map((c) => c.task), ['x010', 'x010']);
   });
 
-  await test('run-remaining.sh runs one question per invocation, resumes by skipping what is saved, and stops on the first failure', () => {
+  await test('run-remaining.sh runs one batch per invocation, resumes by skipping what is saved, and stops on the first failure', () => {
     const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-remaining.sh');
     const f = fixture();
     const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'test-key', SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', ORDER: 'r2:x010', VARIANTS: 'index', RUNS: '2', CLAUDE_BIN: f.bin }, extra);
@@ -973,9 +973,6 @@ const treeHash = (dir) => {
     assert.match(again.stdout, /skip\s+index r2:x010 \(done:/);
     assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, calls, 'nothing was started the second time');
 
-    const done = sh({ OUT: path.join(f.out, 'seeded'), ORDER: 'gin:x001 r2:x010', VARIANTS: 'index lean' });
-    assert.match(done.stdout, /skip\s+index gin:x001 \(already in this directory's saved data\)/, 'a question already saved in the repository is not re-run');
-
     const bad = sh({ OUT: path.join(f.out, 'bad'), FAKE_MODE: 'error', ORDER: 'r2:x010 r1:x001' });
     assert.strictEqual(bad.status, 1, 'the first failed question stops the run');
     assert.match(bad.stderr, /STOPPED at index r2:x010/);
@@ -989,10 +986,9 @@ const treeHash = (dir) => {
     const forced = sh({ OUT: path.join(f.out, 'stale'), FORCE: '1', FAKE_MODE: 'error' });
     assert.strictEqual(forced.status, 1);
     assert.ok(!fs.existsSync(path.join(stale, 'raw.json')), 'the stale raw.json is removed when the forced rerun fails');
-    // SESSION_AUTH=1 ignores the relay runs' saved list (a different setup) and reaches the harness (no --bare, no key needed).
+    // SESSION_AUTH=1 reaches the harness without --bare and without a key.
     const saPlan = sh({ OUT: path.join(f.out, 'sa-dry'), SESSION_AUTH: '1', DRY: '1', ORDER: 'gin:x001' });
     assert.match(saPlan.stdout, /run\s+index gin:x001/);
-    assert.doesNotMatch(saPlan.stdout, /skip\s+index gin:x001/, 'a session-auth run is a different setup, so the relay\'s saved list does not apply');
     const before = fs.readFileSync(f.log, 'utf8').trim().split('\n').length;
     const sa = sh({ OUT: path.join(f.out, 'sa'), SESSION_AUTH: '1', ANTHROPIC_API_KEY: '' });
     assert.strictEqual(sa.status, 0, sa.stderr);

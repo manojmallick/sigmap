@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Free, offline: where does SigMap's own ranking put the expected file, on any data root's questions?
 //
-//   node benchmarks/agent-study/retrieval-rank.mjs                  # the pilot's 45 questions, 8 repos
+//   node benchmarks/agent-study/retrieval-rank.mjs                  # the study's 45 famous-framework questions, 8 repos
 //   SIGMAP_XREPO_DATA=<root> node benchmarks/agent-study/retrieval-rank.mjs   # every question of that root
 //   ... retrieval-rank.mjs --misses      # also list each question whose first result is wrong, and what was returned
 //

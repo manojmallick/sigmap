@@ -57,7 +57,6 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `make-unfamiliar-root.mjs` | builds the sanitised data root of this repository's own source with its hard questions |
 | `closed-book.mjs` | the control: the same questions with no repository and no tools |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
-| `expansion-probe.mjs` | free-ish: does adding model-written vocabulary to a query improve the ranking (it did not generalise) |
 | `summarize.mjs` | every number in the study, from `data/runs.ndjson` |
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 

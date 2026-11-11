@@ -11,7 +11,7 @@
 # repositories, Claude Code under --bare, or with AGENT=api the Messages API directly) on two sets of questions and prints one report per set:
 #   unfamiliar   30 labelled questions about THIS repository's source, which a model has not memorised (closed-book.mjs: 0 of 30
 #                answered from memory). This is the case that resembles a private codebase.
-#   famous       the pilot's 45 questions about 8 well-known frameworks (40 of 45 answered from memory, so little to save).
+#   famous       45 questions about 8 well-known frameworks (40 of 45 answered from memory, so little to save).
 # The SigMap arm is set up by the harness itself, so "is SigMap set up correctly" is not left to chance: `index` is the documented
 # setup (strategy "index" + the 7-tool core MCP profile), `prefetch` puts SigMap's ranking in the prompt before the first turn.
 #
