@@ -130,7 +130,7 @@ Four things the table shows that a single headline would hide:
 
 | Setup | what the agent got | real cost | tokens | tool calls |
 |---|---|---:|---:|---:|
-| `current` | the full generated section and 22 MCP tools (4.3k tokens a turn) | **+9%** [+4, +14] | +41% | −17% |
+| `current` | the full generated section and the default MCP tool profile (4.3k tokens a turn) | **+9%** [+4, +14] | +41% | −17% |
 | `lean` | seven tools and a three-line section (1.0k a turn) | **+16%** [+11, +20] | +34% | +41% |
 | `skill-always` | a skill whose description asks to be called first | **+25%** [+20, +30] | +61% | +67% |
 | `skill` (two runs) | one short skill the agent may or may not call | −5% [−9, −1], +1% [−3, +6] ~ | −9%, 0% ~ | −16%, −4% ~ |
