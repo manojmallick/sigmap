@@ -878,7 +878,8 @@ const treeHash = (dir) => {
     assert.notStrictEqual(lean.sigmapContext, cur.sigmapContext);
 
     assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(lean.cwd, 'gen-context.config.json'), 'utf8')), { mcp: { tools: 'core' } });
-    assert.ok(fs.existsSync(path.join(lean.cwd, 'CLAUDE.md')), 'the index is still generated: only what the agent is told changes');
+    assert.ok(fs.existsSync(path.join(lean.cwd, '.context')), 'the index is still generated: only what the agent is told changes');
+    assert.ok(!fs.existsSync(path.join(lean.cwd, 'CLAUDE.md')), 'and the generated file is not left where the agent can search it');
     const tools = (cwd) => {
       const init = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }];
       const r = spawnSync(process.execPath, [path.join(ROOT, 'gen-context.js'), '--mcp'], { cwd, input: `${init.map((m) => JSON.stringify(m)).join('\n')}\n`, encoding: 'utf8', timeout: 30000 });
@@ -1019,7 +1020,7 @@ const treeHash = (dir) => {
     assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')), 'otherwise the agent would read the section twice');
     assert.ok(a.sigmapContext.length > 0 && fs.existsSync(path.join(a.cwd, '.context')), 'the section is kept and the index is there');
     const b = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-sb-'), codeRoot: ROOT, variant: 'index' });
-    assert.ok(fs.existsSync(path.join(b.cwd, 'CLAUDE.md')), 'without the flag nothing is removed');
+    assert.ok(!fs.existsSync(path.join(b.cwd, 'CLAUDE.md')), 'with or without the flag: the agent can never search a generated file');
 
     const f = fixture();
     const noKey = runCli(['--claude', f.bin, '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log });
@@ -1277,6 +1278,31 @@ const treeHash = (dir) => {
     delete old.repetitions;
     const md = ab.renderMarkdown(old);
     assert.ok(!md.includes('## Repetitions') && md.includes('## Outcome'));
+  });
+
+  await test('arm hygiene: nothing gen-context writes is left where the agent can search it, a tracked file it changed is restored, and a stray file fails the check', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-hyg-');
+    const base = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    for (const variant of ['current', 'lean', 'index', 'prefetch']) {
+      const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant });
+      const seen = arms.searchableFiles(w.cwd);
+      for (const generated of ['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.github/gemini-context.md']) assert.ok(!seen.has(generated), `${variant}: ${generated}`);
+      assert.ok(fs.existsSync(path.join(w.cwd, '.context')), `${variant}: the index itself is kept`);
+      assert.doesNotThrow(() => arms.assertArmHygiene({ without: base.cwd, with: w.cwd }), variant);
+    }
+    // a repository that TRACKS a file gen-context rewrites keeps its own version
+    const dir = path.join(root, 'benchmarks', 'repos', 'r1');
+    fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# the project\'s own notes\n');
+    execFileSync('git', ['-C', dir, 'add', '-A']);
+    execFileSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'track AGENTS.md']);
+    const repo2 = Object.assign({}, manifest.repos[0], { commit: execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() });
+    const tracked = arms.prepareArm({ root, repo: repo2, arm: 'with', tmpRoot: mktmp('ab-hyg2-'), codeRoot: ROOT, variant: 'index' });
+    assert.strictEqual(fs.readFileSync(path.join(tracked.cwd, 'AGENTS.md'), 'utf8'), '# the project\'s own notes\n', 'restored, not deleted');
+    // a file only one arm has is a second treatment
+    const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    fs.writeFileSync(path.join(w.cwd, 'NOTES.md'), 'signatures: alphaThing');
+    assert.throws(() => arms.assertArmHygiene({ without: base.cwd, with: w.cwd, label: 'r1' }), /r1: the arms differ in files the agent can search \(\+NOTES\.md\)/);
   });
 
   // ── skill variants: SigMap handed over as Claude Code skills ───────────────────────────────────────────────────
@@ -1736,6 +1762,44 @@ const treeHash = (dir) => {
       assert.ok(withCell.spend.all.agentReportedUsd > 0 && withCell.spend.all.unknownRuns === 0, 'the computed cost is counted as a cost, not as unknown');
       assert.ok(fake.seen.every((s) => s.headers['x-api-key'] === 'sk-test-SECRET-VALUE'));
     } finally { fake.close(); }
+  });
+
+  await test('--change gives every run its own checkout, lets both arms edit, grades the patch with the hidden tests and records the grade', async () => {
+    const d = makeDataRoot([
+      { name: 'r1', tasks: [{ id: 'c01', query: 'FIX-ALPHA alphaThing returns its argument unchanged', expected: ['src/alpha.js'] }] },
+      { name: 'r2', tasks: [{ id: 'c02', query: 'FIX-BETA betaThing returns its argument unchanged', expected: ['src/beta.js'] }] },
+    ]);
+    const jsonl = path.join(d.root, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl');
+    const hidden = (fn, file) => [{ path: 'test/hidden.test.js', content: `const assert = require('assert');\nconst { ${fn} } = require('../src/${file}');\nassert.strictEqual(${fn}(2), 3);\n` }];
+    const tasks = fs.readFileSync(jsonl, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    fs.writeFileSync(jsonl, tasks.map((t) => JSON.stringify({ ...t, hidden: t.id === 'c01' ? hidden('alphaThing', 'alpha') : hidden('betaThing', 'beta') })).join('\n') + '\n');
+    const out = mktmp('ab-out-');
+    const raw = path.join(out, 'raw.json');
+    const fake = await fakeApi((body, n) => {
+      const first = body.messages[0].content[0].text;
+      if (body.messages.length === 1) {
+        const file = first.includes('FIX-ALPHA') ? 'src/alpha.js' : 'src/beta.js';
+        // r1 gets the right fix; r2 changes the wrong thing, so its hidden test still fails
+        return toolTurn('Edit', { file_path: file, old_string: 'return ' + (first.includes('FIX-ALPHA') ? 'a' : 'b') + ';', new_string: first.includes('FIX-ALPHA') ? 'return a + 1;' : 'return b * 2;' }, U(100, 20, 0, 50));
+      }
+      return textTurn('Changed the return value.');
+    });
+    try {
+      const r = await runCliAsync(['--agent', 'api', '--change', '--sigmap-variant', 'index', '--runs', '2', '--allow-unpublishable', '--raw-out', raw, '--out-dir', out], { SIGMAP_XREPO_DATA: d.root, ANTHROPIC_API_KEY: 'sk-test-KEY', ANTHROPIC_BASE_URL: fake.url });
+      assert.strictEqual(r.status, 0, r.stderr + r.stdout);
+      const recs = JSON.parse(fs.readFileSync(raw, 'utf8'));
+      assert.strictEqual(recs.length, 8, 'two tasks × two arms × two runs');
+      assert.ok(recs.every((x) => x.ok), JSON.stringify(recs.filter((x) => !x.ok).map((x) => x.error)));
+      for (const x of recs.filter((y) => y.task === 'c01')) { assert.strictEqual(x.pass, true, `${x.arm} run ${x.run}: ${x.why}`); assert.deepStrictEqual(x.patch, { files: 1, added: 1, removed: 1 }); }
+      for (const x of recs.filter((y) => y.task === 'c02')) { assert.strictEqual(x.pass, false); assert.match(x.why, /hidden tests failed: hidden\.test\.js/); }
+      const sys = fake.seen[0].body.system.map((b) => b.text).join('\n');
+      assert.match(sys, /You fix bugs in the repository/);
+      assert.ok(fake.seen.every((s) => ['Edit', 'Write', 'RunTest'].every((t) => s.body.tools.some((x) => x.name === t))), 'both arms have the edit tools');
+      assert.ok(fake.seen.some((s) => s.body.tools.some((x) => /^mcp__sigmap__/.test(x.name))) && fake.seen.some((s) => !s.body.tools.some((x) => /^mcp__sigmap__/.test(x.name))));
+      assert.match(fake.seen[0].body.messages[0].content[0].text, /^Bug report for this repository:/);
+      assert.ok(!/hidden|assert\.strictEqual/.test(JSON.stringify(fake.seen.map((s) => s.body))), 'the hidden tests never reach the model');
+    } finally { fake.close(); }
+    assert.match(runCli(['--dry-run', '--change'], { SIGMAP_XREPO_DATA: d.root }).stderr, /--change needs --agent api/);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

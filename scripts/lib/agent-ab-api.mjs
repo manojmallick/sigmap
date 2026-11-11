@@ -30,6 +30,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn, execFile } from 'child_process';
 import { BASH_ALLOW, SIGMAP_CLI, SIGMAP_SERVER } from './agent-ab.mjs';
+import { CHANGE_SYSTEM_PROMPT, CHANGE_TOOL_DEFS, CHANGE_MAX_TURNS, runChangeTool, gradeChange } from './agent-ab-change.mjs';
 
 export const API_VERSION = '2023-06-01';
 export const DEFAULT_BASE_URL = 'https://api.anthropic.com';
@@ -251,7 +252,9 @@ async function post({ baseUrl, apiKey, body, timeoutMs, fetchImpl }) {
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  * @param {((job:object, arm:object) => string)|null} [p.prefetch] the pre-ranked block for a question, put after it in the user turn
  */
-export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefetch = null, baseUrl = DEFAULT_BASE_URL, fetchImpl = fetch, maxTurns = MAX_TURNS, env = process.env }) {
+export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefetch = null, baseUrl = DEFAULT_BASE_URL, fetchImpl = fetch, maxTurns = null, env = process.env, change = false }) {
+  const turnCap = maxTurns || (change ? CHANGE_MAX_TURNS : MAX_TURNS);
+  const systemBase = change ? CHANGE_SYSTEM_PROMPT : SYSTEM_PROMPT;
   return async (job) => {
     const started = Date.now();
     const arm = arms(job.task.repo, job.arm);
@@ -275,17 +278,19 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
         mcp = await new McpClient(spec, arm.cwd).start();
         mcpTools = mcp.tools.map((t) => ({ name: `mcp__${SIGMAP_SERVER}__${t.name}`, description: t.description || '', input_schema: t.inputSchema && typeof t.inputSchema === 'object' ? t.inputSchema : { type: 'object', properties: {} }, _mcp: t.name }));
       }
-      const defs = [...TOOL_DEFS, ...mcpTools.map(({ _mcp, ...d }) => d)];
-      const init = { tools: [...TOOL_DEFS.map((t) => t.name), ...mcpTools.map((t) => t.name)], mcpServers: mcp ? [{ name: SIGMAP_SERVER, status: 'connected' }] : [], skills: null, model, apiKeySource: 'ANTHROPIC_API_KEY' };
-      const system = [{ type: 'text', text: withArm && arm.sigmapContext && !prefetch ? `${SYSTEM_PROMPT}\n\n${arm.sigmapContext}` : SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }];
+      const builtin = change ? [...TOOL_DEFS, ...CHANGE_TOOL_DEFS] : TOOL_DEFS;
+      const defs = [...builtin, ...mcpTools.map(({ _mcp, ...d }) => d)];
+      const init = { tools: [...builtin.map((t) => t.name), ...mcpTools.map((t) => t.name)], mcpServers: mcp ? [{ name: SIGMAP_SERVER, status: 'connected' }] : [], skills: null, model, apiKeySource: 'ANTHROPIC_API_KEY' };
+      const system = [{ type: 'text', text: withArm && arm.sigmapContext && !prefetch ? `${systemBase}\n\n${arm.sigmapContext}` : systemBase, cache_control: { type: 'ephemeral' } }];
       const tools = defs.map((d, k) => (k === defs.length - 1 ? { ...d, cache_control: { type: 'ephemeral' } } : d));
       const first = withArm && prefetch ? `${job.prompt}\n\n${prefetch(job, arm)}` : job.prompt;
       const messages = [{ role: 'user', content: [{ type: 'text', text: first }] }];
       initInfo = init;
 
-      for (; turns < maxTurns;) {
-        if (Date.now() - started > timeoutMs) { error = 'timeout'; break; }
-        const r = await post({ baseUrl, apiKey, body: { model, max_tokens: MAX_TOKENS, system, tools, messages }, timeoutMs: Math.max(5000, timeoutMs - (Date.now() - started)), fetchImpl });
+      for (; turns < turnCap;) {
+        // A change run that runs out of time is graded on what it left, like one the turn cap stops: dropping it would flatter a slow agent.
+        if (Date.now() - started > timeoutMs) { if (change) { limit = 'timeout'; answer = lastText; } else error = 'timeout'; break; }
+        const r = await post({ baseUrl, apiKey, body: { model, max_tokens: change ? 8192 : MAX_TOKENS, system, tools, messages }, timeoutMs: Math.max(5000, timeoutMs - (Date.now() - started)), fetchImpl });
         turns++;
         if (!r.ok) { error = `api ${r.status || 'error'}: ${r.error}`; break; }
         const u = r.json.usage || {};
@@ -307,6 +312,7 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
           let out;
           const m = mcpTools.find((t) => t.name === b.name);
           if (m) out = await mcp.call(m._mcp, b.input);
+          else if (change && (b.name === 'Edit' || b.name === 'Write' || b.name === 'RunTest')) out = runChangeTool(b.name, b.input, { cwd: arm.cwd });
           else {
             if (b.name === 'Bash') { const w = splitCommand(b.input && b.input.command); const c = w && w[0]; if (c) byCommand[c] = (byCommand[c] || 0) + 1; }
             out = await runBuiltin(b.name, b.input, { cwd: arm.cwd, withSigmap: withArm, binDir: arm.binDir });
@@ -322,13 +328,17 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
       }
       // Not an error: dropping the pair would drop exactly the questions a weak agent cannot finish, and flatter it. The run is
       // scored on whatever it had said (usually nothing that names a file), so it counts as a miss at the cost it incurred.
-      if (error === null && !answer && !limit && turns >= maxTurns) { limit = `turn limit (${maxTurns}) reached`; answer = lastText; }
-      return record({});
+      if (error === null && !answer && !limit && turns >= turnCap) { limit = `turn limit (${turnCap}) reached`; answer = lastText; }
+      // A change run is graded on whatever it left in the checkout, including a run the turn or budget cap stopped.
+      const grade = change && error === null ? gradeChange(job.task, arm.cwd) : null;
+      return record(grade ? { grade } : {});
     } catch (e) {
       error = `runner: ${e && e.message ? e.message : e}`;
       return record({});
     } finally {
       if (mcp) mcp.close();
+      // A change run edits its checkout, so every run gets a checkout of its own and gives it back.
+      if (typeof arm.dispose === 'function') { try { arm.dispose(); } catch (_) { /* best effort */ } }
     }
   };
 }

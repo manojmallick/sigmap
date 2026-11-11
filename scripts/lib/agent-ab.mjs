@@ -196,7 +196,7 @@ export function selectTasks(tasks, repoNames, opts = {}) {
     const sorted = tasks.filter((t) => t.repo === repo)
       .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const mine = ids ? sorted.filter((t) => ids.has(t.id)) : sorted.slice(0, perRepo);
-    for (const t of mine) out.push({ id: t.id, repo: t.repo, query: t.query, expected_files: [...t.expected_files] });
+    for (const t of mine) out.push({ id: t.id, repo: t.repo, query: t.query, expected_files: [...t.expected_files], ...(t.hidden ? { hidden: t.hidden, kind: 'change' } : {}) });
   }
   return out;
 }
@@ -344,6 +344,8 @@ export function costFloor(inTokens, model) {
  * @returns {{ ok: boolean, problems: string[], builtins: string[] }}
  */
 export function checkIntegrity(init, arm, opts = {}) {
+  // A change task lets the agent edit, so Edit and Write are expected in BOTH arms; every other forbidden tool stays forbidden.
+  const forbidden = opts.change ? FORBIDDEN_TOOLS.filter((t) => t !== 'Edit' && t !== 'Write') : FORBIDDEN_TOOLS;
   if (!init || !Array.isArray(init.tools)) {
     return { ok: false, builtins: [], problems: ['the run reported no init event with a tool list, so the arm cannot be verified'] };
   }
@@ -354,7 +356,7 @@ export function checkIntegrity(init, arm, opts = {}) {
   const prefix = `mcp__${SIGMAP_SERVER}__`;
   const servers = Array.isArray(init.mcpServers) ? init.mcpServers : [];
 
-  for (const t of builtins) if (FORBIDDEN_TOOLS.includes(t)) problems.push(`the forbidden tool "${t}" is enabled`);
+  for (const t of builtins) if (forbidden.includes(t)) problems.push(`the forbidden tool "${t}" is enabled`);
   const foreign = mcp.filter((t) => !t.startsWith(prefix));
   if (foreign.length) problems.push(`unexpected MCP tools: ${foreign.join(', ')}`);
   const otherServers = servers.filter((s) => s && s.name !== SIGMAP_SERVER).map((s) => s.name);
@@ -411,21 +413,24 @@ export function checkIntegrity(init, arm, opts = {}) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
+ * @param {(task:object) => string} [p.promptFor] the prompt of a task (default: the locate prompt)
+ * @param {(record:object, task:object) => Promise<{pass:boolean}>|{pass:boolean}} [p.scoreRun] scores a finished run (default: hit@5 on the files named)
+ * @param {boolean} [p.change] the tasks are change tasks: the agent may edit
  * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
  * @returns {Promise<Array<{task:object, arm:string, run:number, record:object}>>}
  */
-export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant }) {
+export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false }) {
   const out = [];
   const builtinsByArm = {};
   let streak = 0;
   for (const task of tasks) {
-    const prompt = buildPrompt(task);
+    const prompt = promptFor(task);
     for (let run = 1; run <= runs; run++) {
       const order = run % 2 === 1 ? ARMS : [...ARMS].reverse();
       for (const arm of order) {
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm, { variant });
+          const chk = checkIntegrity(record.init, arm, { variant, change });
           if (!chk.ok) {
             throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
           }
@@ -435,7 +440,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
             throw new IntegrityError(`the arms hold different built-in tools (without: [${builtinsByArm.without}], with: [${builtinsByArm.with}])`);
           }
         }
-        const score = record.ok ? scoreAnswer(record.answer, task.expected_files, { cwds: record.cwds })
+        const score = record.ok ? (scoreRun ? await scoreRun(record, task) : scoreAnswer(record.answer, task.expected_files, { cwds: record.cwds }))
           : { pass: false, rank: null, named: [] };
         const entry = { task, arm, run, record: Object.assign({}, record, { score }) };
         out.push(entry);
@@ -759,9 +764,9 @@ export function buildReport({ entries, tasks, method }) {
       variant: method.variant || 'current',
       arms: { without: 'no SigMap', with: SIGMAP_VARIANTS[method.variant || 'current'] || SIGMAP_VARIANTS.current },
       tools: [...BUILTIN_TOOLS],
-      corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl',
+      corpus: method.corpus || 'benchmarks/tasks/retrieval-xrepo.jsonl',
       selection: method.taskIds && method.taskIds.length ? `the task id(s) ${method.taskIds.join(', ')}` : `first ${method.tasksPerRepo} task(s) by id per repo`,
-      passDefinition: `hit@${TOP_K} on the repository-relative paths the answer names`,
+      passDefinition: method.passDefinition || `hit@${TOP_K} on the repository-relative paths the answer names`,
       priceAsOf: PRICE_AS_OF,
       publishable: pub.publishable,
       notPublishableBecause: pub.reasons,

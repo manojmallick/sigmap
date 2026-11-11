@@ -60,6 +60,50 @@ export function mcpConfigFor(codeRoot) {
 }
 
 /**
+ * Take back everything `gen-context` wrote into the checkout other than its index (`.context/`, which git ignores) and the
+ * config the harness itself wrote: an untracked file is deleted, a tracked file it changed is restored. Before this, the
+ * generated `CLAUDE.md`, `AGENTS.md` and `.github/copilot-instructions.md` sat in the SigMap arm's checkout, where the agent's
+ * Grep found them on every repository whose .gitignore does not name them: a free copy of the signature map for the arm under
+ * test and not for the baseline.
+ */
+export function scrubGenerated(dest) {
+  const st = git(dest, ['status', '--porcelain', '--untracked-files=all']);
+  if (!st.ok) throw new Error(`cannot read the status of ${dest}: ${st.err}`);
+  for (const line of st.out.split('\n').filter(Boolean)) {
+    const code = line.slice(0, 2); const rel = line.slice(3).replace(/^"|"$/g, '');
+    if (rel === 'gen-context.config.json' || rel.startsWith('.context/')) continue;
+    if (code === '??') fs.rmSync(path.join(dest, rel), { recursive: true, force: true });
+    else git(dest, ['checkout', '--quiet', '--', rel]);
+  }
+}
+
+/** What a gitignore-respecting search can see in a checkout: tracked files plus untracked files git does not ignore. */
+export function searchableFiles(cwd) {
+  const r = git(cwd, ['ls-files', '--cached', '--others', '--exclude-standard']);
+  if (!r.ok) throw new Error(`cannot list ${cwd}: ${r.err}`);
+  return new Set(r.out.split('\n').filter(Boolean));
+}
+
+/** Differences between the arms an agent could search that are NOT the thing under test. */
+const HYGIENE_ALLOWED = [/^gen-context\.config\.json$/, /^\.claude\/skills\//];
+
+/**
+ * The two arms must differ in nothing the agent can find by searching, except the harness's own config and, for a skill variant,
+ * the skill files. Throws naming the files otherwise, before any paid run.
+ *
+ * @returns {{ onlyWith: string[], onlyWithout: string[] }}
+ */
+export function assertArmHygiene({ without, with: withArm, label = 'arms' }) {
+  const a = searchableFiles(without); const b = searchableFiles(withArm);
+  const onlyWith = [...b].filter((f) => !a.has(f) && !HYGIENE_ALLOWED.some((re) => re.test(f)));
+  const onlyWithout = [...a].filter((f) => !b.has(f));
+  if (onlyWith.length || onlyWithout.length) {
+    throw new Error(`${label}: the arms differ in files the agent can search (${[...onlyWith.map((f) => `+${f}`), ...onlyWithout.map((f) => `-${f}`)].slice(0, 8).join(', ')}): a difference there is a second treatment`);
+  }
+  return { onlyWith, onlyWithout };
+}
+
+/**
  * The SigMap arm of a skill variant. The index is generated as in every other variant (`sigmap ask` answers from
  * `.context/`), then the generated CLAUDE.md is removed (the agent would read it by itself) and the skills are
  * written into the checkout's `.claude/skills/`, which the agent loads from `--setting-sources project`. `skill`
@@ -152,18 +196,20 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), '--adapter', 'claude'], {
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
   });
+  // The generated section is read first, then every file `gen-context` wrote into the checkout is taken out again (see
+  // scrubGenerated): the agent's own Grep and Read must not be able to find the signature map in a file, only through the
+  // channel the variant under test gives it.
+  const claudeMd = fs.existsSync(path.join(dest, 'CLAUDE.md')) ? fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8') : '';
+  scrubGenerated(dest);
   if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
   if (variant === 'prefetch') {
     // The index is all this arm keeps: the ranking is computed per question (`prefetchContext`) and rides in the prompt.
-    fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
     return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), prefetch: true });
   }
-  const claudeMd = fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8');
   const section = findManagedSection(claudeMd);
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
-  // Without --bare the agent reads a CLAUDE.md in its working directory by itself. The section is already in
-  // `sigmapContext` and goes in through --append-system-prompt; leaving the file would hand it over twice.
-  if (sessionAuth) fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
+  // The section is already in `sigmapContext` and goes in through the system prompt; a file left in the checkout would hand
+  // it over twice and let the agent grep a signature map the baseline has no way to see.
   const shim = sigmapShimDir(tmpRoot, codeRoot);
   return Object.assign(prepared, {
     // The generated section is still produced and checked above (a run that cannot generate one

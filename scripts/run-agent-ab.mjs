@@ -52,8 +52,9 @@ import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
-import { prepareArm, probeMcp, probeCli, prefetchContext } from './lib/agent-ab-arms.mjs';
+import { prepareArm, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
 import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
+import { changePrompt } from './lib/agent-ab-change.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
 } from './lib/agent-ab-claude.mjs';
@@ -66,7 +67,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent', '--change',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -120,6 +121,9 @@ if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
 const AGENT = val('--agent', 'claude');
 if (AGENT !== 'claude' && AGENT !== 'api') fail('--agent must be claude (Claude Code, the default) or api (the Messages API directly), got "' + AGENT + '"', 2);
 const API_AGENT = AGENT === 'api';
+// --change: the tasks are merged bug fixes (scripts/build-change-tasks.mjs); the agent edits a checkout and its patch is graded by hidden tests.
+const CHANGE = has('--change');
+if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
 const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
 if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);
@@ -149,10 +153,11 @@ function printPlan(plan) {
       ? '  agent     the Messages API directly (scripts/lib/agent-ab-api.mjs, not Claude Code), model ' + MODEL + '; cost computed from usage x ' + (priceFor(MODEL) ? 'the ' + priceFor(MODEL).source + ' ($' + priceFor(MODEL).in + ' in / $' + priceFor(MODEL).out + ' out per Mtok)' : 'a price this model does not have: cost will be n/a')
       : `  agent     claude (${SESSION_AUTH ? 'the logged-in session, no API key; ~40k tokens of cached prefix' : '--bare'}), model ${MODEL}`,
     `  repos     ${plan.repos.length}${plan.skipped.length ? ` (${plan.skipped.length} skipped: ${plan.skipped.map((s) => `${s.name} ${s.why}`).join(', ')})` : ''}`,
+    ...(CHANGE ? ['  mode      change tasks: the agent edits a checkout of the code before a merged fix; the patch is graded by the fix\'s own tests, which it never sees'] : []),
     `  tasks     ${plan.tasks} (${TASK_IDS ? `task id(s) ${TASK_IDS.join(', ')}` : `first ${PER_REPO} per repo, by id`})`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
     `  budget    <= $${BUDGET} per run -> <= $${(plan.agentRuns * BUDGET).toFixed(2)} worst case; timeout ${Math.round(TIMEOUT / 1000)} s per run`,
-    `  arms      without = no SigMap · with = ${VARIANT === 'current' ? 'generated CLAUDE.md section + sigmap CLI + MCP server' : SIGMAP_VARIANTS[VARIANT]} (variant: ${VARIANT}); identical prompt, model, read-only tools`,
+    `  arms      without = no SigMap · with = ${VARIANT === 'current' ? 'generated CLAUDE.md section + sigmap CLI + MCP server' : SIGMAP_VARIANTS[VARIANT]} (variant: ${VARIANT}); identical prompt, model, ${CHANGE ? 'tools (the change tools included)' : 'read-only tools'}`,
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -168,7 +173,9 @@ async function main() {
   const tasks = selectTasks(corpus, present.map((r) => r.name), { perRepo: PER_REPO, ids: TASK_IDS });
   if (!tasks.length) fail(TASK_IDS ? `no task to run: none of ${TASK_IDS.join(', ')} is in a repo with a pinned checkout (npm run fetch:xrepo)` : 'no task to run: no pinned checkout is present (npm run fetch:xrepo)', 2);
 
-  const plan = { repos: present, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
+  // Only the repositories a selected task is in are copied and checked; a run of one task does not prepare the others.
+  const used = present.filter((r) => tasks.some((t) => t.repo === r.name));
+  const plan = { repos: used, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
   if (DRY) { writeAll(1, printPlan(plan)); return; }
 
   if (!SESSION_AUTH && !process.env.ANTHROPIC_API_KEY) {
@@ -192,12 +199,13 @@ async function main() {
   for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
 
   const prepared = {};
-  for (const repo of present) {
+  for (const repo of used) {
     prepared[repo.name] = {};
     for (const arm of ARMS) {
       say(`  preparing ${repo.name} (${arm})`);
       prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
+    try { assertArmHygiene({ without: prepared[repo.name].without.cwd, with: prepared[repo.name].with.cwd, label: repo.name }); } catch (e) { fail(e.message); }
     if (SKILL_RUN || VARIANT === 'prefetch') {
       const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
       if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
@@ -205,7 +213,15 @@ async function main() {
       const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
       if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
     }
+    // A change run gets a checkout of its own per run (below); these were prepared to prove the arms are sound.
+    if (CHANGE) for (const arm of ARMS) fs.rmSync(prepared[repo.name][arm].cwd, { recursive: true, force: true });
   }
+  const armFor = CHANGE ? (repoName, armName) => {
+    const repo = used.find((r) => r.name === repoName);
+    const jobRoot = fs.mkdtempSync(path.join(tmpRoot, 'job-'));
+    const a = prepareArm({ root: DATA, repo, arm: armName, tmpRoot: jobRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: false });
+    return Object.assign(a, { dispose: () => fs.rmSync(jobRoot, { recursive: true, force: true }) });
+  } : (repoName, armName) => prepared[repoName][armName];
 
   const env = childEnv();
   const prefetched = new Map();
@@ -217,17 +233,18 @@ async function main() {
     return prefetched.get(k);
   } : null;
   const runner = API_AGENT
-    ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: (repo, arm) => prepared[repo][arm], prefetch: prefetchFor })
+    ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: armFor, prefetch: prefetchFor, change: CHANGE })
     : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor });
 
   let n = 0;
   const entries = await runPlan({
     tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
+    ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),
     onRun: ({ task, arm, run, record }) => {
       n++;
       const c = record.cost && record.cost.usd !== null ? `${record.cost.source === 'table' ? '≥' : ''}$${record.cost.usd.toFixed(4)}` : 'cost n/a';
       say(`  [${n}/${plan.agentRuns}] ${task.repo}/${task.id} run ${run} ${arm.padEnd(7)} `
-        + `${record.ok ? (record.score.pass ? 'pass' : 'miss') : `FAIL ${record.error}`}`
+        + `${record.ok ? (record.score.pass ? 'pass' : `miss${record.score.why ? ` (${record.score.why})` : ''}`) : `FAIL ${record.error}`}`
         + `${record.toolCalls ? `  ${record.toolCalls.total} tool calls` : ''}  ${c}  ${(record.durationMs / 1000).toFixed(1)} s`);
     },
   });
@@ -241,11 +258,12 @@ async function main() {
     auth: SESSION_AUTH ? 'session' : 'api-key',
     runner: AGENT,
     taskIds: TASK_IDS,
+    ...(CHANGE ? { corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl of a change-task data root (scripts/build-change-tasks.mjs)', passDefinition: 'the fix\'s hidden tests pass on the agent\'s patch' } : {}),
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,
     timeoutMs: TIMEOUT,
     date: new Date().toISOString().slice(0, 10),
-    repos: present.map((r) => ({ name: r.name, commit: r.commit })),
+    repos: used.map((r) => ({ name: r.name, commit: r.commit })),
     skippedRepos: skipped,
   };
   const report = stamp(buildReport({ entries, tasks, method }), CODE_ROOT);
@@ -254,7 +272,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost,
+      cacheGaps: record.cacheGaps, cost: record.cost, limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);
