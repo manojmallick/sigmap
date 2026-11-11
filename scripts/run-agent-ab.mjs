@@ -52,7 +52,7 @@ import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
   selectTasks, runPlan, buildReport, renderMarkdown,
 } from './lib/agent-ab.mjs';
-import { prepareArm, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
+import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
 import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
 import { changePrompt } from './lib/agent-ab-change.mjs';
 import {
@@ -125,6 +125,8 @@ const API_AGENT = AGENT === 'api';
 const CHANGE = has('--change');
 if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
+const HOOK_RUN = VARIANT === 'prefetch-hook';
+if (HOOK_RUN && (API_AGENT || !SESSION_AUTH)) fail('--sigmap-variant prefetch-hook runs the real hook inside Claude Code, which needs --agent claude and --session-auth (--bare skips hooks)', 2);
 if (VARIANT === 'placebo' && !API_AGENT) fail('--sigmap-variant placebo puts its text in the system prompt, which only --agent api controls', 2);
 const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
 if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);
@@ -209,6 +211,9 @@ async function main() {
     try { assertArmHygiene({ without: prepared[repo.name].without.cwd, with: prepared[repo.name].with.cwd, label: repo.name }); } catch (e) { fail(e.message); }
     if (VARIANT === 'placebo') {
       // nothing of SigMap's to probe: the arm is a checkout and a block of text
+    } else if (HOOK_RUN) {
+      const probe = probeHook({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
+      if (!probe.ok) fail(`${repo.name}: the prefetch hook does not answer in the SigMap arm's checkout (${probe.error})`);
     } else if (SKILL_RUN || VARIANT === 'prefetch') {
       const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
       if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
@@ -237,7 +242,7 @@ async function main() {
   } : null;
   const runner = API_AGENT
     ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: armFor, prefetch: prefetchFor, change: CHANGE })
-    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor });
+    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor, hook: HOOK_RUN });
 
   let n = 0;
   const entries = await runPlan({
@@ -275,7 +280,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost, limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
+      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);

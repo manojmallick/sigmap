@@ -223,6 +223,54 @@ usable repositories per language (`data/heldout2-build-report.txt` says why the 
 4,008 runs, none failed. `locate` was also run on the first five repositories (Haiku 5.5, 4 repetitions; Sonnet 5.5, 2). Results: the results
 page, "Twenty repositories, and a two-tool tool list".
 
+## Third round: the real hook, in a live Claude Code session
+
+Every `prefetch` number above comes from the harness putting the ranking into the prompt. What a user installs is different: the
+`UserPromptSubmit` hook (`sigmap hooks install claude --prefetch`), run by Claude Code itself. This round tests that, with the rules
+written before any run.
+
+**Setup.** `--sigmap-variant prefetch-hook` copies the repository as before, then writes a `.claude/settings.json` into the SigMap arm's
+copy only, registering the product's own hook command (the same text `hooks install claude --prefetch` writes) with its own timeout. The
+prompt is the bare question in both arms; the SigMap arm gets no `## SigMap` section, no MCP server and no CLI allowance, so the hook is the
+only difference. It runs on Claude Code with the logged-in session (`--session-auth`), because the hook needs the real program; those runs
+count against the account's plan, not API credit, and are reported with the cost Claude Code itself records.
+
+**Integrity, checked on every run.** The hook fired exactly once in the SigMap arm, with outcome `success`, exit code 0 and more than zero
+bytes of added context, and never in the no-SigMap arm. A run that fails this check stops the batch, so a hook that quietly did nothing
+cannot pass as a result. Before the first run of each repository the harness runs the registered command on a prompt derived from an
+indexed file and refuses to start if it adds nothing.
+
+**Repositories (chosen after seeing results, so read with that in mind).** The eight repositories of the twenty-repository round where
+the harness-injected `prefetch` behaved most distinctly: the five where it cost more (`ionos-cloud/cluster-api-provider-proxmox`,
+`conda/constructor`, `intaro/pinboard`, `chatmail/relay`, `stefankoegl/python-json-patch`) and three where it saved
+(`flamingock/flamingock-java`, `GDQuest/GDScript-formatter`, `statelyai/agent`). Picking repositories because of an earlier extreme
+result means some of that result was noise, and a rerun will tend to look less extreme on its own (regression to the mean). That is why
+the savers are in the run as a contrast: both groups have the same selection, so a difference between them is not explained by it.
+
+**Runs.** Every question those repositories have in the held-out sets (87 across the eight), Haiku 5.5, 2 repetitions, both arms:
+348 runs, at most $0.25 each by Claude Code's own cap.
+
+**Unit and estimate.** As in the second round: per repository, the typical-task change in real cost against the baseline, classed
+*saves*, *costs more* or *no clear change* by its 95% interval; pooled over repositories by resampling repositories (10,000 times,
+seed 1), reported separately for the two groups and for all eight.
+
+**Decision rule.**
+
+- *The hook is the harness prefetch, in practice* if the five cost-more repositories still lean upward (pooled interval above zero, or
+  point estimate above zero with most repositories not saving) **and** the three savers still save. Then the earlier numbers describe
+  what users get, including its cost on the repositories where the unaided agent was already cheap.
+- *The cost was mostly the harness or noise* if the five cost-more repositories pool to an interval entirely below zero or including zero
+  with a point estimate at or below zero. The earlier cost-more classification is then not carried forward.
+- *The hook differs from the harness prefetch* if the savers stop saving (pooled interval including or above zero). Reported as a
+  difference between the two ways of delivering the same text, without a cause: the study does not isolate one.
+- The file found in at least as many runs as without SigMap, to within 2 percentage points, is required for any "no cost" statement.
+
+Not part of this round: any claim about all repositories (eight chosen ones are not a sample), any claim about models other than Haiku
+5.5 or about change tasks, and any comparison of absolute cost with the API-route runs (Claude Code adds its own system prompt, so only
+within-route ratios are comparable).
+
+**What was run.** Not yet: this section is the plan, committed before the first run. Results go to the results page under "The real hook".
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

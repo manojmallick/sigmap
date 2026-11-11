@@ -70,6 +70,7 @@ export const SIGMAP_VARIANTS = Object.freeze({
   'skill-always': 'SigMap as one skill (sigmap-locate) whose description tells the agent to call it first on every where-is-it question, + the sigmap CLI: no MCP server, no always-on section',
   prefetch: 'SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors after the question in the user turn, + the sigmap CLI; no MCP server, no standing section, no extra tool call',
   locate: 'SigMap index strategy + a two-tool MCP profile (query_context and get_lines only): the tools the agents used, without the five they did not',
+  'prefetch-hook': 'the real prefetch hook (`sigmap hooks install claude --prefetch`): Claude Code runs it on the prompt and adds SigMap\'s ranking as context; no MCP server, no standing section, nothing in the prompt we write (Claude Code with --session-auth only)',
   placebo: 'NOT SigMap: a size-matched block of generic code-search guidance in the system prompt, no repository information, no tools added (the control for "is it SigMap or just prompt text?")',
   'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });
@@ -345,6 +346,21 @@ export function costFloor(inTokens, model) {
  * @param {{ variant?: string }} [opts]
  * @returns {{ ok: boolean, problems: string[], builtins: string[] }}
  */
+/**
+ * The `prefetch-hook` run is only a measurement of the hook if the hook ran in the SigMap arm, exactly once and successfully with
+ * something to say, and did not run at all in the baseline. Both are read from the hook events in the run's own stream.
+ */
+export function hookProblems(hooks, arm) {
+  if (!Array.isArray(hooks)) return ['the run reported no hook events, so it cannot be checked that the hook ran (or did not)'];
+  const mine = hooks.filter((h) => h && h.event === 'UserPromptSubmit');
+  if (arm === 'without') return hooks.length ? [`the no-SigMap arm ran a hook (${hooks.map((h) => h.event).join(', ')})`] : [];
+  if (mine.length !== 1) return [`the SigMap arm should run its UserPromptSubmit hook once; it ran it ${mine.length} times`];
+  const h = mine[0];
+  if (h.outcome !== 'success' || h.exitCode !== 0) return [`the prefetch hook did not succeed (outcome ${h.outcome}, exit ${h.exitCode})`];
+  if (!(h.bytes > 0)) return ['the prefetch hook ran and added nothing to the prompt'];
+  return [];
+}
+
 export function checkIntegrity(init, arm, opts = {}) {
   // A change task lets the agent edit, so Edit and Write are expected in BOTH arms; every other forbidden tool stays forbidden.
   const forbidden = opts.change ? FORBIDDEN_TOOLS.filter((t) => t !== 'Edit' && t !== 'Write') : FORBIDDEN_TOOLS;
@@ -366,9 +382,10 @@ export function checkIntegrity(init, arm, opts = {}) {
 
   const sigmap = servers.find((s) => s && s.name === SIGMAP_SERVER);
   const sigmapTools = mcp.filter((t) => t.startsWith(prefix));
-  if (opts.variant === 'prefetch' || opts.variant === 'placebo') {
+  if (opts.variant === 'prefetch' || opts.variant === 'placebo' || opts.variant === 'prefetch-hook') {
     // The ranking (or the placebo text) is already in the prompt; neither arm has an MCP server, so one in either arm is a contaminated run.
     if (sigmap || sigmapTools.length) problems.push(`the ${opts.variant} variant holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
+    if (opts.variant === 'prefetch-hook') problems.push(...hookProblems(opts.hooks, arm));
     return { ok: problems.length === 0, problems, builtins };
   }
   const wanted = SKILL_VARIANTS[opts.variant];
@@ -432,7 +449,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
       for (const arm of order) {
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm, { variant, change });
+          const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks });
           if (!chk.ok) {
             throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
           }

@@ -61,7 +61,8 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false, hook = false }) {
+  if (hook && bare) throw new Error('the prefetch hook run needs --session-auth: --bare skips hooks');
   if (skills && bare) throw new Error('a skill run needs --session-auth: --bare turns skills off');
   // A skill run keeps the Skill tool in BOTH arms and passes no --disable-slash-commands in either, so the
   // arms still differ only by what SigMap adds (the CLI, and the skill file in the SigMap arm's checkout).
@@ -70,7 +71,8 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     ...tools.filter((t) => t !== 'Bash'),
     ...BASH_ALLOW.map((c) => `Bash(${c}:*)`),
   ];
-  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills || prefetch ? [] : [`mcp__${SIGMAP_SERVER}`]));
+  // The hook variant adds nothing to the command line: the hook lives in the checkout's settings, and the arms' arguments are identical.
+  if (arm === 'with' && !hook) allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills || prefetch ? [] : [`mcp__${SIGMAP_SERVER}`]));
   const args = [
     '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', ...(skills ? [] : ['--disable-slash-commands'])]),
     '--output-format', 'stream-json', '--verbose',
@@ -82,7 +84,9 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     '--max-budget-usd', String(budgetUsd),
     '--strict-mcp-config',
   ];
-  if (arm === 'with' && prefetch) {
+  if (hook) {
+    // nothing: see above
+  } else if (arm === 'with' && prefetch) {
     // Nothing on the command line: the pre-ranked files for this question ride in the USER turn (see makeRunner), where a
     // prompt hook puts them. Appending them to the system prompt instead changed it for every question, so each first
     // run rewrote the whole cached prefix (cost +14% in repetition 1 and -11% in repetition 2 of the same questions).
@@ -130,6 +134,7 @@ export function parseStream(text) {
     costUsd: null, turns: null,
     result: false, isError: false, subtype: null, answer: null,
     parseErrors: 0,
+    hooks: [],
   };
   const seenTool = new Set();
   const seenMessage = new Set();
@@ -145,7 +150,16 @@ export function parseStream(text) {
     try { o = JSON.parse(t); } catch (_) { out.parseErrors++; continue; }
     if (!o || typeof o !== 'object') continue;
 
-    if (o.type === 'system' && o.subtype === 'init') {
+    if (o.type === 'system' && o.subtype === 'hook_response') {
+      // A hook that ran, with what it said: its event, whether it succeeded and how much context it added.
+      let bytes = 0;
+      try {
+        const j = JSON.parse(typeof o.stdout === 'string' ? o.stdout : '');
+        const ctx = j && j.hookSpecificOutput && j.hookSpecificOutput.additionalContext;
+        if (typeof ctx === 'string') bytes = Buffer.byteLength(ctx);
+      } catch (_) { /* plain-text output or none: nothing counted */ }
+      out.hooks.push({ event: str(o.hook_event), outcome: str(o.outcome), exitCode: typeof o.exit_code === 'number' ? o.exit_code : null, bytes });
+    } else if (o.type === 'system' && o.subtype === 'init') {
       out.init = {
         tools: Array.isArray(o.tools) ? o.tools.map(String) : null,
         mcpServers: Array.isArray(o.mcp_servers)
@@ -252,6 +266,7 @@ export function toRecord(parsed, { wallMs, cwds, model, timedOut, code }) {
     answer: ok ? parsed.answer : '',
     cwds: cwds || [],
     init: parsed.init,
+    hooks: parsed.hooks,
     toolCalls: parsed.result || parsed.toolCalls.total ? parsed.toolCalls : null,
     usage: parsed.usage,
     usageSource: parsed.usageSource,
@@ -331,14 +346,14 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null, hook = false }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
     // `prefetch(job, arm)` returns the pre-ranked files for this question: computed per run, before the model is called.
     const pre = prefetch && job.arm === 'with' ? prefetch(job, arm) : null;
     if (prefetch && job.arm === 'with' && !pre) throw new Error('the prefetch arm needs the pre-ranked files for its question');
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch });
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch, hook });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
     // The block goes AFTER the question, as hook context does: the system prompt and the tools stay byte-identical in both arms.

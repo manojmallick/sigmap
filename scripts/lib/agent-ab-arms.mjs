@@ -86,7 +86,7 @@ export function searchableFiles(cwd) {
 }
 
 /** Differences between the arms an agent could search that are NOT the thing under test. */
-const HYGIENE_ALLOWED = [/^gen-context\.config\.json$/, /^\.claude\/skills\//];
+const HYGIENE_ALLOWED = [/^gen-context\.config\.json$/, /^\.claude\/skills\//, /^\.claude\/settings\.json$/];
 
 /**
  * The two arms must differ in nothing the agent can find by searching, except the harness's own config and, for a skill variant,
@@ -208,6 +208,13 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   const claudeMd = fs.existsSync(path.join(dest, 'CLAUDE.md')) ? fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8') : '';
   scrubGenerated(dest);
   if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
+  if (variant === 'prefetch-hook') {
+    // The real hook, and only it: the index, and one UserPromptSubmit entry in the project's own settings file (the one a
+    // `--setting-sources project` run reads), written with the command line SigMap itself writes. No MCP server, no section, no
+    // skill, and nothing in the prompt: Claude Code runs the hook and adds what it prints.
+    writeHookSettings(dest, codeRoot);
+    return Object.assign(prepared, { hook: true });
+  }
   if (variant === 'prefetch') {
     // The index is all this arm keeps: the ranking is computed per question (`prefetchContext`) and rides in the prompt.
     return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), prefetch: true });
@@ -256,6 +263,53 @@ export function probeMcp({ cwd, codeRoot = CODE_ROOT, timeoutMs = 30000 }) {
  *
  * @returns {{ ok: boolean, error: string|null }}
  */
+/**
+ * Merge the prefetch hook into `<dest>/.claude/settings.json` using the product's own command shape (src/session/hooks-install.js).
+ * Anything already in the file stays; an own entry already there is replaced, not duplicated.
+ */
+export function writeHookSettings(dest, codeRoot = CODE_ROOT) {
+  const hi = createRequire(import.meta.url)(path.join(codeRoot, 'src', 'session', 'hooks-install.js'));
+  const file = path.join(dest, '.claude', 'settings.json');
+  let settings = {};
+  try { settings = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { settings = {}; }
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) settings = {};
+  settings.hooks = settings.hooks && typeof settings.hooks === 'object' ? settings.hooks : {};
+  const groups = Array.isArray(settings.hooks.UserPromptSubmit) ? settings.hooks.UserPromptSubmit : [];
+  const kept = groups.map((g) => (g && Array.isArray(g.hooks) ? { ...g, hooks: g.hooks.filter((h) => !(h && hi.isOwnCommand(h.command))) } : g)).filter((g) => !(g && Array.isArray(g.hooks) && g.hooks.length === 0));
+  kept.push({ hooks: [{ type: 'command', command: hi.hookCommand(path.join(codeRoot, 'gen-context.js'), 'UserPromptSubmit'), timeout: hi.TIMEOUT_S }] });
+  settings.hooks.UserPromptSubmit = kept;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
+  return file;
+}
+
+/**
+ * Prove the hook answers in the prepared checkout, with no model call: the registered command, fed a Claude Code payload, must print
+ * the JSON a host reads, with context in it. Leaves no state behind (the hook's own dedupe record is removed).
+ */
+export function probeHook({ cwd, codeRoot = CODE_ROOT, timeoutMs = 60000 }) {
+  let settings;
+  try { settings = JSON.parse(fs.readFileSync(path.join(cwd, '.claude', 'settings.json'), 'utf8')); } catch (e) { return { ok: false, error: `no readable .claude/settings.json: ${e.message}` }; }
+  const entry = ((settings.hooks || {}).UserPromptSubmit || []).flatMap((g) => (g && g.hooks) || []).find((h) => h && /session hook UserPromptSubmit/.test(h.command || ''));
+  if (!entry) return { ok: false, error: 'no UserPromptSubmit hook registered in .claude/settings.json' };
+  // A question about a file that is certainly indexed, so the ranking has something to say whatever the repository is.
+  let stem = 'main';
+  try {
+    const index = createRequire(import.meta.url)(path.join(codeRoot, 'src', 'retrieval', 'ranker.js')).buildSigIndex(cwd);
+    const first = [...index.keys()][0];
+    if (first) stem = path.basename(first).replace(/\.[^.]+$/, '') || stem;
+  } catch (_) { /* keep the fallback */ }
+  const payload = JSON.stringify({ session_id: 'probe', hook_event_name: 'UserPromptSubmit', cwd, prompt: `where is the code of ${stem} implemented in this repository` });
+  const r = spawnSync('sh', ['-c', entry.command], { cwd, input: payload, encoding: 'utf8', timeout: timeoutMs });
+  fs.rmSync(path.join(cwd, '.context', 'prefetch-state.json'), { force: true });
+  if (r.error) return { ok: false, error: r.error.message };
+  if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
+  try {
+    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
+    return typeof ctx === 'string' && ctx.length > 0 ? { ok: true, error: null, bytes: Buffer.byteLength(ctx) } : { ok: false, error: 'the hook printed no context' };
+  } catch (e) { return { ok: false, error: `the hook printed no JSON a host can read: ${(r.stdout || '').slice(0, 120)}` }; }
+}
+
 export function probeCli({ cwd, binDir, timeoutMs = 60000 }) {
   const r = spawnSync(path.join(binDir, SIGMAP_CLI), ['ask', 'where is the main entry point defined'], { cwd, encoding: 'utf8', timeout: timeoutMs });
   if (r.error) return { ok: false, error: r.error.message };

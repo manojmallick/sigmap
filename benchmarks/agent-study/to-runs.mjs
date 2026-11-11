@@ -28,6 +28,7 @@ function row(x, set, variant) {
     cli: (t.byCommand && t.byCommand.sigmap) || 0, skill: (t.byTool && t.byTool.Skill) || 0,
     in: x.usage ? x.usage.in : null, out: x.usage ? x.usage.out : null, cacheRead: x.usage ? x.usage.cacheRead : null, cacheWrite: x.usage ? x.usage.cacheWrite : null,
     usd: x.cost ? x.cost.usd : null, ms: x.durationMs ?? null, limit: cap ? x.error : (x.limit || null),
+    ...(Array.isArray(x.hooks) ? { hookBytes: (x.hooks.find((h) => h && h.event === 'UserPromptSubmit') || {}).bytes || 0 } : {}),
     ...(x.patch ? { files: x.patch.files, added: x.patch.added, removed: x.patch.removed, why: x.why || null } : {}),
   };
 }
