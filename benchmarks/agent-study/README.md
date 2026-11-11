@@ -60,6 +60,11 @@ HELDOUT_ROOT=heldout SETS=heldout GO=1 AGENT=api VARIANTS="index placebo prefetc
 TASKS_FILE=heldout/benchmarks/tasks/retrieval-xrepo.jsonl TAG=heldout node benchmarks/agent-study/closed-book.mjs   # what the model already knows
 ```
 
+Second round (fifteen more repositories): `node scripts/select-heldout-repos.mjs --languages python,typescript,go,rust,java,javascript,ruby,php
+--per-language 4 --skip <already used>` applies the repository rule from GitHub's search, and `build-heldout-set.mjs --repos lang:owner/name,...
+--keep-per-language 2` builds the questions (`data/heldout2-*`). Shard a large set with `HELDOUT_REPOS=a,b`. `--sigmap-variant locate` is `index`
+with the tool list cut to `query_context` and `get_lines`.
+
 `data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
 study used; `data/closed-book.heldout.*.json` is its closed-book control.
 
@@ -85,6 +90,8 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `run-remaining.sh` | one batch of questions per invocation, resumable; what the script above calls |
 | `make-unfamiliar-root.mjs` | builds the sanitised data root of this repository's own source with its hard questions |
 | `closed-book.mjs` | the control: the same questions with no repository and no tools |
+| `summarize.mjs --by-repo [--per-repo]` | repository level: how many repositories save, a pooled estimate that resamples repositories, and the pre-set bar |
+| `summarize.mjs --versus locate:index` | one setup directly against another, on the same questions and repetitions |
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |

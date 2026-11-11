@@ -217,6 +217,12 @@ Sonnet 5.5 with 2; and on every repository of Experiment A for Haiku 5.5.
 runs and every repetition pointing the same way means the smaller tool list helps; an interval that includes zero means it does not
 matter at this size; entirely above zero means it hurts.
 
+**What was run.** The selector produced up to six candidates per language (`data/heldout2-selected-repos.txt`); the builder kept the first two
+usable repositories per language (`data/heldout2-build-report.txt` says why the others were not), 16 repositories and 175 questions, of which
+`emilk/egui_plot` (8 questions) was refused by the harness before any run. Haiku 5.5, 4 repetitions, `index`, `prefetch` and `locate`:
+4,008 runs, none failed. `locate` was also run on the first five repositories (Haiku 5.5, 4 repetitions; Sonnet 5.5, 2). Results: the results
+page, "Twenty repositories, and a two-tool tool list".
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
@@ -229,6 +235,13 @@ Recorded because a study that hides its errors is not worth reading.
   keys. That is why the Messages API route exists.
 - **A turn cap recorded as a failure** dropped exactly the questions a weak model cannot finish, which would have flattered it. The cap is
   now a scored miss.
+- **A repository the harness would not copy cleanly.** `emilk/egui_plot` failed the harness's check that a copy is clean at its pinned
+  commit, before any model call, and stopped four drivers; it was left out of the second round by that rule (the other nineteen in the
+  second set, with the first round's five, are the twenty).
+- **A SigMap crash on a directory called `constructor`.** `conda/constructor`'s `prefetch` runs stopped because `gen-context --adapter claude`
+  threw ("groups[group].push is not a function"): files were grouped by top-level directory in a plain object. Fixed in SigMap, the batch
+  redone with the fix; the same grouping had silently dropped such a directory from the module list.
+- **A hypothesis about cold start that profiling disproved.** See the results page.
 - **A held-out build with test files as "source".** The first build of the held-out questions counted a root-level `tests.py` as source
   (one question's only label was the test file) and kept titles about lint and docs. Both were fixed in the rule before any agent ran.
 - **A script edited while it ran.** `run-token-saving.sh` was changed while the two placebo runs were using it; bash reads a script as it
