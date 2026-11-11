@@ -121,6 +121,61 @@ the fix cannot pass unless the fix invents it. Five of the nine tasks fail that 
 reported as a whole; the screen is a diagnostic added afterwards, and any cut by it is exploratory. The results are on
 [the results page](/guide/agent-study#change-tasks).
 
+## Two controls added after the first results
+
+The first results had two weaknesses, both found by reading them rather than by anyone outside. **The unfamiliar set is one repository, and
+it is SigMap's own**, which its ranker was tuned on. And **on the famous questions the API agent saved cost while almost never calling
+SigMap** (2 of 90 Sonnet runs), so part of that saving might be having a short block of text in the prompt, not the index. The rules for
+both controls were written before any result of either was read.
+
+### Control 1: a placebo arm
+
+`--sigmap-variant placebo` (API agent only) gives the SigMap arm's system prompt a block of **generic code-search guidance** (about
+7,000 characters, `scripts/lib/agent-ab-placebo.mjs`) and nothing else: no SigMap, no repository information, no extra tool, nothing
+changed in the checkout. It is a *strong* placebo on purpose: it carries the same kind of behavioural advice the SigMap section does
+(search with distinctive words, read only the region you need, stop when you have the definition and one more signal).
+
+**Size.** Measured with the API's token counter on the exact request each arm sends: the `index` setup adds **2,266 tokens to every
+turn** (761 for the section, 1,505 for the seven `core` tool definitions); the placebo adds **2,170**.
+
+**Runs.** The same two question sets as before (30 unfamiliar, 45 famous), Haiku 5.5 with 4 repetitions and Sonnet 5.5 with 2, each
+against its own no-SigMap baseline, and `index` compared with the placebo directly on the same questions and repetitions
+(`summarize.mjs --vs-placebo`).
+
+**Decision rule.** For each model and question set, on the typical-task cost of `index` against `placebo`:
+- *the interval is entirely below zero in the pooled runs and the point estimate is below zero in each repetition*: the index does
+  something the prompt text alone does not, and the saving can be attributed to SigMap;
+- *the interval includes zero*: the data cannot tell SigMap from the guidance, and the part of any saving that the placebo also shows is
+  not attributed to SigMap;
+- *the interval is entirely above zero*: the placebo is cheaper than SigMap.
+
+### Control 2: held-out repositories
+
+Five repositories SigMap was never tuned on, in five languages, with questions taken from the maintainers' own merged changes.
+
+**Repositories (fixed by rule, not by looking at them).** From GitHub's repository search: not a fork, not archived, pushed since
+2026-10-15, created before 2026, 100 to 500 stars, 0.8 to 10 MB. Taking each language in turn (Python, TypeScript, Go, Rust, Java), the
+first repository in star order whose description is not a list or a template and which has at least 15 merged pull requests since
+2026-07-01. That gave `stefankoegl/python-json-patch`, `statelyai/agent`, `ionos-cloud/cluster-api-provider-proxmox`,
+`timescale/timescaledb-toolkit` and, for Java, `flamingock/flamingock-java` (the first Java repository in the order,
+`jenkinsci/docker-plugin`, had too few usable questions and was replaced by the next).
+
+**Questions.** `scripts/build-heldout-set.mjs` reads each repository's git history since 2026-07-01 and keeps a first-parent commit when its
+title (cleaned of the pull-request number and the conventional-commit type) is 25 to 160 characters and at least four words, is not about
+lint, formatting, tests, docs, refactoring, renames or CI, the author is not a bot, the commit changes one to three source files
+(not tests, fixtures, examples, demos, docs, config, generated or minified code), every one of them still exists at the pinned commit, and the
+title does not name any of them. The oldest qualifying commits are taken, up to 12 per repository, and a repository with fewer than 8 is left
+out. The label is the source files the commit changed; the question is its title. Two filters were added after a first build showed
+questions that were test-only or about tooling, and before any agent ran; no question was edited by hand. 55 questions came out, and some
+labels are noisy (a commit's files are not always the only place a behaviour lives): that cost lands on both arms.
+
+**Closed-book control.** The same questions with no repository and no tools. Haiku 5.5 names an expected file for 16 of 55 (29%), from
+0 of 11 (flamingock-java) to 6 of 12 (python-json-patch, a one-file library whose main module is easy to guess). The pooled set is the
+headline; the repositories with a closed-book rate of 30% or less are reported separately as the cleaner cut.
+
+**Runs.** `index`, `prefetch` and `placebo`, each against its own baseline, Haiku 5.5 with 4 repetitions and Sonnet 5.5 with 2. The same
+"saves" rule as above.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
