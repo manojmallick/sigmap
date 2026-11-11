@@ -1,0 +1,2245 @@
+{
+  "schema": 1,
+  "kind": "agent-ab",
+  "method": {
+    "agent": "anthropic-messages-api",
+    "agentVersion": "direct Messages API",
+    "model": "claude-haiku-4-5",
+    "runs": 2,
+    "variant": "index",
+    "auth": "api-key",
+    "runner": "api",
+    "taskIds": [
+      "h001",
+      "h002",
+      "h003",
+      "h004",
+      "h005",
+      "h006",
+      "h007",
+      "h008"
+    ],
+    "tasksPerRepo": 1,
+    "budgetUsd": 0.25,
+    "timeoutMs": 420000,
+    "date": "2026-11-11",
+    "repos": [
+      {
+        "name": "sigmap-src",
+        "commit": "ee1dc0d314e4ee955552fc07d15c306cebf3a427"
+      }
+    ],
+    "skippedRepos": [],
+    "arms": {
+      "without": "no SigMap",
+      "with": "SigMap index strategy + 7-tool core MCP profile (the docs' setup for an agent that calls the tools)"
+    },
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "corpus": "benchmarks/tasks/retrieval-xrepo.jsonl",
+    "selection": "the task id(s) h001, h002, h003, h004, h005, h006, h007, h008",
+    "passDefinition": "hit@5 on the repository-relative paths the answer names",
+    "priceAsOf": "2026-10-04",
+    "publishable": false,
+    "notPublishableBecause": [
+      "2 runs per arm (the minimum is 4)",
+      "1 cell with no completed run"
+    ]
+  },
+  "caveats": [
+    "One agent, one model, one date. The result says nothing about another agent or model.",
+    "The questions ask where code lives, so this measures localisation, not edit or generation quality.",
+    "Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.",
+    "Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.",
+    "Token figures are per-request billing categories summed over the run. They are not the size of the context.",
+    "The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.",
+    "Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.",
+    "The self repo is excluded: its tree holds its own answer key and its own generated context.",
+    "Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.",
+    "The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.",
+    "A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.",
+    "Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.",
+    "Direct Messages API agent (scripts/lib/agent-ab-api.mjs), not Claude Code: a short neutral system prompt (about 150 tokens) and four read-only tools, so the prefix each turn re-reads is far smaller than Claude Code's and SigMap's per-turn addition is a larger share of a turn. Cost is computed from the usage the API reports and a price table (the Console's usage page is the authority), with 5-minute prompt caching. Not comparable cell by cell with Claude Code runs."
+  ],
+  "cells": [
+    {
+      "task": "h001",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/security/scanner.js",
+          "src/security/patterns.js",
+          "src/security/redact.js",
+          "src/cache/entry.js",
+          "src/extractors/scan.js"
+        ],
+        [
+          "src/security/scanner.js",
+          "src/security/patterns.js",
+          "src/security/redact.js",
+          "src/cache/entry.js",
+          "test/integration/secret-scan.test.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.12410200000000002,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 17.5,
+          "min": 12,
+          "max": 23,
+          "stdev": 7.7781745930520225
+        },
+        "in": {
+          "n": 2,
+          "median": 3241,
+          "min": 1079,
+          "max": 5403,
+          "stdev": 3057.5297218506316
+        },
+        "out": {
+          "n": 2,
+          "median": 1689.5,
+          "min": 1323,
+          "max": 2056,
+          "stdev": 518.3092706097393
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 172987.5,
+          "min": 117166,
+          "max": 228809,
+          "stdev": 78943.52237200973
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 26451,
+          "min": 25286,
+          "max": 27616,
+          "stdev": 1647.5588001646556
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 204369,
+          "min": 147184,
+          "max": 261554,
+          "stdev": 80871.80256430544
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.06205100000000001,
+          "min": 0.0539306,
+          "max": 0.07017140000000001,
+          "stdev": 0.011483979811894486
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 23865,
+          "min": 22592,
+          "max": 25138,
+          "stdev": 1800.29386490095
+        }
+      }
+    },
+    {
+      "task": "h001",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/security/patterns.js",
+          "src/security/scanner.js",
+          "src/security/redact.js",
+          "src/cache/entry.js",
+          "packages/core/index.js"
+        ],
+        [
+          "src/security/redact.js",
+          "src/security/scanner.js",
+          "src/security/patterns.js",
+          "src/cache/entry.js",
+          "src/mcp/handlers.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0882768,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 14.5,
+          "min": 13,
+          "max": 16,
+          "stdev": 2.1213203435596424
+        },
+        "in": {
+          "n": 2,
+          "median": 2818,
+          "min": 2803,
+          "max": 2833,
+          "stdev": 21.213203435596427
+        },
+        "out": {
+          "n": 2,
+          "median": 1419.5,
+          "min": 1287,
+          "max": 1552,
+          "stdev": 187.3832970144351
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 106991.5,
+          "min": 71389,
+          "max": 142594,
+          "stdev": 50349.53835438812
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 18819,
+          "min": 17673,
+          "max": 19965,
+          "stdev": 1620.6887424795668
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 130048,
+          "min": 95444,
+          "max": 164652,
+          "stdev": 48937.44611235858
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0441384,
+          "min": 0.04133315,
+          "max": 0.04694365,
+          "stdev": 0.003967222595847128
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 19838,
+          "min": 19639,
+          "max": 20037,
+          "stdev": 281.4284989122459
+        }
+      }
+    },
+    {
+      "task": "h002",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 0,
+      "pass": 0,
+      "errors": [
+        "turn limit (25) reached"
+      ],
+      "named": [
+        [],
+        []
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.18918375,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 2,
+          "agentReportedUsd": 0.18918375,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": null,
+        "in": null,
+        "out": null,
+        "cacheRead": null,
+        "cacheWrite": null,
+        "totalTokens": null,
+        "costUsd": null,
+        "costFloorUsd": null,
+        "durationMs": null
+      }
+    },
+    {
+      "task": "h002",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 0,
+      "errors": [],
+      "named": [
+        [
+          "src/util/truncate.js",
+          "src/graph/builder.js",
+          "src/retrieval/ranker.js",
+          "src/verify/lib-index.js",
+          "src/graph/language-support.js"
+        ],
+        [
+          "src/util/truncate.js",
+          "src/extractors/scan.js",
+          "src/retrieval/ranker.js",
+          "src/graph/builder.js",
+          "src/graph/impact.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.09317,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 12,
+          "min": 10,
+          "max": 14,
+          "stdev": 2.8284271247461903
+        },
+        "in": {
+          "n": 2,
+          "median": 5686.5,
+          "min": 5675,
+          "max": 5698,
+          "stdev": 16.263455967290593
+        },
+        "out": {
+          "n": 2,
+          "median": 1246.5,
+          "min": 1114,
+          "max": 1379,
+          "stdev": 187.3832970144351
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 117785,
+          "min": 87292,
+          "max": 148278,
+          "stdev": 43123.61415744279
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 18310,
+          "min": 17270,
+          "max": 19350,
+          "stdev": 1470.782104868019
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 143028,
+          "min": 111351,
+          "max": 174705,
+          "stdev": 44798.04301529253
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.046585,
+          "min": 0.04156170000000001,
+          "max": 0.0516083,
+          "stdev": 0.007104018987868765
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 16784,
+          "min": 15144,
+          "max": 18424,
+          "stdev": 2319.310242291876
+        }
+      }
+    },
+    {
+      "task": "h003",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/verify/arity.js"
+        ],
+        [
+          "src/verify/arity.js",
+          "src/verify/hallucination-guard.js",
+          "test/integration/arity-verify.test.js",
+          "src/verify/closest-match.js",
+          "arity.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.08588445000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 14,
+          "min": 6,
+          "max": 22,
+          "stdev": 11.313708498984761
+        },
+        "in": {
+          "n": 2,
+          "median": 5582,
+          "min": 1054,
+          "max": 10110,
+          "stdev": 6403.559010425374
+        },
+        "out": {
+          "n": 2,
+          "median": 1420.5,
+          "min": 698,
+          "max": 2143,
+          "stdev": 1021.7692988145611
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 84108.5,
+          "min": 29575,
+          "max": 138642,
+          "stdev": 77122.01530367318
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 17477.5,
+          "min": 14803,
+          "max": 20152,
+          "stdev": 3782.314172566843
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 108588.5,
+          "min": 46130,
+          "max": 171047,
+          "stdev": 88329.65778547995
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.04294222500000001,
+          "min": 0.026005250000000004,
+          "max": 0.05987920000000001,
+          "stdev": 0.023952499750574053
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 16775,
+          "min": 8348,
+          "max": 25202,
+          "stdev": 11917.577690118072
+        }
+      }
+    },
+    {
+      "task": "h003",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/verify/arity.js"
+        ],
+        [
+          "src/verify/arity.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.03360525,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3,
+          "min": 2,
+          "max": 4,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 2782,
+          "min": 2776,
+          "max": 2788,
+          "stdev": 8.48528137423857
+        },
+        "out": {
+          "n": 2,
+          "median": 394,
+          "min": 250,
+          "max": 538,
+          "stdev": 203.64675298172568
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 12812.5,
+          "min": 4494,
+          "max": 21131,
+          "stdev": 11764.135518600591
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 8615.5,
+          "min": 8159,
+          "max": 9072,
+          "stdev": 645.5884912233179
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 24604,
+          "min": 15679,
+          "max": 33529,
+          "stdev": 12621.856044179873
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.016802625,
+          "min": 0.01467415,
+          "max": 0.0189311,
+          "stdev": 0.003010118212172073
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 5561,
+          "min": 3892,
+          "max": 7230,
+          "stdev": 2360.322435600696
+        }
+      }
+    },
+    {
+      "task": "h004",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 1,
+      "pass": 1,
+      "errors": [
+        "turn limit (25) reached"
+      ],
+      "named": [
+        [
+          "sq.squeezed",
+          "src/squeeze/index.js",
+          "src/squeeze/classify.js",
+          "src/squeeze/stacktrace.js",
+          "src/squeeze/cilog.js"
+        ],
+        []
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1465191,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 1,
+          "agentReportedUsd": 0.08174675,
+          "agentReportedRuns": 1,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 1,
+          "median": 27,
+          "min": 27,
+          "max": 27,
+          "stdev": 0
+        },
+        "in": {
+          "n": 1,
+          "median": 2515,
+          "min": 2515,
+          "max": 2515,
+          "stdev": 0
+        },
+        "out": {
+          "n": 1,
+          "median": 2427,
+          "min": 2427,
+          "max": 2427,
+          "stdev": 0
+        },
+        "cacheRead": {
+          "n": 1,
+          "median": 216411,
+          "min": 216411,
+          "max": 216411,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 1,
+          "median": 22785,
+          "min": 22785,
+          "max": 22785,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 1,
+          "median": 244138,
+          "min": 244138,
+          "max": 244138,
+          "stdev": 0
+        },
+        "costUsd": {
+          "n": 1,
+          "median": 0.06477235,
+          "min": 0.06477235,
+          "max": 0.06477235,
+          "stdev": 0
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 1,
+          "median": 27700,
+          "min": 27700,
+          "max": 27700,
+          "stdev": 0
+        }
+      }
+    },
+    {
+      "task": "h004",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 1,
+      "pass": 1,
+      "errors": [
+        "turn limit (25) reached"
+      ],
+      "named": [
+        [],
+        [
+          "src/squeeze/index.js",
+          "src/squeeze/classify.js",
+          "src/squeeze/stacktrace.js",
+          "src/squeeze/cilog.js",
+          "src/squeeze/jsonpayload.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.12054555000000002,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 1,
+          "agentReportedUsd": 0.07861275000000001,
+          "agentReportedRuns": 1,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 1,
+          "median": 16,
+          "min": 16,
+          "max": 16,
+          "stdev": 0
+        },
+        "in": {
+          "n": 1,
+          "median": 2833,
+          "min": 2833,
+          "max": 2833,
+          "stdev": 0
+        },
+        "out": {
+          "n": 1,
+          "median": 1608,
+          "min": 1608,
+          "max": 1608,
+          "stdev": 0
+        },
+        "cacheRead": {
+          "n": 1,
+          "median": 100998,
+          "min": 100998,
+          "max": 100998,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 1,
+          "median": 16768,
+          "min": 16768,
+          "max": 16768,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 1,
+          "median": 122207,
+          "min": 122207,
+          "max": 122207,
+          "stdev": 0
+        },
+        "costUsd": {
+          "n": 1,
+          "median": 0.041932800000000006,
+          "min": 0.041932800000000006,
+          "max": 0.041932800000000006,
+          "stdev": 0
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 1,
+          "median": 18230,
+          "min": 18230,
+          "max": 18230,
+          "stdev": 0
+        }
+      }
+    },
+    {
+      "task": "h005",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 1,
+      "errors": [],
+      "named": [
+        [
+          "src/conventions/fix.js",
+          "src/conventions/extract.js",
+          "src/conventions/conflicts.js",
+          "gen-context.js",
+          "test/integration/conventions-fix.test.js"
+        ],
+        [
+          "src/conventions/fix.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.08695060000000002,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 13,
+          "min": 8,
+          "max": 18,
+          "stdev": 7.0710678118654755
+        },
+        "in": {
+          "n": 2,
+          "median": 3405.5,
+          "min": 1116,
+          "max": 5695,
+          "stdev": 3237.8419510532012
+        },
+        "out": {
+          "n": 2,
+          "median": 1190.5,
+          "min": 750,
+          "max": 1631,
+          "stdev": 622.9610742253484
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 115698,
+          "min": 22170,
+          "max": 209226,
+          "stdev": 132268.56606163085
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 18038,
+          "min": 10595,
+          "max": 25481,
+          "stdev": 10525.991544742947
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 138332,
+          "min": 39210,
+          "max": 237454,
+          "stdev": 140179.67672954593
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.04347530000000001,
+          "min": 0.02490575,
+          "max": 0.06204485000000001,
+          "stdev": 0.026261309457165316
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 15628,
+          "min": 9960,
+          "max": 21296,
+          "stdev": 8015.762471530703
+        }
+      }
+    },
+    {
+      "task": "h005",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/conventions/fix.js",
+          "src/conventions/conflicts.js",
+          "src/conventions/extract.js"
+        ],
+        [
+          "src/conventions/fix.js",
+          "src/conventions/conflicts.js",
+          "src/conventions/extract.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0383883,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4.5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 2783,
+          "min": 2777,
+          "max": 2789,
+          "stdev": 8.48528137423857
+        },
+        "out": {
+          "n": 2,
+          "median": 655,
+          "min": 560,
+          "max": 750,
+          "stdev": 134.35028842544403
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 13586.5,
+          "min": 4154,
+          "max": 23019,
+          "stdev": 13339.56942708422
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9422,
+          "min": 7384,
+          "max": 11460,
+          "stdev": 2882.167240116368
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 26446.5,
+          "min": 14875,
+          "max": 38018,
+          "stdev": 16364.57223700027
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.01919415,
+          "min": 0.0152224,
+          "max": 0.023165900000000003,
+          "stdev": 0.005616902716355342
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 8067.5,
+          "min": 6505,
+          "max": 9630,
+          "stdev": 2209.7086912079612
+        }
+      }
+    },
+    {
+      "task": "h006",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/tracking/pricing.js",
+          "src/config/models.js",
+          "src/session/report.js",
+          "hit.model.inputPerMt",
+          "scripts/lib/agent-ab-api.mjs"
+        ],
+        [
+          "src/tracking/pricing.js",
+          "src/session/report.js",
+          "src/session/render.js",
+          "src/config/models.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.09313275000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 15.5,
+          "min": 14,
+          "max": 17,
+          "stdev": 2.1213203435596424
+        },
+        "in": {
+          "n": 2,
+          "median": 1093.5,
+          "min": 1082,
+          "max": 1105,
+          "stdev": 16.263455967290593
+        },
+        "out": {
+          "n": 2,
+          "median": 1675.5,
+          "min": 1506,
+          "max": 1845,
+          "stdev": 239.7091988222396
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 119922.5,
+          "min": 84961,
+          "max": 154884,
+          "stdev": 49443.02746090696
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 20082.5,
+          "min": 16854,
+          "max": 23311,
+          "stdev": 4565.788486121537
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 142774,
+          "min": 104403,
+          "max": 181145,
+          "stdev": 54264.78860181803
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.04656637500000001,
+          "min": 0.038175600000000004,
+          "max": 0.05495715,
+          "stdev": 0.011866347803821106
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 18856.5,
+          "min": 16973,
+          "max": 20740,
+          "stdev": 2663.6712447297245
+        }
+      }
+    },
+    {
+      "task": "h006",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 1,
+      "pass": 1,
+      "errors": [
+        "turn limit (25) reached"
+      ],
+      "named": [
+        [],
+        [
+          "src/tracking/pricing.js",
+          "src/session/report.js",
+          "src/config/models.js",
+          "src/routing/hints.js",
+          "src/session/render.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.15179065000000003,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 1,
+          "agentReportedUsd": 0.12315820000000001,
+          "agentReportedRuns": 1,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 1,
+          "median": 7,
+          "min": 7,
+          "max": 7,
+          "stdev": 0
+        },
+        "in": {
+          "n": 1,
+          "median": 2790,
+          "min": 2790,
+          "max": 2790,
+          "stdev": 0
+        },
+        "out": {
+          "n": 1,
+          "median": 699,
+          "min": 699,
+          "max": 699,
+          "stdev": 0
+        },
+        "cacheRead": {
+          "n": 1,
+          "median": 37787,
+          "min": 37787,
+          "max": 37787,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 1,
+          "median": 14855,
+          "min": 14855,
+          "max": 14855,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 1,
+          "median": 56131,
+          "min": 56131,
+          "max": 56131,
+          "stdev": 0
+        },
+        "costUsd": {
+          "n": 1,
+          "median": 0.028632450000000004,
+          "min": 0.028632450000000004,
+          "max": 0.028632450000000004,
+          "stdev": 0
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 1,
+          "median": 8946,
+          "min": 8946,
+          "max": 8946,
+          "stdev": 0
+        }
+      }
+    },
+    {
+      "task": "h007",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 0,
+      "errors": [],
+      "named": [
+        [],
+        []
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0030410000000000003,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 1028,
+          "min": 1028,
+          "max": 1028,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 98.5,
+          "min": 66,
+          "max": 131,
+          "stdev": 45.96194077712559
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 1126.5,
+          "min": 1094,
+          "max": 1159,
+          "stdev": 45.96194077712559
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0015205000000000002,
+          "min": 0.001358,
+          "max": 0.001683,
+          "stdev": 0.00022980970388562793
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 1369,
+          "min": 1058,
+          "max": 1680,
+          "stdev": 439.8204178980326
+        }
+      }
+    },
+    {
+      "task": "h007",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 0,
+      "errors": [],
+      "named": [
+        [],
+        [
+          "e.g",
+          "src/auth/session.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.006581,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 2763,
+          "min": 2763,
+          "max": 2763,
+          "stdev": 0
+        },
+        "out": {
+          "n": 2,
+          "median": 105.5,
+          "min": 99,
+          "max": 112,
+          "stdev": 9.192388155425117
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 2868.5,
+          "min": 2862,
+          "max": 2875,
+          "stdev": 9.192388155425117
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0032905,
+          "min": 0.0032579999999999996,
+          "max": 0.003323,
+          "stdev": 0.00004596194077712586
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 1639,
+          "min": 1461,
+          "max": 1817,
+          "stdev": 251.7300141024109
+        }
+      }
+    },
+    {
+      "task": "h008",
+      "repo": "sigmap-src",
+      "arm": "without",
+      "runs": 2,
+      "completed": 1,
+      "pass": 1,
+      "errors": [
+        "turn limit (25) reached"
+      ],
+      "named": [
+        [
+          "src/session/notes.js",
+          "src/session/note-relevance.js",
+          "src/mcp/handlers.js",
+          "docs-vp/guide/memory.md",
+          "test/integration/memory-tools.test.js"
+        ],
+        []
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.10813574999999999,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 1,
+          "agentReportedUsd": 0.06368209999999999,
+          "agentReportedRuns": 1,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 1,
+          "median": 15,
+          "min": 15,
+          "max": 15,
+          "stdev": 0
+        },
+        "in": {
+          "n": 1,
+          "median": 9917,
+          "min": 9917,
+          "max": 9917,
+          "stdev": 0
+        },
+        "out": {
+          "n": 1,
+          "median": 1557,
+          "min": 1557,
+          "max": 1557,
+          "stdev": 0
+        },
+        "cacheRead": {
+          "n": 1,
+          "median": 77679,
+          "min": 77679,
+          "max": 77679,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 1,
+          "median": 15187,
+          "min": 15187,
+          "max": 15187,
+          "stdev": 0
+        },
+        "totalTokens": {
+          "n": 1,
+          "median": 104340,
+          "min": 104340,
+          "max": 104340,
+          "stdev": 0
+        },
+        "costUsd": {
+          "n": 1,
+          "median": 0.04445365,
+          "min": 0.04445365,
+          "max": 0.04445365,
+          "stdev": 0
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 1,
+          "median": 20859,
+          "min": 20859,
+          "max": 20859,
+          "stdev": 0
+        }
+      }
+    },
+    {
+      "task": "h008",
+      "repo": "sigmap-src",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "src/session/notes.js",
+          ".context/notes.ndjson"
+        ],
+        [
+          "src/session/notes.js"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.030545000000000003,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6850,
+          "min": 6849,
+          "max": 6851,
+          "stdev": 1.4142135623730951
+        },
+        "out": {
+          "n": 2,
+          "median": 300,
+          "min": 293,
+          "max": 307,
+          "stdev": 9.899494936611665
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "stdev": 0
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 5538,
+          "min": 5518,
+          "max": 5558,
+          "stdev": 28.284271247461902
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 12688,
+          "min": 12660,
+          "max": 12716,
+          "stdev": 39.59797974644666
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.015272500000000001,
+          "min": 0.015211500000000001,
+          "max": 0.0153335,
+          "stdev": 0.00008626702730475798
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 4708.5,
+          "min": 4702,
+          "max": 4715,
+          "stdev": 9.192388155425117
+        }
+      }
+    }
+  ],
+  "repos": [
+    {
+      "repo": "sigmap-src",
+      "tasks": 8,
+      "pass": {
+        "without": {
+          "pass": 9,
+          "runs": 16
+        },
+        "with": {
+          "pass": 10,
+          "runs": 16
+        }
+      },
+      "failedRuns": {
+        "without": 4,
+        "with": 2
+      },
+      "cacheGapRuns": 0,
+      "spend": {
+        "without": {
+          "all": {
+            "runs": 16,
+            "agentReportedUsd": 0.8369494,
+            "agentReportedRuns": 16,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 4,
+            "agentReportedUsd": 0.33461260000000004,
+            "agentReportedRuns": 4,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        },
+        "with": {
+          "all": {
+            "runs": 16,
+            "agentReportedUsd": 0.56290255,
+            "agentReportedRuns": 16,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 2,
+            "agentReportedUsd": 0.20177095,
+            "agentReportedRuns": 2,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "without": 15,
+          "with": 5.75,
+          "tasks": 7,
+          "medianDelta": -8.5,
+          "fewer": 6,
+          "ties": 1,
+          "more": 0
+        },
+        "in": {
+          "without": 3241,
+          "with": 2804,
+          "tasks": 7,
+          "medianDelta": -423,
+          "fewer": 4,
+          "ties": 0,
+          "more": 3
+        },
+        "out": {
+          "without": 1557,
+          "with": 677,
+          "tasks": 7,
+          "medianDelta": -819,
+          "fewer": 6,
+          "ties": 0,
+          "more": 1
+        },
+        "cacheRead": {
+          "without": 115698,
+          "with": 25686.75,
+          "tasks": 7,
+          "medianDelta": -77679,
+          "fewer": 6,
+          "ties": 1,
+          "more": 0
+        },
+        "cacheWrite": {
+          "without": 18038,
+          "with": 12138.5,
+          "tasks": 7,
+          "medianDelta": -7632,
+          "fewer": 6,
+          "ties": 1,
+          "more": 0
+        },
+        "totalTokens": {
+          "without": 138332,
+          "with": 41288.75,
+          "tasks": 7,
+          "medianDelta": -86643,
+          "fewer": 6,
+          "ties": 0,
+          "more": 1
+        },
+        "costUsd": {
+          "without": 0.04445365,
+          "with": 0.023913300000000002,
+          "tasks": 7,
+          "medianDelta": -0.02283955,
+          "fewer": 6,
+          "ties": 0,
+          "more": 1
+        },
+        "costFloorUsd": {
+          "without": null,
+          "with": null,
+          "tasks": 0,
+          "medianDelta": null,
+          "fewer": 0,
+          "ties": 0,
+          "more": 0
+        },
+        "durationMs": {
+          "without": 18856.5,
+          "with": 8506.75,
+          "tasks": 7,
+          "medianDelta": -9470,
+          "fewer": 6,
+          "ties": 0,
+          "more": 1
+        }
+      }
+    }
+  ],
+  "total": {
+    "tasks": 8,
+    "pass": {
+      "without": {
+        "pass": 9,
+        "runs": 16
+      },
+      "with": {
+        "pass": 10,
+        "runs": 16
+      }
+    },
+    "failedRuns": {
+      "without": 4,
+      "with": 2
+    },
+    "cacheGapRuns": 0,
+    "spend": {
+      "without": {
+        "all": {
+          "runs": 16,
+          "agentReportedUsd": 0.8369494,
+          "agentReportedRuns": 16,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 4,
+          "agentReportedUsd": 0.33461260000000004,
+          "agentReportedRuns": 4,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "with": {
+        "all": {
+          "runs": 16,
+          "agentReportedUsd": 0.56290255,
+          "agentReportedRuns": 16,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 2,
+          "agentReportedUsd": 0.20177095,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      }
+    },
+    "metrics": {
+      "toolCalls": {
+        "without": 15,
+        "with": 5.75,
+        "tasks": 7,
+        "medianDelta": -8.5,
+        "fewer": 6,
+        "ties": 1,
+        "more": 0
+      },
+      "in": {
+        "without": 3241,
+        "with": 2804,
+        "tasks": 7,
+        "medianDelta": -423,
+        "fewer": 4,
+        "ties": 0,
+        "more": 3
+      },
+      "out": {
+        "without": 1557,
+        "with": 677,
+        "tasks": 7,
+        "medianDelta": -819,
+        "fewer": 6,
+        "ties": 0,
+        "more": 1
+      },
+      "cacheRead": {
+        "without": 115698,
+        "with": 25686.75,
+        "tasks": 7,
+        "medianDelta": -77679,
+        "fewer": 6,
+        "ties": 1,
+        "more": 0
+      },
+      "cacheWrite": {
+        "without": 18038,
+        "with": 12138.5,
+        "tasks": 7,
+        "medianDelta": -7632,
+        "fewer": 6,
+        "ties": 1,
+        "more": 0
+      },
+      "totalTokens": {
+        "without": 138332,
+        "with": 41288.75,
+        "tasks": 7,
+        "medianDelta": -86643,
+        "fewer": 6,
+        "ties": 0,
+        "more": 1
+      },
+      "costUsd": {
+        "without": 0.04445365,
+        "with": 0.023913300000000002,
+        "tasks": 7,
+        "medianDelta": -0.02283955,
+        "fewer": 6,
+        "ties": 0,
+        "more": 1
+      },
+      "costFloorUsd": {
+        "without": null,
+        "with": null,
+        "tasks": 0,
+        "medianDelta": null,
+        "fewer": 0,
+        "ties": 0,
+        "more": 0
+      },
+      "durationMs": {
+        "without": 18856.5,
+        "with": 8506.75,
+        "tasks": 7,
+        "medianDelta": -9470,
+        "fewer": 6,
+        "ties": 0,
+        "more": 1
+      }
+    }
+  },
+  "repetitions": {
+    "runs": [
+      1,
+      2
+    ],
+    "taskCount": 8,
+    "bootstrap": {
+      "iterations": 10000,
+      "seed": 1,
+      "level": 0.95
+    },
+    "metrics": {
+      "toolCalls": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 51,
+              "with": 23,
+              "change": -0.5490196078431373
+            },
+            "typical": {
+              "n": 4,
+              "dropped": 1,
+              "change": -0.6175283340619615,
+              "lo": -0.8278674068352259,
+              "hi": -0.15016341440120262,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 67,
+              "with": 30,
+              "change": -0.5522388059701493
+            },
+            "typical": {
+              "n": 4,
+              "dropped": 1,
+              "change": -0.6250594856795504,
+              "lo": -0.8527940072516198,
+              "hi": -0.340619526604213,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "in": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 14194,
+              "with": 17980,
+              "change": 0.2667324221502043
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": 0.9967331306864617,
+              "lo": 0.17113781144283724,
+              "hi": 1.6525055552699741,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 23318,
+              "with": 13951,
+              "change": -0.40170683592074796
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.13343751776066182,
+              "lo": -0.606113080907977,
+              "hi": 0.9064622337695987,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "mixed",
+        "typical": "mixed",
+        "typicalOutsideNoise": null
+      },
+      "out": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 5340,
+              "with": 2777,
+              "change": -0.47996254681647943
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.48391111510097096,
+              "lo": -0.7186288351807855,
+              "hi": -0.15734267161043158,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 6521,
+              "with": 3363,
+              "change": -0.4842815519092164
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.41356140167674327,
+              "lo": -0.753794276194071,
+              "hi": 0.17797179796516782,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "cacheRead": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 433646,
+              "with": 96674,
+              "change": -0.7770670085738136
+            },
+            "typical": {
+              "n": 3,
+              "dropped": 2,
+              "change": -0.7947773566430999,
+              "lo": -0.980145870972059,
+              "hi": -0.28551141166525795,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 474582,
+              "with": 207894,
+              "change": -0.5619429308317636
+            },
+            "typical": {
+              "n": 4,
+              "dropped": 1,
+              "change": -0.6892204095486724,
+              "lo": -0.9321248617435647,
+              "hi": -0.16001550547036458,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "cacheWrite": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 83087,
+              "with": 41939,
+              "change": -0.4952399292308063
+            },
+            "typical": {
+              "n": 4,
+              "dropped": 1,
+              "change": -0.5352582472599066,
+              "lo": -0.6755166166481233,
+              "hi": -0.33437301316069057,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 72887,
+              "with": 52147,
+              "change": -0.28455005693745117
+            },
+            "typical": {
+              "n": 4,
+              "dropped": 1,
+              "change": -0.2793065725644831,
+              "lo": -0.508207953749011,
+              "hi": -0.023602493694390714,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "totalTokens": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 536267,
+              "with": 159370,
+              "change": -0.7028159480258901
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.6115328086479903,
+              "lo": -0.8697667887898411,
+              "hi": 0.1587425154816997,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 577308,
+              "with": 277355,
+              "change": -0.5195718749783478
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.3980197277666824,
+              "lo": -0.7907149605824803,
+              "hi": 0.4447864676433324,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costUsd": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 0.18811735000000002,
+              "with": 0.09395615,
+              "change": -0.5005450055510563
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.3812753654114728,
+              "lo": -0.6516307881584814,
+              "hi": 0.1372756797611736,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 0.19448995000000002,
+              "with": 0.11673915000000001,
+              "change": -0.39976770007910434
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.2248436871562225,
+              "lo": -0.6088355015073689,
+              "hi": 0.5247807434265199,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "costFloorUsd": null,
+      "durationMs": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 5,
+              "without": 74775,
+              "with": 39935,
+              "change": -0.4659311267134738
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.4598148479305735,
+              "lo": -0.6862010227302856,
+              "hi": -0.12421247919610634,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 5,
+              "without": 78331,
+              "with": 43924,
+              "change": -0.4392513819560583
+            },
+            "typical": {
+              "n": 5,
+              "dropped": 0,
+              "change": -0.3621382020235626,
+              "lo": -0.7046355966677625,
+              "hi": 0.20884050057878167,
+              "inNoise": true
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      }
+    },
+    "outcome": {
+      "reps": [
+        {
+          "run": 1,
+          "tasks": 5,
+          "better": 0,
+          "worse": 0,
+          "ties": 5
+        },
+        {
+          "run": 2,
+          "tasks": 5,
+          "better": 1,
+          "worse": 0,
+          "ties": 4
+        }
+      ],
+      "total": {
+        "tasks": 10,
+        "better": 1,
+        "worse": 0,
+        "ties": 9
+      }
+    }
+  },
+  "version": "8.85.1",
+  "generated": "2026-11-11T11:09:50.186Z"
+}

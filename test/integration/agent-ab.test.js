@@ -1665,15 +1665,20 @@ const treeHash = (dir) => {
     fake = await fakeApi(() => toolTurn('Grep', { pattern: 'alphaThing' }, U(1e6, 1e5, 0, 0)));
     try {
       const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 0.05, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} })(job('without'));
-      assert.match(rec.error, /^budget: \$0\.1500 passed the per-run cap of \$0\.05/);
+      assert.strictEqual(rec.ok, true, 'a limit is an outcome of the agent, scored as a miss, not a broken run that drops its pair');
+      assert.match(rec.limit, /^budget: \$0\.1500 passed the per-run cap of \$0\.05/);
+      assert.strictEqual(rec.answer, '');
       assert.strictEqual(fake.seen.length, 1);
     } finally { fake.close(); }
 
     fake = await fakeApi(() => toolTurn('Glob', { pattern: '*.js' }, U(1, 1, 0, 0)));
     try {
       const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, maxTurns: 3, env: {} })(job('without'));
-      assert.match(rec.error, /turn limit \(3\)/);
+      assert.strictEqual(rec.ok, true);
+      assert.match(rec.limit, /turn limit \(3\)/);
       assert.strictEqual(rec.toolCalls.total, 3);
+      assert.strictEqual(rec.answer, '');
+      assert.strictEqual(ab.scoreAnswer(rec.answer, ['src/alpha.js'], {}).pass, false, 'and it scores as a miss');
     } finally { fake.close(); }
 
     fake = await fakeApi((_b, n) => (n === 1 ? { status: 429, body: { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } } } : textTurn('`src/alpha.js`')));

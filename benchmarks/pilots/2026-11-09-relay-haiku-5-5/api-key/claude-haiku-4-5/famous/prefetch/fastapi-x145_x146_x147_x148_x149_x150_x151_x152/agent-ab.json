@@ -1,0 +1,2285 @@
+{
+  "schema": 1,
+  "kind": "agent-ab",
+  "method": {
+    "agent": "anthropic-messages-api",
+    "agentVersion": "direct Messages API",
+    "model": "claude-haiku-4-5",
+    "runs": 2,
+    "variant": "prefetch",
+    "auth": "api-key",
+    "runner": "api",
+    "taskIds": [
+      "x145",
+      "x146",
+      "x147",
+      "x148",
+      "x149",
+      "x150",
+      "x151",
+      "x152"
+    ],
+    "tasksPerRepo": 1,
+    "budgetUsd": 0.25,
+    "timeoutMs": 420000,
+    "date": "2026-11-11",
+    "repos": [
+      {
+        "name": "fastapi",
+        "commit": "9653034b8d459607a4b7f761e6c23a6f287fa5fa"
+      }
+    ],
+    "skippedRepos": [],
+    "arms": {
+      "without": "no SigMap",
+      "with": "SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors after the question in the user turn, + the sigmap CLI; no MCP server, no standing section, no extra tool call"
+    },
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "corpus": "benchmarks/tasks/retrieval-xrepo.jsonl",
+    "selection": "the task id(s) x145, x146, x147, x148, x149, x150, x151, x152",
+    "passDefinition": "hit@5 on the repository-relative paths the answer names",
+    "priceAsOf": "2026-10-04",
+    "publishable": false,
+    "notPublishableBecause": [
+      "2 runs per arm (the minimum is 4)"
+    ]
+  },
+  "caveats": [
+    "One agent, one model, one date. The result says nothing about another agent or model.",
+    "The questions ask where code lives, so this measures localisation, not edit or generation quality.",
+    "Pass is hit@5 on the paths the answer names (the retrieval corpora's own definition), not a human judgement.",
+    "Tasks are the first K by id per repo — a rule, not a random sample. N is small and one task is worth 1/N: read it as a band, not a point.",
+    "Token figures are per-request billing categories summed over the run. They are not the size of the context.",
+    "The SigMap arm adds SigMap's generated section to the system prompt, so its input and cache figures include that cost.",
+    "Cost is the agent's own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.",
+    "The self repo is excluded: its tree holds its own answer key and its own generated context.",
+    "Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.",
+    "The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.",
+    "A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.",
+    "Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.",
+    "Direct Messages API agent (scripts/lib/agent-ab-api.mjs), not Claude Code: a short neutral system prompt (about 150 tokens) and four read-only tools, so the prefix each turn re-reads is far smaller than Claude Code's and SigMap's per-turn addition is a larger share of a turn. Cost is computed from the usage the API reports and a price table (the Console's usage page is the authority), with 5-minute prompt caching. Not comparable cell by cell with Claude Code runs."
+  ],
+  "cells": [
+    {
+      "task": "x145",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/encoders.py",
+          "fastapi/routing.py"
+        ],
+        [
+          "fastapi/encoders.py",
+          "fastapi/_compat/v2.py",
+          "TypeAdapter.dump",
+          "fastapi/routing.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.11745075,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 19,
+          "min": 16,
+          "max": 22,
+          "stdev": 4.242640687119285
+        },
+        "in": {
+          "n": 2,
+          "median": 7531,
+          "min": 7053,
+          "max": 8009,
+          "stdev": 675.9940828143394
+        },
+        "out": {
+          "n": 2,
+          "median": 2087.5,
+          "min": 2081,
+          "max": 2094,
+          "stdev": 9.192388155425117
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 183087.5,
+          "min": 140529,
+          "max": 225646,
+          "stdev": 60186.80789425536
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 17958.5,
+          "min": 16101,
+          "max": 19816,
+          "stdev": 2626.9016921080242
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 210664.5,
+          "min": 165764,
+          "max": 255565,
+          "stdev": 63498.89605733316
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.058725375,
+          "min": 0.05163715000000001,
+          "max": 0.0658136,
+          "stdev": 0.010024263928152026
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 25242.5,
+          "min": 24691,
+          "max": 25794,
+          "stdev": 779.938779648762
+        }
+      }
+    },
+    {
+      "task": "x145",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/encoders.py"
+        ],
+        [
+          "fastapi/encoders.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.041195600000000006,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 1981.5,
+          "min": 1981,
+          "max": 1982,
+          "stdev": 0.7071067811865476
+        },
+        "out": {
+          "n": 2,
+          "median": 581.5,
+          "min": 526,
+          "max": 637,
+          "stdev": 78.48885271170677
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 18413,
+          "min": 18355,
+          "max": 18471,
+          "stdev": 82.02438661763951
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 11094,
+          "min": 11081,
+          "max": 11107,
+          "stdev": 18.384776310850235
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 32070,
+          "min": 31943,
+          "max": 32197,
+          "stdev": 179.60512242138307
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.020597800000000003,
+          "min": 0.020297750000000003,
+          "max": 0.020897850000000003,
+          "stdev": 0.00042433477939004665
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 7578,
+          "min": 6828,
+          "max": 8328,
+          "stdev": 1060.6601717798212
+        }
+      }
+    },
+    {
+      "task": "x146",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/sse.py",
+          "fastapi/routing.py"
+        ],
+        [
+          "fastapi/sse.py",
+          "fastapi/routing.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.08783950000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 15,
+          "min": 13,
+          "max": 17,
+          "stdev": 2.8284271247461903
+        },
+        "in": {
+          "n": 2,
+          "median": 1121.5,
+          "min": 1107,
+          "max": 1136,
+          "stdev": 20.506096654409877
+        },
+        "out": {
+          "n": 2,
+          "median": 1682,
+          "min": 1431,
+          "max": 1933,
+          "stdev": 354.9676041556469
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 118470,
+          "min": 98464,
+          "max": 138476,
+          "stdev": 28292.75652883614
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 18033,
+          "min": 17880,
+          "max": 18186,
+          "stdev": 216.37467504308356
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 139306.5,
+          "min": 119188,
+          "max": 159425,
+          "stdev": 28451.855554603113
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.04391975000000001,
+          "min": 0.040840900000000006,
+          "max": 0.0469986,
+          "stdev": 0.0043541514265124
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 20650,
+          "min": 16904,
+          "max": 24396,
+          "stdev": 5297.644004649614
+        }
+      }
+    },
+    {
+      "task": "x146",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/sse.py",
+          "fastapi/routing.py"
+        ],
+        [
+          "fastapi/sse.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.040802450000000004,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 5.5,
+          "min": 5,
+          "max": 6,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 2776,
+          "min": 2773,
+          "max": 2779,
+          "stdev": 4.242640687119285
+        },
+        "out": {
+          "n": 2,
+          "median": 803.5,
+          "min": 655,
+          "max": 952,
+          "stdev": 210.0107140124046
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 30533.5,
+          "min": 23476,
+          "max": 37591,
+          "stdev": 9980.81221644812
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 8443.5,
+          "min": 6579,
+          "max": 10308,
+          "stdev": 2636.8011870446358
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 42556.5,
+          "min": 33483,
+          "max": 51630,
+          "stdev": 12831.866758192278
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.020401225000000002,
+          "min": 0.016619349999999998,
+          "max": 0.024183100000000003,
+          "stdev": 0.005348378916199752
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 10957.5,
+          "min": 8978,
+          "max": 12937,
+          "stdev": 2799.435746717542
+        }
+      }
+    },
+    {
+      "task": "x147",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/concurrency.py",
+          "e.g",
+          "fastapi/dependencies/utils.py",
+          "fastapi/middleware/asyncexitstack.py",
+          "fastapi/applications.py"
+        ],
+        [
+          "fastapi/concurrency.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.12459135,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 18.5,
+          "min": 15,
+          "max": 22,
+          "stdev": 4.949747468305833
+        },
+        "in": {
+          "n": 2,
+          "median": 18779.5,
+          "min": 18668,
+          "max": 18891,
+          "stdev": 157.6848122046001
+        },
+        "out": {
+          "n": 2,
+          "median": 1951.5,
+          "min": 1432,
+          "max": 2471,
+          "stdev": 734.6839456528229
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 121630.5,
+          "min": 99659,
+          "max": 143602,
+          "stdev": 31072.393285680457
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 17276.5,
+          "min": 10916,
+          "max": 23637,
+          "stdev": 8995.105363474071
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 159638,
+          "min": 131937,
+          "max": 187339,
+          "stdev": 39175.1298912971
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.062295675,
+          "min": 0.0548569,
+          "max": 0.06973445,
+          "stdev": 0.010520016492441922
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 23761,
+          "min": 18375,
+          "max": 29147,
+          "stdev": 7616.95424694149
+        }
+      }
+    },
+    {
+      "task": "x147",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/concurrency.py",
+          "fastapi/dependencies/utils.py"
+        ],
+        [
+          "fastapi/concurrency.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.04385685,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 10,
+          "min": 9,
+          "max": 11,
+          "stdev": 1.4142135623730951
+        },
+        "in": {
+          "n": 2,
+          "median": 5749.5,
+          "min": 2287,
+          "max": 9212,
+          "stdev": 4896.714459716842
+        },
+        "out": {
+          "n": 2,
+          "median": 1124.5,
+          "min": 888,
+          "max": 1361,
+          "stdev": 334.46150750123695
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 25495.5,
+          "min": 24693,
+          "max": 26298,
+          "stdev": 1134.9063838044087
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 6405.5,
+          "min": 6113,
+          "max": 6698,
+          "stdev": 413.6574669941303
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 38775,
+          "min": 36171,
+          "max": 41379,
+          "stdev": 3682.6121164195397
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.021928425,
+          "min": 0.017729300000000003,
+          "max": 0.02612755,
+          "stdev": 0.00593845952509992
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 12916.5,
+          "min": 10332,
+          "max": 15501,
+          "stdev": 3655.034951953264
+        }
+      }
+    },
+    {
+      "task": "x148",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/openapi/docs.py"
+        ],
+        [
+          "fastapi/openapi/docs.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.11962595000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 17,
+          "min": 13,
+          "max": 21,
+          "stdev": 5.656854249492381
+        },
+        "in": {
+          "n": 2,
+          "median": 6538.5,
+          "min": 3493,
+          "max": 9584,
+          "stdev": 4306.987404207261
+        },
+        "out": {
+          "n": 2,
+          "median": 1636.5,
+          "min": 1223,
+          "max": 2050,
+          "stdev": 584.7773080412748
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 187426,
+          "min": 64283,
+          "max": 310569,
+          "stdev": 174150.50071131004
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 21079.5,
+          "min": 14714,
+          "max": 27445,
+          "stdev": 9002.176431285936
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 216680.5,
+          "min": 83713,
+          "max": 349648,
+          "stdev": 188044.4418548445
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.059812975000000004,
+          "min": 0.0344288,
+          "max": 0.08519715,
+          "stdev": 0.035898644554652054
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 20243.5,
+          "min": 14427,
+          "max": 26060,
+          "stdev": 8225.773185543107
+        }
+      }
+    },
+    {
+      "task": "x148",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/openapi/docs.py"
+        ],
+        [
+          "fastapi/openapi/docs.py",
+          "tests/test_swagger_ui_escape.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.036343850000000004,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 3.5,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 1886.5,
+          "min": 1884,
+          "max": 1889,
+          "stdev": 3.5355339059327378
+        },
+        "out": {
+          "n": 2,
+          "median": 604,
+          "min": 580,
+          "max": 628,
+          "stdev": 33.94112549695428
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 12460.5,
+          "min": 11009,
+          "max": 13912,
+          "stdev": 2052.7309857845476
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9615.5,
+          "min": 7612,
+          "max": 11619,
+          "stdev": 2833.376872214496
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 24566.5,
+          "min": 24041,
+          "max": 25092,
+          "stdev": 743.1692270270614
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.018171925000000002,
+          "min": 0.015935200000000004,
+          "max": 0.02040865,
+          "stdev": 0.003163206830298959
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 7372,
+          "min": 6796,
+          "max": 7948,
+          "stdev": 814.5870119269027
+        }
+      }
+    },
+    {
+      "task": "x149",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/security/oauth2.py",
+          "self.scopes",
+          "scope.split"
+        ],
+        [
+          "fastapi/security/oauth2.py",
+          "self.scopes",
+          "scope.split"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.04579935,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 7,
+          "min": 5,
+          "max": 9,
+          "stdev": 2.8284271247461903
+        },
+        "in": {
+          "n": 2,
+          "median": 2618,
+          "min": 2462,
+          "max": 2774,
+          "stdev": 220.61731573020282
+        },
+        "out": {
+          "n": 2,
+          "median": 778,
+          "min": 546,
+          "max": 1010,
+          "stdev": 328.09754647055803
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 18598,
+          "min": 17726,
+          "max": 19470,
+          "stdev": 1233.1942263893388
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 11625.5,
+          "min": 9943,
+          "max": 13308,
+          "stdev": 2379.414318692732
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 33619.5,
+          "min": 32733,
+          "max": 34506,
+          "stdev": 1253.7003230437488
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.022899675,
+          "min": 0.01987975,
+          "max": 0.0259196,
+          "stdev": 0.004270818892349568
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 8884.5,
+          "min": 7225,
+          "max": 10544,
+          "stdev": 2346.8874067581514
+        }
+      }
+    },
+    {
+      "task": "x149",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "self.scopes",
+          "scope.split",
+          "fastapi/security/oauth2.py"
+        ],
+        [
+          "fastapi/security/oauth2.py",
+          "self.scopes",
+          "scope.split"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.04816935,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 2.5,
+          "min": 1,
+          "max": 4,
+          "stdev": 2.1213203435596424
+        },
+        "in": {
+          "n": 2,
+          "median": 3679,
+          "min": 3670,
+          "max": 3688,
+          "stdev": 12.727922061357855
+        },
+        "out": {
+          "n": 2,
+          "median": 637.5,
+          "min": 349,
+          "max": 926,
+          "stdev": 408.0006127446379
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 17788,
+          "min": 0,
+          "max": 35576,
+          "stdev": 25156.030847492613
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 12351.5,
+          "min": 11638,
+          "max": 13065,
+          "stdev": 1009.0413767532033
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 34456,
+          "min": 15657,
+          "max": 53255,
+          "stdev": 26585.800759051814
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.024084675,
+          "min": 0.0199625,
+          "max": 0.028206850000000002,
+          "stdev": 0.005829635791475314
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 8632.5,
+          "min": 5262,
+          "max": 12003,
+          "stdev": 4766.606811978517
+        }
+      }
+    },
+    {
+      "task": "x150",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/dependencies/utils.py",
+          "fastapi/routing.py",
+          "fastapi/params.py",
+          "fastapi/param_functions.py"
+        ],
+        [
+          "fastapi/dependencies/utils.py",
+          "fastapi/routing.py",
+          "fastapi/params.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1333955,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 18.5,
+          "min": 17,
+          "max": 20,
+          "stdev": 2.1213203435596424
+        },
+        "in": {
+          "n": 2,
+          "median": 13382,
+          "min": 10183,
+          "max": 16581,
+          "stdev": 4524.069186031531
+        },
+        "out": {
+          "n": 2,
+          "median": 2340.5,
+          "min": 2169,
+          "max": 2512,
+          "stdev": 242.5376259469858
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 173582.5,
+          "min": 105806,
+          "max": 241359,
+          "stdev": 95850.44551018007
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 19404,
+          "min": 12989,
+          "max": 25819,
+          "stdev": 9072.180002623405
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 208709,
+          "min": 131147,
+          "max": 286271,
+          "stdev": 109689.232324782
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.06669775,
+          "min": 0.04784485,
+          "max": 0.08555065,
+          "stdev": 0.026662026870063728
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 27929.5,
+          "min": 25456,
+          "max": 30403,
+          "stdev": 3498.0572465298505
+        }
+      }
+    },
+    {
+      "task": "x150",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/dependencies/utils.py",
+          "fastapi/routing.py",
+          "fastapi/params.py"
+        ],
+        [
+          "fastapi/dependencies/utils.py",
+          "fastapi/routing.py",
+          "fastapi/param_functions.py",
+          "fastapi/params.py",
+          "param_functions.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.06672685,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 13,
+          "min": 13,
+          "max": 13,
+          "stdev": 0
+        },
+        "in": {
+          "n": 2,
+          "median": 6552,
+          "min": 2932,
+          "max": 10172,
+          "stdev": 5119.4530957906045
+        },
+        "out": {
+          "n": 2,
+          "median": 1576,
+          "min": 1553,
+          "max": 1599,
+          "stdev": 32.526911934581186
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 61358,
+          "min": 57730,
+          "max": 64986,
+          "stdev": 5130.766804289588
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 10236.5,
+          "min": 8809,
+          "max": 11664,
+          "stdev": 2018.7898602875932
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 79722.5,
+          "min": 78264,
+          "max": 81181,
+          "stdev": 2062.630480721159
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.033363425,
+          "min": 0.0320056,
+          "max": 0.03472125,
+          "stdev": 0.001920254530329248
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 19219.5,
+          "min": 18037,
+          "max": 20402,
+          "stdev": 1672.3075375061849
+        }
+      }
+    },
+    {
+      "task": "x151",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/routing.py",
+          "email.message.Message"
+        ],
+        [
+          "fastapi/routing.py",
+          "fastapi/applications.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0830449,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 15.5,
+          "min": 15,
+          "max": 16,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 9647,
+          "min": 7017,
+          "max": 12277,
+          "stdev": 3719.38166904124
+        },
+        "out": {
+          "n": 2,
+          "median": 1673.5,
+          "min": 1593,
+          "max": 1754,
+          "stdev": 113.84419177103415
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 85729.5,
+          "min": 61638,
+          "max": 109821,
+          "stdev": 34070.52603791142
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 11948,
+          "min": 10983,
+          "max": 12913,
+          "stdev": 1364.7160876900368
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 108998,
+          "min": 86491,
+          "max": 131505,
+          "stdev": 31829.70464833125
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.04152245,
+          "min": 0.040134550000000005,
+          "max": 0.04291035,
+          "stdev": 0.001962787003217615
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 20126.5,
+          "min": 18980,
+          "max": 21273,
+          "stdev": 1621.3958492607535
+        }
+      }
+    },
+    {
+      "task": "x151",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/routing.py"
+        ],
+        [
+          "fastapi/routing.py",
+          "request.json",
+          "email.message.Message",
+          "fastapi/applications.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.0656618,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 15,
+          "min": 12,
+          "max": 18,
+          "stdev": 4.242640687119285
+        },
+        "in": {
+          "n": 2,
+          "median": 7017.5,
+          "min": 2388,
+          "max": 11647,
+          "stdev": 6547.101687006243
+        },
+        "out": {
+          "n": 2,
+          "median": 1719,
+          "min": 1519,
+          "max": 1919,
+          "stdev": 282.842712474619
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 59584,
+          "min": 54127,
+          "max": 65041,
+          "stdev": 7717.3634098699795
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 9008,
+          "min": 8401,
+          "max": 9615,
+          "stdev": 858.4276323604687
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 77328.5,
+          "min": 76094,
+          "max": 78563,
+          "stdev": 1745.8466427495857
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.0328309,
+          "min": 0.028505850000000003,
+          "max": 0.03715595,
+          "stdev": 0.006116544367941752
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 19511.5,
+          "min": 17571,
+          "max": 21452,
+          "stdev": 2744.281417784991
+        }
+      }
+    },
+    {
+      "task": "x152",
+      "repo": "fastapi",
+      "arm": "without",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "fastapi/applications.py"
+        ],
+        [
+          "fastapi/applications.py",
+          "fastapi/middleware/asyncexitstack.py",
+          "fastapi/routing.py",
+          "app.add"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.1414483,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 20.5,
+          "min": 20,
+          "max": 21,
+          "stdev": 0.7071067811865476
+        },
+        "in": {
+          "n": 2,
+          "median": 3017,
+          "min": 2363,
+          "max": 3671,
+          "stdev": 924.8956697920041
+        },
+        "out": {
+          "n": 2,
+          "median": 2387,
+          "min": 2369,
+          "max": 2405,
+          "stdev": 25.45584412271571
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 262084,
+          "min": 215856,
+          "max": 308312,
+          "stdev": 65376.26456138344
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 23651,
+          "min": 20869,
+          "max": 26433,
+          "stdev": 3934.3421305219504
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 291139,
+          "min": 242801,
+          "max": 339477,
+          "stdev": 68360.25517799066
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.07072415,
+          "min": 0.06336785,
+          "max": 0.07808045,
+          "stdev": 0.010403379228885195
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 29479,
+          "min": 28587,
+          "max": 30371,
+          "stdev": 1261.4784976368007
+        }
+      }
+    },
+    {
+      "task": "x152",
+      "repo": "fastapi",
+      "arm": "with",
+      "runs": 2,
+      "completed": 2,
+      "pass": 2,
+      "errors": [],
+      "named": [
+        [
+          "app.add",
+          "file_stack.push",
+          "body.close",
+          "routing.py",
+          "fastapi/applications.py"
+        ],
+        [
+          "fastapi/applications.py",
+          "fastapi/middleware/asyncexitstack.py",
+          "fastapi/routing.py"
+        ]
+      ],
+      "cacheGapRuns": 0,
+      "spend": {
+        "all": {
+          "runs": 2,
+          "agentReportedUsd": 0.07257720000000001,
+          "agentReportedRuns": 2,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "n": 2,
+          "median": 14,
+          "min": 9,
+          "max": 19,
+          "stdev": 7.0710678118654755
+        },
+        "in": {
+          "n": 2,
+          "median": 5279.5,
+          "min": 1805,
+          "max": 8754,
+          "stdev": 4913.685022465319
+        },
+        "out": {
+          "n": 2,
+          "median": 1907,
+          "min": 1386,
+          "max": 2428,
+          "stdev": 736.8052659963826
+        },
+        "cacheRead": {
+          "n": 2,
+          "median": 80891,
+          "min": 51729,
+          "max": 110053,
+          "stdev": 41241.2959059242
+        },
+        "cacheWrite": {
+          "n": 2,
+          "median": 10708,
+          "min": 8357,
+          "max": 13059,
+          "stdev": 3324.8160851391463
+        },
+        "totalTokens": {
+          "n": 2,
+          "median": 98785.5,
+          "min": 63277,
+          "max": 134294,
+          "stdev": 50216.60227952505
+        },
+        "costUsd": {
+          "n": 2,
+          "median": 0.036288600000000004,
+          "min": 0.02435415,
+          "max": 0.04822305,
+          "stdev": 0.016877861049463587
+        },
+        "costFloorUsd": null,
+        "durationMs": {
+          "n": 2,
+          "median": 21809.5,
+          "min": 16158,
+          "max": 27461,
+          "stdev": 7992.4279477515465
+        }
+      }
+    }
+  ],
+  "repos": [
+    {
+      "repo": "fastapi",
+      "tasks": 8,
+      "pass": {
+        "without": {
+          "pass": 16,
+          "runs": 16
+        },
+        "with": {
+          "pass": 16,
+          "runs": 16
+        }
+      },
+      "failedRuns": {
+        "without": 0,
+        "with": 0
+      },
+      "cacheGapRuns": 0,
+      "spend": {
+        "without": {
+          "all": {
+            "runs": 16,
+            "agentReportedUsd": 0.8531955999999999,
+            "agentReportedRuns": 16,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        },
+        "with": {
+          "all": {
+            "runs": 16,
+            "agentReportedUsd": 0.41533395000000006,
+            "agentReportedRuns": 16,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          },
+          "failed": {
+            "runs": 0,
+            "agentReportedUsd": null,
+            "agentReportedRuns": 0,
+            "floorUsd": null,
+            "floorRuns": 0,
+            "unknownRuns": 0
+          }
+        }
+      },
+      "metrics": {
+        "toolCalls": {
+          "without": 17.75,
+          "with": 7.75,
+          "tasks": 8,
+          "medianDelta": -7.5,
+          "fewer": 8,
+          "ties": 0,
+          "more": 0
+        },
+        "in": {
+          "without": 7034.75,
+          "with": 4479.25,
+          "tasks": 8,
+          "medianDelta": -3640.75,
+          "fewer": 5,
+          "ties": 0,
+          "more": 3
+        },
+        "out": {
+          "without": 1816.75,
+          "with": 964,
+          "tasks": 8,
+          "medianDelta": -795.75,
+          "fewer": 7,
+          "ties": 0,
+          "more": 1
+        },
+        "cacheRead": {
+          "without": 147606.5,
+          "with": 28014.5,
+          "tasks": 8,
+          "medianDelta": -104179.75,
+          "fewer": 8,
+          "ties": 0,
+          "more": 0
+        },
+        "cacheWrite": {
+          "without": 17995.75,
+          "with": 9926,
+          "tasks": 8,
+          "medianDelta": -9378.5,
+          "fewer": 7,
+          "ties": 0,
+          "more": 1
+        },
+        "totalTokens": {
+          "without": 184173.5,
+          "with": 40665.75,
+          "tasks": 8,
+          "medianDelta": -124924.75,
+          "fewer": 7,
+          "ties": 0,
+          "more": 1
+        },
+        "costUsd": {
+          "without": 0.05926917500000001,
+          "with": 0.02300655,
+          "tasks": 8,
+          "medianDelta": -0.0338849375,
+          "fewer": 7,
+          "ties": 0,
+          "more": 1
+        },
+        "costFloorUsd": {
+          "without": null,
+          "with": null,
+          "tasks": 0,
+          "medianDelta": null,
+          "fewer": 0,
+          "ties": 0,
+          "more": 0
+        },
+        "durationMs": {
+          "without": 22205.5,
+          "with": 11937,
+          "tasks": 8,
+          "medianDelta": -9201.25,
+          "fewer": 8,
+          "ties": 0,
+          "more": 0
+        }
+      }
+    }
+  ],
+  "total": {
+    "tasks": 8,
+    "pass": {
+      "without": {
+        "pass": 16,
+        "runs": 16
+      },
+      "with": {
+        "pass": 16,
+        "runs": 16
+      }
+    },
+    "failedRuns": {
+      "without": 0,
+      "with": 0
+    },
+    "cacheGapRuns": 0,
+    "spend": {
+      "without": {
+        "all": {
+          "runs": 16,
+          "agentReportedUsd": 0.8531955999999999,
+          "agentReportedRuns": 16,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      },
+      "with": {
+        "all": {
+          "runs": 16,
+          "agentReportedUsd": 0.41533395000000006,
+          "agentReportedRuns": 16,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        },
+        "failed": {
+          "runs": 0,
+          "agentReportedUsd": null,
+          "agentReportedRuns": 0,
+          "floorUsd": null,
+          "floorRuns": 0,
+          "unknownRuns": 0
+        }
+      }
+    },
+    "metrics": {
+      "toolCalls": {
+        "without": 17.75,
+        "with": 7.75,
+        "tasks": 8,
+        "medianDelta": -7.5,
+        "fewer": 8,
+        "ties": 0,
+        "more": 0
+      },
+      "in": {
+        "without": 7034.75,
+        "with": 4479.25,
+        "tasks": 8,
+        "medianDelta": -3640.75,
+        "fewer": 5,
+        "ties": 0,
+        "more": 3
+      },
+      "out": {
+        "without": 1816.75,
+        "with": 964,
+        "tasks": 8,
+        "medianDelta": -795.75,
+        "fewer": 7,
+        "ties": 0,
+        "more": 1
+      },
+      "cacheRead": {
+        "without": 147606.5,
+        "with": 28014.5,
+        "tasks": 8,
+        "medianDelta": -104179.75,
+        "fewer": 8,
+        "ties": 0,
+        "more": 0
+      },
+      "cacheWrite": {
+        "without": 17995.75,
+        "with": 9926,
+        "tasks": 8,
+        "medianDelta": -9378.5,
+        "fewer": 7,
+        "ties": 0,
+        "more": 1
+      },
+      "totalTokens": {
+        "without": 184173.5,
+        "with": 40665.75,
+        "tasks": 8,
+        "medianDelta": -124924.75,
+        "fewer": 7,
+        "ties": 0,
+        "more": 1
+      },
+      "costUsd": {
+        "without": 0.05926917500000001,
+        "with": 0.02300655,
+        "tasks": 8,
+        "medianDelta": -0.0338849375,
+        "fewer": 7,
+        "ties": 0,
+        "more": 1
+      },
+      "costFloorUsd": {
+        "without": null,
+        "with": null,
+        "tasks": 0,
+        "medianDelta": null,
+        "fewer": 0,
+        "ties": 0,
+        "more": 0
+      },
+      "durationMs": {
+        "without": 22205.5,
+        "with": 11937,
+        "tasks": 8,
+        "medianDelta": -9201.25,
+        "fewer": 8,
+        "ties": 0,
+        "more": 0
+      }
+    }
+  },
+  "repetitions": {
+    "runs": [
+      1,
+      2
+    ],
+    "taskCount": 8,
+    "bootstrap": {
+      "iterations": 10000,
+      "seed": 1,
+      "level": 0.95
+    },
+    "metrics": {
+      "toolCalls": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 137,
+              "with": 75,
+              "change": -0.45255474452554745
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.6011557943635351,
+              "lo": -0.7702360937608892,
+              "hi": -0.31855351616126115,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 125,
+              "with": 60,
+              "change": -0.52
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.5385145036292005,
+              "lo": -0.6756645675806534,
+              "hi": -0.3652153550829448,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "in": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 54862,
+              "with": 50105,
+              "change": -0.08670846852101632
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.007580787743839634,
+              "lo": -0.4282328774452868,
+              "hi": 0.6461946089699266,
+              "inNoise": true
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 70407,
+              "with": 19738,
+              "change": -0.719658556677603
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.6050645940548698,
+              "lo": -0.7962934794123344,
+              "hi": -0.1711806351306715,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": false
+      },
+      "out": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 15059,
+              "with": 9827,
+              "change": -0.34743342851450965
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.4272564988313109,
+              "lo": -0.5746654763884574,
+              "hi": -0.22477414707901067,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 14014,
+              "with": 8079,
+              "change": -0.4235050663622092
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.4233585674987429,
+              "lo": -0.6086031575525462,
+              "hi": -0.13884048831793194,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "cacheRead": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 977273,
+              "with": 316577,
+              "change": -0.6760608345876741
+            },
+            "typical": {
+              "n": 7,
+              "dropped": 1,
+              "change": -0.7122430750480127,
+              "lo": -0.8273723484883183,
+              "hi": -0.5693874461555681,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 1323943,
+              "with": 296470,
+              "change": -0.7760704199501036
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.7454842823737629,
+              "lo": -0.8817531217248861,
+              "hi": -0.43771973437519673,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "cacheWrite": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 123405,
+              "with": 77047,
+              "change": -0.3756573882743811
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.37730999812626365,
+              "lo": -0.4334797825794462,
+              "hi": -0.30062107976423214,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 158547,
+              "with": 78678,
+              "change": -0.5037559840299721
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.4855360728941439,
+              "lo": -0.6262630145893225,
+              "hi": -0.2656381443997454,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "totalTokens": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 1170599,
+              "with": 453556,
+              "change": -0.6125436635431946
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.634503619932623,
+              "lo": -0.7485412052081819,
+              "hi": -0.5029192906510858,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 1566911,
+              "with": 402965,
+              "change": -0.7428284056975796
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.7042116814666769,
+              "lo": -0.8357252658164129,
+              "hi": -0.42929995614928274,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "costUsd": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 0.38214055,
+              "with": 0.22720645,
+              "change": -0.4054374758187793
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.41744174702654513,
+              "lo": -0.5399773336392055,
+              "hi": -0.27853910845724617,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 0.47105505000000003,
+              "with": 0.1881275,
+              "change": -0.6006252347788226
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.5710775306038063,
+              "lo": -0.6942650719633461,
+              "hi": -0.3573783461008726,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      },
+      "costFloorUsd": null,
+      "durationMs": {
+        "reps": [
+          {
+            "run": 1,
+            "workload": {
+              "n": 8,
+              "without": 181408,
+              "with": 119291,
+              "change": -0.34241599047451055
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.3935589045741019,
+              "lo": -0.5291803032327613,
+              "hi": -0.228565831298445,
+              "inNoise": false
+            }
+          },
+          {
+            "run": 2,
+            "workload": {
+              "n": 8,
+              "without": 171225,
+              "with": 96703,
+              "change": -0.43522850051102346
+            },
+            "typical": {
+              "n": 8,
+              "dropped": 0,
+              "change": -0.430229435470604,
+              "lo": -0.6087119751313621,
+              "hi": -0.15968247948772807,
+              "inNoise": false
+            }
+          }
+        ],
+        "workload": "fewer-every-repetition",
+        "typical": "fewer-every-repetition",
+        "typicalOutsideNoise": true
+      }
+    },
+    "outcome": {
+      "reps": [
+        {
+          "run": 1,
+          "tasks": 8,
+          "better": 0,
+          "worse": 0,
+          "ties": 8
+        },
+        {
+          "run": 2,
+          "tasks": 8,
+          "better": 0,
+          "worse": 0,
+          "ties": 8
+        }
+      ],
+      "total": {
+        "tasks": 16,
+        "better": 0,
+        "worse": 0,
+        "ties": 16
+      }
+    }
+  },
+  "version": "8.85.1",
+  "generated": "2026-11-11T12:34:01.993Z"
+}

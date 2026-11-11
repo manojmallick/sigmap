@@ -257,7 +257,7 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
     const arm = arms(job.task.repo, job.arm);
     const withArm = job.arm === 'with';
     const usage = { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 };
-    const byTool = {}; const byCommand = {}; let total = 0; let turns = 0; let answer = ''; let error = null; let mcp = null; let initInfo = null;
+    const byTool = {}; const byCommand = {}; let total = 0; let turns = 0; let answer = ''; let error = null; let mcp = null; let initInfo = null; let limit = null; let lastText = '';
     const record = (extra) => {
       const usd = costOf(usage, model, env);
       return Object.assign({
@@ -265,7 +265,7 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
         init: initInfo,
         toolCalls: { total, byTool, byCommand }, usage, usageSource: 'api', cacheGaps: 0,
         cost: usd === null ? { usd: null, source: 'unavailable' } : { usd, source: 'computed' },
-        turns, durationMs: Date.now() - started, parseErrors: 0,
+        turns, durationMs: Date.now() - started, parseErrors: 0, limit,
       }, extra);
     };
     try {
@@ -292,6 +292,8 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
         usage.in += u.input_tokens || 0; usage.out += u.output_tokens || 0;
         usage.cacheRead += u.cache_read_input_tokens || 0; usage.cacheWrite += u.cache_creation_input_tokens || 0;
         const content = Array.isArray(r.json.content) ? r.json.content : [];
+        const said = content.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n').trim();
+        if (said) lastText = said;
         messages.push({ role: 'assistant', content });
         const uses = content.filter((b) => b && b.type === 'tool_use');
         if (r.json.stop_reason !== 'tool_use' || !uses.length) {
@@ -316,9 +318,11 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
         results[results.length - 1].cache_control = { type: 'ephemeral' };
         messages.push({ role: 'user', content: results });
         const usd = costOf(usage, model, env);
-        if (usd !== null && usd > budgetUsd) { error = `budget: $${usd.toFixed(4)} passed the per-run cap of $${budgetUsd}`; break; }
+        if (usd !== null && usd > budgetUsd) { limit = `budget: $${usd.toFixed(4)} passed the per-run cap of $${budgetUsd}`; answer = lastText; break; }
       }
-      if (error === null && !answer) error = `turn limit (${maxTurns}) reached`;
+      // Not an error: dropping the pair would drop exactly the questions a weak agent cannot finish, and flatter it. The run is
+      // scored on whatever it had said (usually nothing that names a file), so it counts as a miss at the cost it incurred.
+      if (error === null && !answer && !limit && turns >= maxTurns) { limit = `turn limit (${maxTurns}) reached`; answer = lastText; }
       return record({});
     } catch (e) {
       error = `runner: ${e && e.message ? e.message : e}`;

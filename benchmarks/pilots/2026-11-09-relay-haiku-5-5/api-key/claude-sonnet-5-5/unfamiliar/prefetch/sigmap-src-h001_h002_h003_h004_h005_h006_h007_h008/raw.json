@@ -1,0 +1,1264 @@
+[
+  {
+    "repo": "sigmap-src",
+    "task": "h001",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/security/scanner.js",
+      "src/security/patterns.js",
+      "src/security/redact.js",
+      "src/cache/entry.js",
+      "src/mcp/handlers.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Grep": 4,
+        "Bash": 1,
+        "Glob": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 180,
+      "out": 803,
+      "cacheRead": 14496,
+      "cacheWrite": 6477
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0274817,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 8252,
+    "answer": "`src/security/scanner.js`, `src/security/patterns.js`, `src/security/redact.js` and `src/cache/entry.js` implement this. `src/mcp/handlers.js` also applies it. I found these by grepping for redaction markers and for imports of the security modules; I didn't open the files.\n\n`src/security/scanner.js`\n`src/security/patterns.js`\n`src/security/redact.js`\n`src/cache/entry.js`\n`src/mcp/handlers.js`\n\nThe security modules detect credential patterns and replace matches with `[REDACTED…]` markers before text is written out. The scanner replaces whole matches with `[REDACTED — <name> detected in <path>]`, and `redact.js` masks each pattern match as `[REDACTED:<name>]`. `patterns.js` holds the pattern list they use. `src/cache/entry.js` and `src/mcp/handlers.js` call the scanner, so cached entries and MCP tool output (such as `get_lines`) are redacted as well."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h001",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/security/scanner.js",
+      "src/security/patterns.js",
+      "src/cache/entry.js",
+      "src/security/redact.js",
+      "src/retrieval/body-words.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2651,
+      "out": 475,
+      "cacheRead": 1628,
+      "cacheWrite": 7249
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.028500100000000004,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 8111,
+    "answer": "`src/security/scanner.js`\n`src/security/patterns.js`\n`src/cache/entry.js`\n`src/security/redact.js`\n`src/retrieval/body-words.js`\n\nSigMap scans extracted signatures against a bank of secret patterns and replaces any match with a `[REDACTED …]` marker before it reaches the generated context. `scanner.js` does the signature scanning, `patterns.js` holds the regexes, and `entry.js` applies the scan (gated by the `secretScan` setting) and fails closed. `redact.js` is the standalone text redactor that session and other output paths reuse. `body-words.js` filters secret-looking lines out of the indexed body words.\n\nI located these by grepping for `secret` and `redact` and reading the matching lines, not by opening each file in full."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h001",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/security/scanner.js",
+      "src/security/patterns.js",
+      "src/cache/entry.js",
+      "src/security/redact.js",
+      "src/retrieval/body-words.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2651,
+      "out": 499,
+      "cacheRead": 1628,
+      "cacheWrite": 7245
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0287301,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 5281,
+    "answer": "`src/security/scanner.js`\n`src/security/patterns.js`\n`src/cache/entry.js`\n`src/security/redact.js`\n`src/retrieval/body-words.js`\n\nThese files scan signatures and text for credentials and replace any match with a `[REDACTED …]` marker before it reaches generated output. `scanner.js` does the scanning on signature lists, and `patterns.js` holds the pattern bank it matches against. `cache/entry.js` runs that scan on every file's signatures and fails closed. `redact.js` is the same redaction for free text. `body-words.js` drops secret-looking lines before they go into the retrieval index.\n\nI picked these from a grep for \"secret\" and \"redact\" and didn't open the files to confirm, and I didn't rank the `review-pr.js` lead. It also scans for secrets, but only to flag them in a PR audit, so I left it out."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h001",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/security/scanner.js",
+      "src/security/redact.js",
+      "src/security/patterns.js",
+      "src/cache/entry.js",
+      "src/mcp/handlers.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 2
+      },
+      "byCommand": {
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 178,
+      "out": 589,
+      "cacheRead": 8372,
+      "cacheWrite": 6380
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0238704,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 6140,
+    "answer": "`src/security/scanner.js`, `src/security/redact.js` and `src/security/patterns.js` are the core. `src/cache/entry.js` and `src/mcp/handlers.js` are callers that apply it.\n\n`src/security/scanner.js` is the signature scanner. It replaces any matching signature with a `[REDACTED — …]` marker before it is written to the context output.\n\n`src/security/redact.js` is the substring-level redactor, `redactText`. It also backs the standalone `sigmap redact` command and the session store.\n\n`src/security/patterns.js` holds the shared secret-pattern bank that both of the above match against.\n\n`src/cache/entry.js` runs the scanner on cached entries, so a credential never reaches the cache file. `src/mcp/handlers.js` runs it over the lines that the `get_lines` tool returns.\n\nI picked these from the `require` calls and the changelog and docs; I didn't read the file contents."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h002",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/config/loader.js",
+      "src/extractors/dispatch.js",
+      "src/util/git.js",
+      "src/config/defaults.js"
+    ],
+    "toolCalls": {
+      "total": 9,
+      "byTool": {
+        "Bash": 2,
+        "Glob": 1,
+        "Grep": 6
+      },
+      "byCommand": {
+        "ls": 1,
+        "find": 1
+      }
+    },
+    "usage": {
+      "in": 185,
+      "out": 1328,
+      "cacheRead": 45121,
+      "cacheWrite": 22047
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.07779170000000002,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 17018,
+    "answer": "`src/retrieval/ranker.js`\n`src/config/loader.js`\n`src/extractors/dispatch.js`\n`src/util/git.js`\n`src/config/defaults.js`\n\nThese are the files most other modules import. I judged this by grepping `require(...)` calls across `src/`, `test/` and `scripts/`, not by building a full dependency graph.\n\n- **`src/retrieval/ranker.js`:** it provides `buildSigIndex` and `rank`. The MCP handlers, evidence pack, planner, knowledge map, eval runner, doctor, call graph and many tests all import it.\n- **`src/config/loader.js`:** `loadConfig` is called by the MCP server and handlers, the eval runner, doctor, dashboard, cache entry and body-words, and by many tests.\n- **`src/extractors/dispatch.js`:** `langFor`, `extractFile`, `EXT_MAP` and `LANGUAGES` decide how every file is parsed. The cache, MCP handlers, verify, dashboard, graph language support and many tests use it.\n- **`src/util/git.js`:** the `git`, `tryGit` and `changedFiles` helpers are used by the MCP handlers, session modules, doctor, discovery and `llms-txt`.\n- **`src/config/defaults.js`:** `DEFAULTS` is the shared default config, imported by the MCP profile, verify, cache and graph modules, `scripts/`, and many tests."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h002",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/util/truncate.js",
+      "src/config/loader.js",
+      "src/util/git.js",
+      "src/util/file-class.js",
+      "src/config/defaults.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 3
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 2746,
+      "out": 1184,
+      "cacheRead": 18438,
+      "cacheWrite": 8836
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0431096,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 10716,
+    "answer": "`src/util/truncate.js`\n`src/config/loader.js`\n`src/util/git.js`\n`src/util/file-class.js`\n`src/config/defaults.js`\n\nI ranked these by counting `require(...)` calls across `src/` with grep. The counts are approximate. They cover only relative-path requires of the util and config modules, and I didn't count requires of other modules.\n\n- **`src/util/truncate.js`:** Roughly 40 of the extractor modules import `capWithNotice` or `capMembersWithNotice` from it, so it has the most dependents.\n- **`src/config/loader.js`:** `loadConfig` is required across mcp, eval, doctor, cache, format and retrieval, about 15 call sites.\n- **`src/util/git.js`:** Required by mcp, session, doctor, discovery and format, about 12 call sites.\n- **`src/util/file-class.js`:** Required by plan, retrieval, analysis and mcp.\n- **`src/config/defaults.js`:** `DEFAULTS` is required by mcp, verify, cache, graph and eval. It has the fewest call sites of the five.\n\nNone of the five files SigMap ranked came up in that count. They matched the question's wording, not how widely they are imported."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h002",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/map/knowledge-map.js",
+      "src/mcp/handlers.js",
+      "src/retrieval/ranker.js",
+      "src/graph/impact.js",
+      "config-manifest.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2744,
+      "out": 772,
+      "cacheRead": 5922,
+      "cacheWrite": 6041
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.029494900000000004,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 7056,
+    "answer": "`src/map/knowledge-map.js`\n`src/mcp/handlers.js`\n`src/retrieval/ranker.js`\n`src/graph/impact.js`\n\nThe first two files compute and report the files the rest of the repo depends on most. `architectureView` in `src/map/knowledge-map.js` counts incoming `imports` edges for each file and returns the top 10 as \"hubs\". `getArchitectureOverview` in `src/mcp/handlers.js` prints those hubs as the \"Hub files (most depended-on)\" table.\n\nThe last two are related but I didn't open them. `src/retrieval/ranker.js` has a comment about detecting hub files, and `src/graph/impact.js` computes direct and transitive dependents.\n\nThe ranked leads from SigMap (`config-manifest.js`, `imports.js` and so on) didn't fit this question."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h002",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/retrieval/ranker.js",
+      "src/config/loader.js",
+      "src/extractors/dispatch.js",
+      "src/util/git.js",
+      "src/config/defaults.js"
+    ],
+    "toolCalls": {
+      "total": 7,
+      "byTool": {
+        "Bash": 2,
+        "Glob": 1,
+        "Grep": 4
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 183,
+      "out": 1535,
+      "cacheRead": 23631,
+      "cacheWrite": 18426
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0665072,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 15479,
+    "answer": "`src/retrieval/ranker.js` has the most dependents. `src/config/loader.js` comes next, then `src/extractors/dispatch.js`, `src/util/git.js` and `src/config/defaults.js`. I ranked them by counting `require` statements across the repo, not by running a dependency tool. `src/util/file-class.js` has about as many importers as `defaults.js` and could take the fifth spot.\n\n`gen-context.js` is a bundle of these same modules, so I left it out.\n\n- `src/retrieval/ranker.js`\n- `src/config/loader.js`\n- `src/extractors/dispatch.js`\n- `src/util/git.js`\n- `src/config/defaults.js`\n\nThese files provide the shared services the rest of the repo calls. They are the signature index and ranking (`buildSigIndex` and `rank`), config loading and defaults, language dispatch for extraction, and git access."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h003",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/arity.js",
+      "src/verify/hallucination-guard.js",
+      "src/mcp/handlers.js",
+      "test/integration/arity-verify.test.js",
+      "src/mcp/tools.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 3
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 184,
+      "out": 717,
+      "cacheRead": 16746,
+      "cacheWrite": 8003
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0308947,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 7234,
+    "answer": "`src/verify/arity.js` is the core of this. It parses each repo function's signature into a minimum and maximum argument count, counts the arguments at each call, and flags calls outside that range.\n\n`src/verify/hallucination-guard.js` is where it gets applied. It builds the arity index and reports an `arity-mismatch` issue for calls to known repo functions.\n\n`src/mcp/handlers.js` holds the `verify_suggestion` MCP handler. It passes AI-suggested code through that verification.\n\n`test/integration/arity-verify.test.js` covers the arity checks, including end-to-end runs through `verify()`.\n\n`src/mcp/tools.js` defines the `verify_suggestion` tool.\n\nI did not open the last two files; I identified them from search results only.\n\nWhy: the `verify_suggestion` tool runs suggested code through the hallucination guard, which uses `arity.js` to compare each call's argument count against the repo signature's allowed range."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h003",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/arity.js",
+      "src/verify/hallucination-guard.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2957,
+      "out": 339,
+      "cacheRead": 1628,
+      "cacheWrite": 3386
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.018094600000000002,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3340,
+    "answer": "`src/verify/arity.js`\n`src/verify/hallucination-guard.js`\n\n`src/verify/arity.js` does the argument-count check. `extractCallArgCounts` pulls each call and its argument count out of the answer code. `buildArityIndex` and `parseParams` derive each function's min and max parameter count from the signature index. `checkArity` compares the two. `src/verify/hallucination-guard.js` builds the arity index and calls `checkArity` on each call it extracts. I confirmed this from a grep for the arity functions and did not read the guard file in full."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h003",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/arity.js",
+      "src/verify/hallucination-guard.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2957,
+      "out": 304,
+      "cacheRead": 1628,
+      "cacheWrite": 3363
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0176871,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 2801,
+    "answer": "`src/verify/arity.js`\n`src/verify/hallucination-guard.js`\n\n`src/verify/arity.js` does the argument-count check. `parseParams` and `buildArityIndex` turn the signature index into min/max parameter counts. `extractCallArgCounts` counts the arguments at each call site in the answer code. `checkArity` compares the two. `src/verify/hallucination-guard.js` is the caller: it imports these three functions and runs them on each code block (lines 433–435)."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h003",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/verify/arity.js",
+      "src/verify/hallucination-guard.js",
+      "test/integration/arity-verify.test.js",
+      "docs-vp/guide/verify-ai-output.md"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 2
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 182,
+      "out": 573,
+      "cacheRead": 8395,
+      "cacheWrite": 7143
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0256305,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5796,
+    "answer": "`src/verify/arity.js`\n`src/verify/hallucination-guard.js`\n`test/integration/arity-verify.test.js`\n`docs-vp/guide/verify-ai-output.md`\n\n`src/verify/arity.js` implements the argument-count check. `parseParams` and `buildArityIndex` turn repo signatures into a [min, max] range per function name. `extractCallArgCounts` pulls call sites and their argument counts out of the answer code. `checkArity` returns an issue when a known function's call falls outside its range.\n\n`src/verify/hallucination-guard.js` calls these functions in its verify step and reports an `arity-mismatch` issue. The integration test and the docs page cover the same behaviour. I did not run the tests."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h004",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/stacktrace.js",
+      "src/squeeze/index.js",
+      "src/squeeze/classify.js",
+      "src/mcp/handlers.js",
+      "src/cli/command-table.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 5
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 185,
+      "out": 1109,
+      "cacheRead": 25018,
+      "cacheWrite": 10279
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.04216110000000001,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 11035,
+    "answer": "The core files are `src/squeeze/stacktrace.js`, `src/squeeze/index.js` and `src/squeeze/classify.js`. I did not trace the `ask` command's own wiring: the source files that handle `ask` don't call the squeeze code. `src/mcp/handlers.js` is the one confirmed caller, through the `squeeze_output` MCP tool.\n\n`src/squeeze/stacktrace.js` is the exception-dump shrinker itself. `squeezeStackTrace` removes vendor frames, collapses repeated exceptions into \"occurred ×N\", and enriches the top frame from the symbol index. `src/squeeze/index.js` is the orchestrator that classifies the input, runs the matching squeezer and reports the token reduction. `src/squeeze/classify.js` detects that pasted text is a stack trace or traceback in the first place.\n\n`src/mcp/handlers.js` exposes `squeezeOutput`, which calls `squeeze` and prepends the \"Squeezed … tokens\" line.\n\n`src/cli/command-table.js` only documents the `squeeze` command and the `ask --squeeze` flag.\n\n`src/squeeze/index.js` and `src/squeeze/classify.js` are also bundled into `gen-context.js`.\n\n- `src/squeeze/stacktrace.js`\n- `src/squeeze/index.js`\n- `src/squeeze/classify.js`\n- `src/mcp/handlers.js`\n- `src/cli/command-table.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h004",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/stacktrace.js",
+      "src/squeeze/index.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/cilog.js",
+      "src/squeeze/jsonpayload.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Glob": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 1933,
+      "out": 308,
+      "cacheRead": 4496,
+      "cacheWrite": 3157
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0157377,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 5072,
+    "answer": "`src/squeeze/stacktrace.js` is the main implementation. `squeezeStackTrace` is the function that shrinks a pasted exception dump. The other files in `src/squeeze/` handle detection and routing. I read their function lists but not their bodies.\n\n`src/squeeze/stacktrace.js`\n`src/squeeze/index.js`\n`src/squeeze/classify.js`\n`src/squeeze/cilog.js`\n`src/squeeze/jsonpayload.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h004",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/squeeze/stacktrace.js",
+      "src/squeeze/index.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/cilog.js",
+      "src/squeeze/jsonpayload.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Glob": 1,
+        "Grep": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 1933,
+      "out": 648,
+      "cacheRead": 6550,
+      "cacheWrite": 1017
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.014198500000000001,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 6655,
+    "answer": "`src/squeeze/stacktrace.js` is the file that shrinks the dump. `src/squeeze/index.js` and `src/squeeze/classify.js` route a pasted blob to it. I read the headers and function lists of these files but not the full function bodies.\n\n- `src/squeeze/stacktrace.js` has `squeezeStackTrace`. It dedupes repeated exceptions, strips vendor frames, caps the kept frames at 8 by default, and adds the real signature from the symbol index to the top kept frame.\n- `src/squeeze/index.js` has `squeeze`, the entry point that reduces pasted input and reports token estimates.\n- `src/squeeze/classify.js` labels a pasted blob as a stacktrace, CI log or JSON payload, checking for a stacktrace first.\n\n`src/squeeze/cilog.js` and `src/squeeze/jsonpayload.js` are the sibling squeezers for the other two categories, so I left them out.\n\n`src/eval/scorer.js` is SigMap's top-ranked lead, but it only computes retrieval metrics, so I left it out.\n\n`src/squeeze/stacktrace.js`\n`src/squeeze/index.js`\n`src/squeeze/classify.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h004",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/squeeze/stacktrace.js",
+      "src/squeeze/index.js",
+      "src/squeeze/classify.js",
+      "src/squeeze/cilog.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 3
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 183,
+      "out": 758,
+      "cacheRead": 15875,
+      "cacheWrite": 8503
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.032378500000000004,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 8520,
+    "answer": "The ask-side hook is in `gen-context.js`, which is the entry point. Here are the files that implement it:\n\n`src/squeeze/stacktrace.js`\n`src/squeeze/index.js`\n`src/squeeze/classify.js`\n`gen-context.js`\n`src/squeeze/cilog.js`\n\nThese files make up the squeeze engine that `ask` runs on a pasted query before ranking it. `classify.js` detects stack traces, and `stacktrace.js` strips vendor frames, dedupes repeated exceptions and enriches the top frame. `index.js` orchestrates that and decides whether the reduction is worth applying. The `ask` handler in `gen-context.js` (around line 47284, with the `--no-squeeze` and `--squeeze-threshold` flags) invokes it, and `cilog.js` handles the CI-log case. I read only the matches for these terms and did not open the `ask` code itself, so I haven't confirmed how it calls `squeeze()` or whether the squeezed text is what gets ranked."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h005",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/conventions/fix.js",
+      "src/conventions/conflicts.js",
+      "src/conventions/extract.js",
+      "src/conventions/ci.js",
+      "fix.js"
+    ],
+    "toolCalls": {
+      "total": 5,
+      "byTool": {
+        "Grep": 2,
+        "Bash": 2,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 182,
+      "out": 587,
+      "cacheRead": 15438,
+      "cacheWrite": 7684
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0285316,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 11750,
+    "answer": "`src/conventions/fix.js` is the main implementation. The other three files support it.\n\n`src/conventions/fix.js`\n`src/conventions/conflicts.js`\n`src/conventions/extract.js`\n`src/conventions/ci.js`\n\nI read only `fix.js` in full. I picked the other three from search results and file names, so I haven't verified their roles. `conflicts.js` also builds rename suggestions toward the dominant style, but only for example files. `extract.js` looks like where the dominant style and the per-file style classification come from. `ci.js` is a guess based on its name.\n\n`buildFixList` in `fix.js` takes the dominant file-naming style and lists every source file whose style differs. It skips test files, unclassifiable names and single-word names. For each remaining file it gives a from→to rename path."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h005",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/conventions/fix.js",
+      "src/conventions/conflicts.js",
+      "src/conventions/extract.js"
+    ],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2409,
+      "out": 362,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.008600799999999999,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 3411,
+    "answer": "`src/conventions/fix.js`\n`src/conventions/conflicts.js`\n`src/conventions/extract.js`\n\nThese rankings come from the SigMap signatures and descriptions; I didn't open the files.\n\n- **`src/conventions/fix.js`:** `buildFixList` lists every scoped source file whose name doesn't match the dominant file-naming convention, with full from→to paths.\n- **`src/conventions/conflicts.js`:** `analyzeConflicts` shows which variants compete and suggests renames that move minority-style files toward the dominant style.\n- **`src/conventions/extract.js`:** `classifyNaming` and `extractConventions` work out each file's naming style and the dominant one, which the other two files compare against."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h005",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/conventions/fix.js",
+      "src/conventions/conflicts.js",
+      "src/conventions/extract.js",
+      "fix.js",
+      "conflicts.js"
+    ],
+    "toolCalls": {
+      "total": 0,
+      "byTool": {},
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2409,
+      "out": 328,
+      "cacheRead": 814,
+      "cacheWrite": 0
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.008260799999999999,
+      "source": "computed"
+    },
+    "turns": 1,
+    "durationMs": 2995,
+    "answer": "`src/conventions/fix.js`\n`src/conventions/conflicts.js`\n`src/conventions/extract.js`\n\nI ranked these from the SigMap signatures and descriptions and did not open the files. `fix.js` builds the full list of scoped source files whose names don't match the dominant file-naming style, each with a from→to path. `conflicts.js` flags the minority-style files and suggests renames toward the dominant style. `extract.js` supplies the naming classification and dominant-style scoring that both of them rely on."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h005",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/conventions/fix.js",
+      "src/conventions/conflicts.js",
+      "src/conventions/extract.js",
+      "conflicts.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 180,
+      "out": 522,
+      "cacheRead": 8142,
+      "cacheWrite": 6018
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.022253400000000003,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 6439,
+    "answer": "`src/conventions/fix.js` is the best match. `src/conventions/conflicts.js` is a close second. `src/conventions/extract.js` is a likely third, but I didn't open it to check.\n\n`src/conventions/fix.js` defines `buildFixList`. I found it by grep and didn't read the file. The CLI docs describe `conventions --fix` as a \"rename checklist — every file not matching the dominant naming style\". `conflicts.js` also suggests renames that move minority-style files toward the dominant style, but it does so as part of its broader `conventions --conflicts` breakdown.\n\n`src/conventions/extract.js` is the likely source of the dominant style that the other two compare against. I'm inferring that from the file name and the tests that call `extractConventions`.\n\n- `src/conventions/fix.js`\n- `src/conventions/conflicts.js`\n- `src/conventions/extract.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h006",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/tracking/pricing.js",
+      "src/config/models.js",
+      "pricing.js",
+      "src/tracking/aggregate.js"
+    ],
+    "toolCalls": {
+      "total": 10,
+      "byTool": {
+        "Grep": 8,
+        "Read": 1,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 189,
+      "out": 1457,
+      "cacheRead": 66730,
+      "cacheWrite": 13633
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0623765,
+      "source": "computed"
+    },
+    "turns": 9,
+    "durationMs": 16651,
+    "answer": "`gen-context.js` and `src/tracking/pricing.js` both implement this, with `src/config/models.js` holding the rates. I read `pricing.js` in full. For the others I only grepped, so I haven't read the surrounding code.\n\n`gen-context.js` is the bundled CLI entry point. The grep found no per-query cost code under `src/`, so I take this file to be where it lives. It computes the per-query dollar cost as tokens ÷ 1000 × `perMtok`/1000. Both the `ask` output (\"Cost: $…/query\") and the `--cost` output (\"$…/query\") use that formula.\n\n`src/tracking/pricing.js` has `resolvePrice(model)`, which turns a model name into a price in USD per million input tokens and per token. It falls back to the default model, and flags it, when the name is unknown.\n\n`src/config/models.js` holds the per-model `inputPerMtok` rates that `pricing.js` reads.\n\n`src/tracking/aggregate.js` multiplies tokens saved by `perToken` for the `gain` dashboard. That is cost saved over many queries rather than the cost of one query.\n\n`src/session/report.js` also multiplies tokens by `inputPerMtok`.\n\n`gen-context.js` and `src/tracking/pricing.js` are the first two to open.\n\n`gen-context.js`\n`src/tracking/pricing.js`\n`src/config/models.js`\n`src/tracking/aggregate.js`\n`src/session/report.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h006",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/pricing.js",
+      "src/config/models.js",
+      "src/tracking/aggregate.js",
+      "src/session/report.js",
+      "aggregate.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Read": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 3037,
+      "out": 492,
+      "cacheRead": 1628,
+      "cacheWrite": 5134
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.024154600000000002,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 4397,
+    "answer": "`src/tracking/pricing.js` and `src/config/models.js` are the main files. `src/tracking/aggregate.js` and `src/session/report.js` use them to produce the dollar figures.\n\n`src/tracking/pricing.js`\n`src/config/models.js`\n`src/tracking/aggregate.js`\n`src/session/report.js`\n\n`resolvePrice` in `src/tracking/pricing.js` turns a model name into a USD-per-token input price. It reads the per-million-token rates from the dated model table in `src/config/models.js`. `src/tracking/aggregate.js` calls `resolvePrice` at line 132 to compute costs. `costOf` in `src/session/report.js` prices one session, at the input-price rate only. I did not open `aggregate.js` or `report.js` beyond the search hit and the signature listing."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h006",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/tracking/pricing.js",
+      "src/config/models.js",
+      "src/session/report.js",
+      "pricing.js",
+      "src/tracking/aggregate.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Read": 1,
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 3037,
+      "out": 475,
+      "cacheRead": 1628,
+      "cacheWrite": 5023
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.023707100000000002,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3782,
+    "answer": "`src/tracking/pricing.js` is the most relevant file. `src/config/models.js` and `src/session/report.js` are supporting leads. I read `pricing.js` in full. I only saw the other four through the SigMap signatures and a grep for `resolvePrice`, so I haven't verified how they use it.\n\n`src/tracking/pricing.js`\n`src/config/models.js`\n`src/tracking/aggregate.js`\n`src/session/report.js`\n\n`resolvePrice` in `pricing.js` turns a model name into a USD price per million input tokens and per token, and falls back to the default model when the name is unknown. The prices themselves come from the dated model profile in `models.js`. `aggregate.js` calls `resolvePrice`, and `report.js` has a `costOf` function that prices a session."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h006",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "gen-context.js",
+      "src/tracking/pricing.js",
+      "src/config/models.js",
+      "src/tracking/aggregate.js",
+      "aggregate.js"
+    ],
+    "toolCalls": {
+      "total": 10,
+      "byTool": {
+        "Grep": 8,
+        "Read": 2
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 187,
+      "out": 1312,
+      "cacheRead": 47321,
+      "cacheWrite": 10713
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0497407,
+      "source": "computed"
+    },
+    "turns": 8,
+    "durationMs": 13483,
+    "answer": "`gen-context.js` and `src/tracking/pricing.js` are the two files that do the work. `src/config/models.js` and `src/tracking/aggregate.js` support them. I did not open `src/config/models.js` or `aggregate.js`. I only saw how `pricing.js` and `gen-context.js` refer to them.\n\n`gen-context.js`\n`src/tracking/pricing.js`\n`src/config/models.js`\n`src/tracking/aggregate.js`\n\nThe `ask` command in `gen-context.js` takes `--model` (default `gpt-4o`) and looks up its input price per million tokens. It multiplies that rate by the token counts to print a dollar cost per query, both with SigMap and without it. `resolvePrice` in `src/tracking/pricing.js` does the model-to-price lookup. The rates themselves come from the dated model profile in `src/config/models.js`. `src/tracking/aggregate.js` reuses the same lookup for the `gain` dashboard's dollar figures."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h007",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/graph/call-graph.js",
+      "src/mcp/handlers.js",
+      "src/mcp/tools.js",
+      "src/graph/blast-radius.js",
+      "src/review/review-pr.js"
+    ],
+    "toolCalls": {
+      "total": 4,
+      "byTool": {
+        "Bash": 1,
+        "Glob": 1,
+        "Grep": 2
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 178,
+      "out": 697,
+      "cacheRead": 18124,
+      "cacheWrite": 10372
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.036880800000000005,
+      "source": "computed"
+    },
+    "turns": 4,
+    "durationMs": 7427,
+    "answer": "Most relevant first:\n\n`src/graph/call-graph.js`\n`src/mcp/handlers.js`\n`src/mcp/tools.js`\n`src/graph/blast-radius.js`\n`src/review/review-pr.js`\n\nThe question doesn't name a function, so I read it as asking for the function-level \"what breaks if I change this\" analysis. `methodImpact` in `src/graph/call-graph.js` does that by finding every function that transitively calls a given symbol. The MCP `get_method_impact` handler and tool definition expose it, while `methodBlastRadius` in `src/graph/blast-radius.js` feeds the method-level blast radius in PR review (`src/review/review-pr.js`). If you meant a different function, tell me which one and I'll redo this."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h007",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/graph/call-graph.js",
+      "src/mcp/handlers.js",
+      "src/graph/impact.js",
+      "src/mcp/tools.js",
+      "src/review/review-pr.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 2,
+        "Glob": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 2799,
+      "out": 641,
+      "cacheRead": 10779,
+      "cacheWrite": 8489
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0353863,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 7641,
+    "answer": "`src/graph/call-graph.js`\n`src/mcp/handlers.js`\n`src/graph/impact.js`\n`src/mcp/tools.js`\n`src/review/review-pr.js`\n\nI opened none of these files. `src/graph/call-graph.js` I know only from a grep that found `methodImpact` at line 888 and the export block at line 1015. The other four come from grep matches on \"impact\" and \"blast radius\".\n\n`src/graph/call-graph.js` implements method-level blast radius (`methodImpact`), which finds every function that transitively calls a given function. That is the \"what else breaks if I change this one function\" lookup. `src/mcp/handlers.js` and `src/mcp/tools.js` expose it as the `get_method_impact` tool. `src/graph/impact.js` does the same at file level, and `src/review/review-pr.js` uses both when it audits a diff."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h007",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": false,
+    "named": [
+      "src/graph/call-graph.js",
+      "src/graph/impact.js",
+      "src/mcp/handlers.js",
+      "src/review/review-pr.js",
+      "src/map/knowledge-map.js"
+    ],
+    "toolCalls": {
+      "total": 3,
+      "byTool": {
+        "Grep": 1,
+        "Glob": 1,
+        "Bash": 1
+      },
+      "byCommand": {
+        "grep": 1
+      }
+    },
+    "usage": {
+      "in": 2799,
+      "out": 611,
+      "cacheRead": 10839,
+      "cacheWrite": 9224
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.036935800000000005,
+      "source": "computed"
+    },
+    "turns": 3,
+    "durationMs": 8606,
+    "answer": "`src/graph/call-graph.js`\n`src/graph/impact.js`\n`src/mcp/handlers.js`\n`src/review/review-pr.js`\n`src/map/knowledge-map.js`\n\n`src/graph/call-graph.js` answers this at function level. `methodImpact` walks the call graph and returns every function that transitively calls a symbol, which is the `--callers` blast radius. `src/graph/impact.js` does the same at file level, listing the direct and transitive importers plus affected tests and routes. `src/mcp/handlers.js`, `src/review/review-pr.js` and `src/map/knowledge-map.js` expose or consume those results through the `get_impact`/`get_method_impact` tools, PR review and the knowledge-map impact view.\n\nI picked these files from search results and the function list in `call-graph.js`. I did not open `call-graph.js` or `impact.js` to read how they work."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h007",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/graph/call-graph.js",
+      "src/graph/blast-radius.js",
+      "src/mcp/handlers.js",
+      "gen-context.js",
+      "src/review/review-pr.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Bash": 1,
+        "Glob": 1,
+        "Grep": 4
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 182,
+      "out": 1221,
+      "cacheRead": 36408,
+      "cacheWrite": 13599
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0538531,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 11986,
+    "answer": "`src/graph/call-graph.js`\n`src/graph/blast-radius.js`\n`src/mcp/handlers.js`\n`gen-context.js`\n`src/review/review-pr.js`\n\nYou didn't say which function, so I read \"what else breaks if I change this one function\" as the project's impact-analysis feature. That feature is the `--callers <symbol>` command, which gives the method-level blast radius.\n\n- **`src/graph/call-graph.js`:** `methodImpact` does the transitive caller walk, alongside `methodCallees`, and `formatCallGraph` formats the result.\n- **`src/graph/blast-radius.js`:** `methodBlastRadius` scores that impact for a list of changed files and assigns a risk tier.\n- **`src/mcp/handlers.js`:** this exposes the same analysis through the MCP tools, calling `methodImpact` directly.\n- **`gen-context.js`:** this is the bundle, and its CLI entry point handles `--callers` and `--callees`.\n- **`src/review/review-pr.js`:** this feeds the method-level blast radius into the PR review.\n\nIf you meant a specific function, tell me which one and I'll trace its callers directly."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h008",
+    "arm": "without",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/notes.js",
+      ".context/notes.ndjson",
+      "gen-context.js",
+      "src/cli/command-table.js",
+      "src/mcp/handlers.js"
+    ],
+    "toolCalls": {
+      "total": 6,
+      "byTool": {
+        "Bash": 1,
+        "Grep": 4,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 1
+      }
+    },
+    "usage": {
+      "in": 179,
+      "out": 1013,
+      "cacheRead": 14187,
+      "cacheWrite": 7106
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.031090400000000004,
+      "source": "computed"
+    },
+    "turns": 5,
+    "durationMs": 12856,
+    "answer": "`src/session/notes.js` is the main implementation. It has `addNote`, which appends a note to `.context/notes.ndjson` and tags it with the current git branch. The other four files are the `sigmap note` CLI handler, the command table, the MCP tool and the tests.\n\n`gen-context.js` has the `note` command handler that calls `addNote`. `src/cli/command-table.js` has the `note` entry. `src/mcp/handlers.js` has the `read_memory` tool that reads the notes back. `test/integration/memory-tools.test.js` covers it.\n\n`src/cli/command-table.js` lists `note` with the description \"List recent notes\", which doesn't mention saving.\n\n`src/mcp/handlers.js` only reads notes. It lists and formats them and never saves one.\n\nI didn't open the handler code in `gen-context.js` or `src/mcp/handlers.js` beyond the grep matches.\n\n`src/session/notes.js`\n`gen-context.js`\n`src/cli/command-table.js`\n`src/mcp/handlers.js`\n`test/integration/memory-tools.test.js`"
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h008",
+    "arm": "with",
+    "run": 1,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/notes.js",
+      "gen-context.js"
+    ],
+    "toolCalls": {
+      "total": 1,
+      "byTool": {
+        "Grep": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 1684,
+      "out": 240,
+      "cacheRead": 1628,
+      "cacheWrite": 2631
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.012671100000000001,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 7191,
+    "answer": "`src/session/notes.js`\n`gen-context.js`\n\n`src/session/notes.js` implements this. `addNote` appends a note to an NDJSON log under `.context/`, and the module reads the current git branch through `_currentBranch`. `gen-context.js` holds the `sigmap note` command handler, which calls `addNote`. It also contains a bundled copy of the notes module."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h008",
+    "arm": "with",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/notes.js",
+      "src/util/git.js",
+      ".context/notes.ndjson",
+      "notes.js"
+    ],
+    "toolCalls": {
+      "total": 2,
+      "byTool": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "byCommand": {}
+    },
+    "usage": {
+      "in": 1684,
+      "out": 276,
+      "cacheRead": 1628,
+      "cacheWrite": 3659
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.0156011,
+      "source": "computed"
+    },
+    "turns": 2,
+    "durationMs": 3329,
+    "answer": "`src/session/notes.js`\n`src/util/git.js`\n\n`addNote` in `src/session/notes.js` saves a note to `.context/notes.ndjson`. It tags each note with the current git branch, which it gets from `_currentBranch` using `tryGit`. I didn't open `src/util/git.js`. I listed it because `notes.js` imports `tryGit` from it."
+  },
+  {
+    "repo": "sigmap-src",
+    "task": "h008",
+    "arm": "without",
+    "run": 2,
+    "ok": true,
+    "error": null,
+    "pass": true,
+    "named": [
+      "src/session/notes.js",
+      "gen-context.js",
+      ".context/notes.ndjson",
+      "notes.js",
+      "src/mcp/handlers.js"
+    ],
+    "toolCalls": {
+      "total": 8,
+      "byTool": {
+        "Bash": 2,
+        "Grep": 5,
+        "Read": 1
+      },
+      "byCommand": {
+        "ls": 2
+      }
+    },
+    "usage": {
+      "in": 181,
+      "out": 1211,
+      "cacheRead": 24103,
+      "cacheWrite": 7972
+    },
+    "usageSource": "api",
+    "cacheGaps": 0,
+    "cost": {
+      "usd": 0.03722260000000001,
+      "source": "computed"
+    },
+    "turns": 6,
+    "durationMs": 13396,
+    "answer": "`src/session/notes.js` is the main implementation, and `gen-context.js` holds the CLI command that calls it.\n\n`src/session/notes.js`'s `addNote()` appends a note to `.context/notes.ndjson`. It records the current git branch (from `git rev-parse --abbrev-ref HEAD`), a timestamp and an optional tag.\n\n`gen-context.js` has the `sigmap note \"<text>\"` handler, which calls `addNote`. This file is also a bundle of the `src/` modules, so it contains a copy of `notes.js`.\n\n`src/mcp/handlers.js` reads the notes back through the `read_memory` MCP tool.\n\n`src/session/summary.js` also reads the notes back, for the session handoff summary.\n\nI did not open `src/cli/command-table.js` beyond a search hit. It lists the `note` command.\n\n`gen-context.js`\n`src/session/notes.js`\n`src/mcp/handlers.js`\n`src/session/summary.js`\n`src/cli/command-table.js`\n\nI listed `gen-context.js` first because it is the file that turns `sigmap note` into an `addNote` call. `src/session/notes.js` is the code that does the saving."
+  }
+]
