@@ -269,7 +269,28 @@ Not part of this round: any claim about all repositories (eight chosen ones are 
 5.5 or about change tasks, and any comparison of absolute cost with the API-route runs (Claude Code adds its own system prompt, so only
 within-route ratios are comparable).
 
-**What was run.** Not yet: this section is the plan, committed before the first run. Results go to the results page under "The real hook".
+**What was run.** 348 runs; none failed, none hit a cap, and the hook fired in all 174 SigMap-arm runs and in none of the 174 baseline runs.
+The results, and the rule applied as written, are on the results page under "The real hook".
+
+### A control added after the first result
+
+The first result raised a question the design could not answer. The real hook (Claude Code) and the earlier `prefetch` numbers (the
+Messages API agent, text put in the prompt by the harness) differ in two things at once, the way the text is delivered and the route that
+runs the agent, and the repository-level results did not carry over from one to the other. This control was added after seeing that, and its
+rule is written here before it runs.
+
+**Runs.** `--sigmap-variant prefetch` (the harness puts SigMap's ranking after the question, as in the second round) on Claude Code with the
+logged-in session (`--agent claude --session-auth`), the same eight repositories and 87 questions, Haiku 5.5, 2 repetitions, a fresh
+no-SigMap baseline of its own: 348 runs.
+
+**Decision rule.** Compared pair by pair on the same questions and repetitions (`summarize.mjs --versus prefetch-hook:prefetch`), real cost:
+
+- *The route explains the difference* if harness `prefetch` on Claude Code looks like the hook (per-repository results correlated with the
+  hook's, pooled interval including zero) and unlike its own API-route results.
+- *The delivery explains it* if harness `prefetch` on Claude Code reproduces its API-route per-repository pattern (rank correlation of the
+  eight repositories' effects with the API-route ones at 0.5 or more) while the hook does not.
+- Anything else is reported as unexplained. With eight repositories and two repetitions, only a large difference can be told from noise,
+  and the result will say so.
 
 ## What went wrong along the way
 
@@ -299,6 +320,13 @@ Recorded because a study that hides its errors is not worth reading.
   it is 2,266 (761 for the section and 1,505 for the seven tool definitions). The placebo was sized to the measured figure.
 - **A tool-call drop of about 10% appeared with SigMap present and never called** (the optional skill). Differences of that size in tool
   calls are not evidence that retrieval did anything; the study reads cost and tokens first.
+
+- **A launch with an empty question list.** The first driver for the real-hook run built its question ids with a script that printed the
+  wrong variable, so every batch was refused with "--task-ids needs a value" before any call (nothing ran, nothing was spent). Fixed and
+  relaunched after the design above was committed.
+- **A decision rule with two groups of different sizes.** The real-hook rule asked whether three repositories "stop saving" by whether their
+  pooled interval includes zero; over three repositories that interval is about thirty points wide and nearly always does. The result is
+  reported both by the rule as written and by what the per-repository numbers support.
 
 ## Reproduce it
 
