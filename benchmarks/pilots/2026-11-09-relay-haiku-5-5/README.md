@@ -117,6 +117,31 @@ SigMap rows: real Haiku 5.5 on the logged-in session, 45 questions × 2 repetiti
 - **Different universe.** The study's agent, model and tasks differ from this one, so the table shows how each tool behaved in its own test, not a ranking.
 - **Superseded:** the SigMap rows in the next table, and everywhere above it that quotes the relay runs, came from a different agent (about 10 tool calls a run, against 3 here); use these rows.
 
+#### The later SigMap runs, in the same columns
+
+The table above is the first round (Claude Code, Haiku 5.5, famous frameworks). These rows are the later runs of this pilot, in the study's own columns (`api-summary.mjs --study`): `unfamiliar` is 30 questions about SigMap's own source that a model answers 0 of 30 from memory, `famous` the pilot's 45 questions; Claude Code rows are the logged-in session, API rows the Messages API directly (a much smaller agent). Each against its own baseline. "Saved tokens both times" follows the study's rule: the whole batch and the typical task both fell in both repetitions. Compare with the study's six tools above only as to what each did in its own test.
+
+| SigMap run | what | tokens, whole batch R1 / R2 | tokens, typical task R1 / R2 | cost, whole batch R1 / R2 | cost, typical task R1 / R2 | cases with fewer tokens | saved tokens both times? |
+|---|---|---:|---:|---:|---:|---:|---|
+| claude-haiku-5-5, Claude Code | `prefetch`, famous | -12% / -11% | -11% / -11% | +12% / -14% | +16% / -14% | 49 of 90 | yes |
+| claude-haiku-5-5, Claude Code | `index`, famous | +13% / +21% | +13% / +24% | +4% / +2% | +5% / +3% | 28 of 89 | no |
+| claude-haiku-5-5, Claude Code | `prefetch`, unfamiliar | -43% / -37% | -44% / -43% | -26% / -44% | -23% / -45% | 47 of 60 | yes |
+| claude-haiku-5-5, Claude Code | `index`, unfamiliar | -30% / -45% | -30% / -42% | -29% / -46% | -28% / -44% | 44 of 60 | yes |
+| claude-haiku-4-5, API agent | `index`, unfamiliar | -7% / -54% | -36% / -55% | -16% / -38% | -22% / -33% | 45 of 60 | yes |
+| claude-haiku-4-5, API agent | `prefetch`, unfamiliar | -20% / -30% | -9% / -45% | -16% / -24% | +2% / -26% | 35 of 60 | yes |
+| claude-haiku-4-5, API agent | `index`, famous | -24% / -28% | -20% / -26% | -18% / -22% | -17% / -20% | 60 of 90 | yes |
+| claude-haiku-4-5, API agent | `prefetch`, famous | -45% / -34% | -50% / -45% | -34% / -30% | -34% / -33% | 65 of 90 | yes |
+| claude-haiku-5-5, API agent | `index`, unfamiliar | -25% / -43% | -15% / -31% | -34% / -41% | -33% / -39% | 77 of 120 | yes |
+| claude-haiku-5-5, API agent | `prefetch`, unfamiliar | -71% / -70% | -64% / -64% | -45% / -44% | -41% / -39% | 93 of 120 | yes |
+| claude-haiku-5-5, API agent | `index`, famous | -15% / 0% | -6% / +8% | -35% / -32% | -34% / -31% | 89 of 180 | no |
+| claude-haiku-5-5, API agent | `prefetch`, famous | -36% / -50% | -34% / -40% | -12% / -20% | -11% / -14% | 126 of 180 | yes |
+| claude-sonnet-5-5, API agent | `index`, unfamiliar | -33% / -32% | -38% / -28% | -38% / -37% | -44% / -44% | 40 of 60 | yes |
+| claude-sonnet-5-5, API agent | `prefetch`, unfamiliar | -54% / -45% | -53% / -44% | -33% / -26% | -33% / -26% | 46 of 60 | yes |
+| claude-sonnet-5-5, API agent | `index`, famous | +0% / +8% | +18% / +25% | -35% / -35% | -31% / -35% | 33 of 90 | no |
+| claude-sonnet-5-5, API agent | `prefetch`, famous | -31% / -19% | -18% / -11% | -6% / -10% | +4% / -8% | 53 of 90 | yes |
+
+- **On code the model has not memorised, SigMap cut tokens and cost in both repetitions in every setup and on every model** (the `unfamiliar` rows), which none of the study's six tools did on tokens. On the famous frameworks it does so for `prefetch` on every row, and for `index` only in the direct-API runs of the weaker models; `index` in Claude Code is the one row that goes the wrong way (+13% / +24% tokens).
+- **Against the study's tools:** only Terra (a cheaper model) cut cost by more (typical −62% / −56%), and it did it by changing the price, not the work. SigMap's best rows (−44% / −45% cost) are of the same order as Caveman's and RTK's best repetition and consistent across both repetitions, where theirs flip. Context Mode, the nearest in kind (index and retrieve), cost +78% / +36% in the study; the same kind of tool saved in these runs, but the study graded patches on ten merged changes and this graded naming the file, so the comparison tells you that the sign can differ by task and agent, not why.
 ### The three setups side by side (45 questions × 2 repetitions, 89 paired cases)
 
 Each column is that setup's SigMap arm against its own baseline run in the same invocation: typical task, 95% interval, `~` = the interval includes zero. `session-combined.mjs` prints it.
