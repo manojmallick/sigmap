@@ -60,6 +60,7 @@ export default defineConfig({
           { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
           { text: 'Task benchmark', link: '/guide/task-benchmark' },
           { text: 'Generalization', link: '/guide/generalization' },
+          { text: 'Agent study: results', link: '/guide/agent-study' },
           { text: 'Agent study: protocol', link: '/guide/agent-study-protocol' },
         ],
       },
