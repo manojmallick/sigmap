@@ -36,7 +36,7 @@ const models = process.argv.slice(2).length ? process.argv.slice(2) : ['claude-h
 const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'closed-book-'));
 
 const prompt = (t) => [
-  `You are answering a question about the source code of the open-source project "${PROJECT || t.repo}". You have no tools and no copy of the code: answer from what you already know of the project.`,
+  `You are answering a question about the source code of the open-source project "${t.project || PROJECT || t.repo}". You have no tools and no copy of the code: answer from what you already know of the project.`,
   '',
   `Question: ${t.query}`,
   '',

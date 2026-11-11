@@ -315,7 +315,7 @@ export function makeApiRunner({ apiKey, model, budgetUsd, timeoutMs, arms, prefe
           else if (change && (b.name === 'Edit' || b.name === 'Write' || b.name === 'RunTest')) out = runChangeTool(b.name, b.input, { cwd: arm.cwd });
           else {
             if (b.name === 'Bash') { const w = splitCommand(b.input && b.input.command); const c = w && w[0]; if (c) byCommand[c] = (byCommand[c] || 0) + 1; }
-            out = await runBuiltin(b.name, b.input, { cwd: arm.cwd, withSigmap: withArm, binDir: arm.binDir });
+            out = await runBuiltin(b.name, b.input, { cwd: arm.cwd, withSigmap: withArm && Boolean(arm.binDir), binDir: arm.binDir });
           }
           results.push({ type: 'tool_result', tool_use_id: b.id, content: out.text, ...(out.isError ? { is_error: true } : {}) });
         }

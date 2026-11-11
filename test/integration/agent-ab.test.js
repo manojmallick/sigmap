@@ -907,8 +907,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, skill-shipped\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'skill-shipped']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, placebo, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'placebo', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1056,7 +1056,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, skill-shipped \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, placebo, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1796,6 +1796,38 @@ const treeHash = (dir) => {
       assert.ok(!/hidden|assert\.strictEqual/.test(JSON.stringify(fake.seen.map((s) => s.body))), 'the hidden tests never reach the model');
     } finally { fake.close(); }
     assert.match(runCli(['--dry-run', '--change'], { SIGMAP_XREPO_DATA: d.root }).stderr, /--change needs --agent api/);
+  });
+
+  await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {
+    const { PLACEBO_SECTION } = await import('../../scripts/lib/agent-ab-placebo.mjs');
+    assert.ok(PLACEBO_SECTION.length > 6500 && PLACEBO_SECTION.length < 8500, `${PLACEBO_SECTION.length} characters: sized to what the index setup adds to every turn`);
+    assert.ok(!/sigmap|\.context|gen-context|query_context|mcp/i.test(PLACEBO_SECTION), 'the control must say nothing about SigMap');
+    assert.ok(!/\bsrc\/|\.js\b/.test(PLACEBO_SECTION.replace(/`[^`]*`/g, '')), 'and nothing about a particular repository');
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-placebo-');
+    const without = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'placebo' });
+    const withArm = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'placebo' });
+    assert.strictEqual(withArm.sigmapContext, PLACEBO_SECTION);
+    assert.ok(!withArm.mcpConfig && !withArm.binDir && !without.sigmapContext);
+    assert.ok(!fs.existsSync(path.join(withArm.cwd, 'gen-context.config.json')) && !fs.existsSync(path.join(withArm.cwd, '.context')), 'nothing was generated into the checkout');
+    arms.assertArmHygiene({ without: without.cwd, with: withArm.cwd, label: 'r1' });
+
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: 'placebo' }).ok);
+    const leaked = ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash', 'mcp__sigmap__query_context'], mcpServers: [{ name: 'sigmap', status: 'connected' }] }, 'with', { variant: 'placebo' });
+    assert.ok(!leaked.ok && /placebo variant holds the sigmap MCP server/.test(leaked.problems.join(' ')));
+
+    const fake = await fakeApi(() => textTurn('`src/alpha.js`'));
+    try {
+      const mk = (arm, a) => api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: () => a, baseUrl: fake.url, env: {} })({ task: { repo: 'r1', id: 'x001', query: 'q' }, arm, run: 1, prompt: 'q' });
+      await mk('without', without); await mk('with', withArm);
+      const sys = (i) => fake.seen[i].body.system.map((b) => b.text).join('\n');
+      assert.ok(!sys(0).includes('Working notes') && sys(1).includes('Working notes: finding code'));
+      assert.deepStrictEqual(fake.seen[0].body.tools.map((t) => t.name), fake.seen[1].body.tools.map((t) => t.name), 'the same tools in both arms');
+    } finally { fake.close(); }
+
+    assert.match(runCli(['--dry-run', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).stderr, /placebo puts its text in the system prompt, which only --agent api controls/);
+    assert.strictEqual(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).status, 0);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

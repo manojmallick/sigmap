@@ -16,8 +16,8 @@
 # setup (strategy "index" + the 7-tool core MCP profile), `prefetch` puts SigMap's ranking in the prompt before the first turn.
 #
 # Variables (all optional):
-#   SETS            "unfamiliar famous"         which question sets
-#   VARIANTS        "index prefetch"            which SigMap setups (also: lean, current)
+#   SETS            "unfamiliar famous"         which question sets (also: heldout, with HELDOUT_ROOT=<data root from scripts/build-heldout-set.mjs>)
+#   VARIANTS        "index prefetch"            which SigMap setups (also: lean, current; placebo, API agent only: the size-matched control)
 #   MODEL           claude-haiku-5-5            the model both arms use (claude-sonnet-5-5 costs several times more a run)
 #   RUNS            4                           repetitions per arm per question (4 is the fewest the harness calls a result)
 #   MAX_TOTAL_USD   25                          stop before the next batch once the spend recorded so far passes this
@@ -40,7 +40,8 @@ ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-${BENCH_ANTHROPIC_KEY:-}}
 export ANTHROPIC_API_KEY
 cd "$(dirname "$0")/../.." || exit 1
 HERE=benchmarks/agent-study
-SETS=${SETS:-"unfamiliar famous"}; VARIANTS=${VARIANTS:-"index prefetch"}; MODEL=${MODEL:-claude-haiku-5-5}
+SETS=${SETS:-"unfamiliar famous"};  # also: heldout (needs HELDOUT_ROOT)
+ VARIANTS=${VARIANTS:-"index prefetch"}; MODEL=${MODEL:-claude-haiku-5-5}
 RUNS=${RUNS:-4}; MAX_TOTAL_USD=${MAX_TOTAL_USD:-25}; BUDGET=${BUDGET:-0.25}; OUT=${OUT:-./token-saving-runs}
 AGENT=${AGENT:-claude}; export AGENT
 case "$AGENT" in claude|api) ;; *) echo "AGENT must be claude or api, got: $AGENT" >&2; exit 2 ;; esac
@@ -72,7 +73,8 @@ for set in $SETS; do
       missing=""
       for r in $FAMOUS_REPOS; do [ -e "benchmarks/repos/$r/.git" ] || missing="$missing $r"; done
       if [ -z "$missing" ]; then ok "famous: the 8 pinned checkouts are present"; else bad "famous: missing checkouts:$missing — run: node scripts/fetch-xrepo-repos.mjs --only $(echo $FAMOUS_REPOS | tr ' ' ',')"; fi ;;
-    *) bad "unknown set \"$set\" (unfamiliar, famous)" ;;
+    heldout) ;;  # checked below, once its data root is read
+    *) bad "unknown set \"$set\" (unfamiliar, famous, heldout)" ;;
   esac
 done
 if [ "$problems" -eq 0 ] && [ "${KEY_CHECK:-1}" = "1" ] && [ "$AGENT" = "api" ]; then
@@ -101,11 +103,19 @@ let t = ""; process.stdin.on("data", (d) => { t += d; }).on("end", () => {
     *) bad "the test call to Claude Code returned nothing readable (run: echo ok | $CLAUDE -p --bare --model $MODEL) — fix that before spending anything" ;;
   esac
 fi
-for v in $VARIANTS; do case "$v" in index|prefetch|lean|current) ;; *) bad "variant \"$v\" is not one this script runs with an API key (index, prefetch, lean, current; the skill variants need --session-auth)" ;; esac; done
+for v in $VARIANTS; do case "$v" in index|prefetch|lean|current|placebo) ;; *) bad "variant \"$v\" is not one this script runs with an API key (index, prefetch, lean, current, placebo; the skill variants need --session-auth)" ;; esac; done
 
+# A held-out set is a data root from scripts/build-heldout-set.mjs (HELDOUT_ROOT): one batch per repository, every question in it.
+HELDOUT=""
+case " $SETS " in *" heldout "*)
+  if [ -f "${HELDOUT_ROOT:-/nonexistent}/benchmarks/tasks/retrieval-xrepo.jsonl" ]; then
+    HELDOUT=$(node -e 'const by={};for(const l of require("fs").readFileSync(process.argv[1]+"/benchmarks/tasks/retrieval-xrepo.jsonl","utf8").split("\n").filter(Boolean)){const t=JSON.parse(l);(by[t.repo]=by[t.repo]||[]).push(t.id);}console.log(Object.entries(by).map(([r,ids])=>r+":"+ids.join(",")).join(" "));' "$HELDOUT_ROOT")
+    ok "heldout: $(printf '%s\n' $HELDOUT | wc -l) repositories from $HELDOUT_ROOT"
+  else bad "the heldout set needs HELDOUT_ROOT=<a data root built by scripts/build-heldout-set.mjs>"; fi ;;
+esac
 questions=0; batches=0
 for set in $SETS; do
-  case "$set" in unfamiliar) list=$UNFAMILIAR ;; famous) list=$FAMOUS ;; *) list="" ;; esac
+  case "$set" in unfamiliar) list=$UNFAMILIAR ;; famous) list=$FAMOUS ;; heldout) list=$HELDOUT ;; *) list="" ;; esac
   for spec in $list; do batches=$((batches + 1)); ids=${spec##*:}; n=$(printf '%s\n' "$ids" | tr ',' '\n' | grep -c .); questions=$((questions + n)); done
 done
 nvar=$(printf '%s\n' $VARIANTS | wc -l)
@@ -142,6 +152,9 @@ for set in $SETS; do
       node "$HERE/make-unfamiliar-root.mjs" "$OUT/unfamiliar-root" 30 || { say "could not build the unfamiliar data root"; exit 1; }
     fi
     export SIGMAP_XREPO_DATA="$OUT/unfamiliar-root"
+  elif [ "$set" = "heldout" ]; then
+    list=$HELDOUT
+    export SIGMAP_XREPO_DATA="$HELDOUT_ROOT"
   else
     list=$FAMOUS
     unset SIGMAP_XREPO_DATA

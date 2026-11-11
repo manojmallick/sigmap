@@ -125,6 +125,7 @@ const API_AGENT = AGENT === 'api';
 const CHANGE = has('--change');
 if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
+if (VARIANT === 'placebo' && !API_AGENT) fail('--sigmap-variant placebo puts its text in the system prompt, which only --agent api controls', 2);
 const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
 if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);
 if (SKILL_RUN && !SESSION_AUTH) fail(`--sigmap-variant ${VARIANT} hands SigMap over as skills, and --bare turns skills off: add --session-auth`, 2);
@@ -206,7 +207,9 @@ async function main() {
       prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
     try { assertArmHygiene({ without: prepared[repo.name].without.cwd, with: prepared[repo.name].with.cwd, label: repo.name }); } catch (e) { fail(e.message); }
-    if (SKILL_RUN || VARIANT === 'prefetch') {
+    if (VARIANT === 'placebo') {
+      // nothing of SigMap's to probe: the arm is a checkout and a block of text
+    } else if (SKILL_RUN || VARIANT === 'prefetch') {
       const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
       if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
     } else {

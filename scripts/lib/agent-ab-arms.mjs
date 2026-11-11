@@ -25,6 +25,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
+import { PLACEBO_SECTION } from './agent-ab-placebo.mjs';
 import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS, PREFETCH_HEADER, PREFETCH_MAX_BYTES } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
@@ -181,6 +182,8 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
 
   const prepared = { cwd: dest, cwds: aliases(dest) };
   if (arm === 'without') return prepared;
+  // The control: text in the system prompt and nothing in the checkout, so the arms are identical to everything the agent can search.
+  if (variant === 'placebo') return Object.assign(prepared, { sigmapContext: PLACEBO_SECTION });
 
   const cfg = path.join(dest, 'gen-context.config.json');
   const config = {};

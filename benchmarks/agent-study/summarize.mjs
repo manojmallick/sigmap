@@ -7,6 +7,7 @@
 //   node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails     # a sensitivity cut
 //   node benchmarks/agent-study/summarize.mjs --set change --tasks c04,c05,c06,c09   # only these questions or tasks
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
+//   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
 //
 // data/runs.ndjson has one row per agent run (see README.md for the fields). A series is one invocation of the harness: one route
@@ -27,6 +28,7 @@ const want = { route: val('--route'), model: val('--model'), set: val('--set'), 
 const dropRepos = new Set((val('--exclude-repos', '') || '').split(',').filter(Boolean));
 const onlyTasks = new Set((val('--tasks', '') || '').split(',').filter(Boolean));
 const STUDY = argv.includes('--study');
+const VS_PLACEBO = argv.includes('--vs-placebo');
 
 const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
   .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)));
@@ -60,6 +62,32 @@ const label = (s) => `${s.head.route === 'api' ? 'Messages API' : 'Claude Code'}
 
 const all = series();
 if (!all.length) { console.log('no runs match'); process.exit(0); }
+
+if (VS_PLACEBO) {
+  // For each route, model and question set that has a placebo series: every SigMap setup against no SigMap, the placebo against no SigMap, and
+  // the SigMap setup directly against the placebo (the two SigMap-arm runs of the same question and repetition, from separate invocations).
+  const groups = new Map();
+  for (const s of all) { const k = `${s.head.route}|${s.head.model}|${s.head.set}`; if (!groups.has(k)) groups.set(k, {}); groups.get(k)[s.head.variant] = s; }
+  console.log('| run | comparison | pairs | real cost | total tokens | tool calls | seconds | file found, or tests passed |');
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|');
+  const row = (lab, comp, pairs, a, b) => {
+    const g = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => ({ without: fn(p.base), with: fn(p.arm) })))]));
+    const hit = (xs) => xs.filter((r) => r.pass).length;
+    console.log(`| ${lab} | ${comp} | ${pairs.length} | **${cell(g.cost)}** | ${cell(g.tokens)} | ${cell(g.calls)} | ${cell(g.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
+  };
+  for (const [k, g] of groups) {
+    if (!g.placebo) continue;
+    const head = g.placebo.head; const lab = `${head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${head.model} · ${head.set}`;
+    const own = (sr) => sr.keys.map((x) => ({ arm: sr.m.get(`${x}|with`), base: sr.m.get(`${x}|without`) }));
+    for (const v of Object.keys(g).filter((x) => x !== 'placebo')) row(lab, `\`${v}\` against no SigMap`, own(g[v]));
+    row(lab, '`placebo` against no SigMap', own(g.placebo));
+    for (const v of Object.keys(g).filter((x) => x !== 'placebo')) {
+      const common = g[v].keys.filter((x) => g.placebo.m.has(`${x}|with`));
+      row(lab, `**\`${v}\` against \`placebo\`**`, common.map((x) => ({ arm: g[v].m.get(`${x}|with`), base: g.placebo.m.get(`${x}|with`) })));
+    }
+  }
+  process.exit(0);
+}
 
 if (STUDY) {
   console.log('| run | what | tokens, whole batch R1 / R2 | tokens, typical task R1 / R2 | cost, whole batch R1 / R2 | cost, typical task R1 / R2 | cases with fewer tokens | saved tokens both times? |');
