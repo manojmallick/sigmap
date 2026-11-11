@@ -3248,9 +3248,9 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'session log --ci', desc: 'Append an agent:"ci" record for this pipeline run (usage is unavailable — a CI job has no transcript)' },
     { argv: 'session summary', desc: 'Warm-start summary of the last session — deterministic, no LLM, ≤400 tokens (--json; `summary --last` is the same call)' },
     { argv: 'session compact', desc: 'Fold sessions older than session.retention.days into monthly rollups (--json)' },
-    { argv: 'hooks install claude', desc: 'Wire session capture into Claude Code (--stop adds the per-turn hook; --shared writes the committed settings file)' },
+    { argv: 'hooks install claude', desc: 'Wire session capture into Claude Code (--stop adds the per-turn hook; --prefetch adds the UserPromptSubmit hook that hands the model a ranking of files before each prompt; --shared writes the committed settings file)' },
     { argv: 'hooks status', desc: 'Which session hooks are wired, and whether the script they run still exists (--json)' },
-    { argv: 'hooks remove claude', desc: 'Remove SigMap\'s session hooks from Claude Code settings' },
+    { argv: 'hooks remove claude', desc: 'Remove SigMap\'s session hooks from Claude Code settings (--prefetch removes only the prefetch hook)' },
     { argv: 'status', desc: 'Show repo state — branch, dirty files, index freshness, notes' },
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
@@ -3631,7 +3631,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       autoRegister: true,
       // Which tools the server advertises and answers (#878): "all" (every shipped
       // tool; also what an absent key means), "core" (the retrieval + grounding loop,
-      // about a third of the definition tokens) or an array of tool names.
+      // about a third of the definition tokens), "locate" (query_context and get_lines
+      // only, for where-is-it questions) or an array of tool names.
       tools: 'all',
     },
 
@@ -8363,10 +8364,10 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       const shown = profile.label(resolved, captureOn);
       if (resolved.notes.length > 0) {
         add('mcp-tools', 'MCP tool profile', 'warn', `${resolved.notes.join('; ')} · ${shown}`,
-          'set "mcp.tools" in gen-context.config.json to "all", "core" or a list of tool names (inside an "mcp" object)');
+          'set "mcp.tools" in gen-context.config.json to "all", "core", "locate" or a list of tool names (inside an "mcp" object)');
       } else if (resolved.profile === 'all') {
         add('mcp-tools', 'MCP tool profile', 'ok',
-          `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens`);
+          `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens; "locate" ${profile.LOCATE.length} tools, ~${resolved.locateTokens.toLocaleString('en-US')} tokens (where-is-it questions only)`);
       } else {
         add('mcp-tools', 'MCP tool profile', 'ok', shown);
       }
@@ -29829,6 +29830,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
    *
    *   "all"      every shipped tool — the default, and what an absent key means
    *   "core"     the retrieval + grounding loop only (CORE below)
+   *   "locate"   the two tools a "where is it?" question uses (LOCATE below)
    *   [names]    exactly those tools
    *
    * One function resolves it for the server and for `sigmap doctor`, so the tool
@@ -29861,6 +29863,15 @@ __factories["./src/mcp/profile"] = function(module, exports) {
     'verify_suggestion',
   ]);
 
+  /**
+   * "Where is it implemented?" needs a ranking and the lines it points at, and nothing else. In the agent study
+   * (docs-vp/guide/agent-study) agents given the seven CORE tools called only these two, 0.46 and 0.30 times a run, and
+   * the other five were about 860 of the 1,197 tokens of definitions every turn paid for. This is a profile for locate
+   * questions: it deliberately drops the impact, callee and verification tools that editing and checking need, so it is
+   * opt-in and never the default.
+   */
+  const LOCATE = Object.freeze(['query_context', 'get_lines']);
+
   const MAX_LISTED = 5;
 
   /** Estimated tokens for a tool list as a client receives it (chars/4, as everywhere in SigMap). */
@@ -29878,8 +29889,8 @@ __factories["./src/mcp/profile"] = function(module, exports) {
    *
    * @param {object} config  a loaded SigMap config; only `config.mcp` is read
    * @param {object[]} [tools]  the tools on offer (tests pass a subset); defaults to the shipped TOOLS
-   * @returns {{ profile: 'all'|'core'|'custom', requested: *, tools: object[], names: string[],
-   *             total: number, tokens: number, allTokens: number, coreTokens: number, notes: string[] }}
+   * @returns {{ profile: 'all'|'core'|'locate'|'custom', requested: *, tools: object[], names: string[],
+   *             total: number, tokens: number, allTokens: number, coreTokens: number, locateTokens: number, notes: string[] }}
    */
   function resolveProfile(config, tools = TOOLS) {
     const block = config ? config.mcp : undefined;
@@ -29912,8 +29923,11 @@ __factories["./src/mcp/profile"] = function(module, exports) {
       if (v === 'core') {
         profile = 'core';
         selected = tools.filter((t) => CORE.includes(t.name));
+      } else if (v === 'locate') {
+        profile = 'locate';
+        selected = tools.filter((t) => LOCATE.includes(t.name));
       } else if (v !== 'all') {
-        fallBack(`mcp.tools is "${requested}"; expected "all", "core" or a list of tool names`);
+        fallBack(`mcp.tools is "${requested}"; expected "all", "core", "locate" or a list of tool names`);
       }
     } else if (Array.isArray(requested)) {
       const wanted = new Set();
@@ -29936,7 +29950,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
         selected = tools.filter((t) => wanted.has(t.name));
       }
     } else {
-      fallBack(`mcp.tools must be "all", "core" or a list of tool names (got ${JSON.stringify(requested)})`);
+      fallBack(`mcp.tools must be "all", "core", "locate" or a list of tool names (got ${JSON.stringify(requested)})`);
     }
 
     return {
@@ -29948,6 +29962,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
       tokens: definitionTokens(selected),
       allTokens: definitionTokens(tools),
       coreTokens: definitionTokens(tools.filter((t) => CORE.includes(t.name))),
+      locateTokens: definitionTokens(tools.filter((t) => LOCATE.includes(t.name))),
       notes,
     };
   }
@@ -30000,7 +30015,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
     return `SigMap serves code signatures for the working directory. ${how}`;
   }
 
-  module.exports = { CORE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
+  module.exports = { CORE, LOCATE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
   
 };
 
@@ -35143,7 +35158,8 @@ __factories["./src/session/capture"] = function(module, exports) {
   const { parseTranscript } = __require('./src/session/claude-transcript');
   const { tryGit } = __require('./src/util/git');
 
-  const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
+  // UserPromptSubmit is the opt-in prefetch hook (src/session/prefetch.js); the other three capture a session.
+  const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd', 'UserPromptSubmit'];
 
   function _branch(cwd) {
     return store.cleanStr(tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }), 120);
@@ -35356,6 +35372,15 @@ __factories["./src/session/capture"] = function(module, exports) {
       out.id = id;
       const env = opts.env || process.env;
       const config = opts.config || {};
+
+      // The prefetch hook records nothing about the session: it answers one prompt with a ranking, or with nothing.
+      if (event === 'UserPromptSubmit') {
+        _attempt(out, 'prefetch', () => {
+          const r = __require('./src/session/prefetch').prefetch(payload, cwd, { script: opts.script, env, now: opts.now, maxBytes: opts.maxBytes, timeoutMs: opts.timeoutMs });
+          if (r.stdout) { out.stdout = r.stdout; out.actions.push('prefetch'); } else out.actions.push(`skip: ${r.skipped}`);
+        });
+        return out;
+      }
 
       if (event === 'SessionStart') {
         _attempt(out, 'start', () => {
@@ -35632,7 +35657,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
    * file that is not valid JSON is refused, not overwritten.
    *
    * An entry is SigMap's when its command has the shape SigMap writes:
-   * `node <entry> session hook <SessionStart|Stop|SessionEnd>`.
+   * `node <entry> session hook <SessionStart|Stop|SessionEnd|UserPromptSubmit>`.
    *
    * Zero dependencies.
    */
@@ -35641,7 +35666,8 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
   const path = require('path');
 
   const EVENTS = ['SessionStart', 'SessionEnd'];
-  const OPTIONAL_EVENTS = ['Stop'];
+  // Stop is the per-turn capture hook (--stop); UserPromptSubmit is the prefetch hook (--prefetch, src/session/prefetch.js).
+  const OPTIONAL_EVENTS = ['Stop', 'UserPromptSubmit'];
   // Documented SessionStart sources; the hook is useful on all of them.
   const START_MATCHER = 'startup|resume|clear|compact';
   // Seconds. The handler bounds its own work well inside this; it is the host's backstop.
@@ -35649,7 +35675,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   // The script path token: single-quoted (what we write; an embedded quote is `'\''`),
   // double-quoted, or bare.
-  const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd)\s*$/;
+  const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd|UserPromptSubmit)\s*$/;
 
   /**
    * POSIX single-quoting: nothing inside is expanded by the shell, so an install
@@ -35714,7 +35740,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
    * Add (or bring up to date) SigMap's hooks.
    * @param {string} cwd
    * @param {string} scriptPath entry script the hooks should run
-   * @param {{ stop?: boolean, shared?: boolean }} [opts]
+   * @param {{ stop?: boolean, prefetch?: boolean, shared?: boolean }} [opts]
    * @returns {{ path: string, changes: Array<{event:string, action:'added'|'updated'|'unchanged'}>, error?: string }}
    */
   function installClaudeHooks(cwd, scriptPath, opts = {}) {
@@ -35723,7 +35749,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
     if (read.error) return { path: file, changes: [], error: read.error };
     const settings = read.settings;
     if (!settings.hooks) settings.hooks = {};
-    const events = opts.stop ? EVENTS.concat(OPTIONAL_EVENTS) : EVENTS;
+    const events = EVENTS.concat(opts.stop ? ['Stop'] : [], opts.prefetch ? ['UserPromptSubmit'] : []);
     const changes = [];
     for (const event of events) {
       const want = hookCommand(scriptPath, event);
@@ -35751,9 +35777,12 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   /**
    * Remove SigMap's hooks from both settings files, pruning only what becomes empty.
+   * @param {string} cwd
+   * @param {{ events?: string[] }} [opts] only the hooks of these events (default: all of SigMap's)
    * @returns {{ files: Array<{ path: string, removed: number }>, error?: string }}
    */
-  function removeClaudeHooks(cwd) {
+  function removeClaudeHooks(cwd, opts = {}) {
+    const only = Array.isArray(opts.events) && opts.events.length ? new Set(opts.events) : null;
     const files = [];
     for (const shared of [false, true]) {
       const file = targetFile(cwd, shared);
@@ -35764,7 +35793,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
       let removed = 0;
       for (const event of Object.keys(settings.hooks)) {
         const groups = settings.hooks[event];
-        if (!Array.isArray(groups)) continue;
+        if (!Array.isArray(groups) || (only && !only.has(event))) continue;
         for (const group of groups) {
           if (!group || !Array.isArray(group.hooks)) continue;
           const before = group.hooks.length;
@@ -35785,7 +35814,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   /**
    * What is wired, for `hooks status` and `doctor`.
-   * @returns {{ wired: boolean, events: string[], files: object[], missingScript: string[] }}
+   * @returns {{ wired: boolean, prefetch: boolean, events: string[], files: object[], missingScript: string[] }}
    */
   function inspectClaudeHooks(cwd) {
     const files = [];
@@ -35809,6 +35838,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
     }
     return {
       wired: events.has('SessionEnd') && events.has('SessionStart'),
+      prefetch: events.has('UserPromptSubmit'),
       events: [...events], files, missingScript: [...new Set(missingScript)],
     };
   }
@@ -36258,6 +36288,182 @@ __factories["./src/session/notes"] = function(module, exports) {
   }
 
   module.exports = { notesPath, addNote, readNotes, formatNotes, clearNotes };
+  
+};
+
+// ── ./src/session/prefetch ──
+__factories["./src/session/prefetch"] = function(module, exports) {
+  
+  /**
+   * The prefetch hook (`sigmap hooks install claude --prefetch`).
+   *
+   * On every prompt Claude Code is about to send (the `UserPromptSubmit` hook), SigMap ranks the repository's files against the
+   * prompt from its offline index and returns the top five, with their signatures and `:start-end` line anchors, as additional
+   * context. The model starts the turn already holding a list of leads instead of having to ask for one. It is what `sigmap ask`
+   * prints and writes to `.context/query-context.md`, run for you: this module calls the CLI, so there is one ranking implementation.
+   *
+   * Measured in the agent study (docs-vp/guide/agent-study): over twenty repositories with Haiku 5.5, `prefetch` took total
+   * tokens −27%, tool calls −44% and wall-clock time −18%, and real cost −8% [−11%, −4%] over the questions — but it cost more on
+   * five of the twenty repositories (up to +31%), and found the file in 798 runs of 888 against 809 without it. It saves where the
+   * unaided agent would have spent the most on searching, and is a small cost elsewhere; it is opt-in.
+   *
+   * What it does NOT do, and why:
+   *   - It does not inject on every prompt. A prompt is skipped when it is a slash command, a shell escape or a note, has fewer than
+   *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
+   *     and write nothing but its own state).
+   *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it
+   *     adds nothing: the earlier block is already in the conversation, and a long session would otherwise carry the same text on every turn.
+   *   - It is bounded. The block is capped at 8 KiB (whole file sections, best-ranked first), the work at 8 seconds, and every failure
+   *     is silent: no output, exit 0. A hook must never fail or stall someone's session.
+   *
+   * `SIGMAP_PREFETCH=0` in the environment turns it off without touching the settings file.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const { spawnSync } = require('child_process');
+
+  const EVENT = 'UserPromptSubmit';
+  const MIN_WORDS = 4;
+  const MAX_QUERY_CHARS = 2000;
+  const MAX_BYTES = 8 * 1024;
+  const TIMEOUT_MS = 8000;
+  const STATE_FILE = 'prefetch-state.json';
+  const STATE_KEEP = 20;
+  const STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+  /**
+   * What the block says above the ranking. It is not an instruction to do anything extra: the agent study found that "ask SigMap
+   * first, then confirm" becomes a step added to the agent's own search. This only says what the list is and how far to trust it.
+   * (scripts/lib/agent-ab.mjs holds the same text for the benchmark; a test keeps the two equal.)
+   */
+  const HEADER = [
+    '## Files SigMap ranked for this question',
+    'Before you started, SigMap ranked this repository\'s files against the question from its offline index (no model call). These are leads, not an answer: the right file is often but not always among them. Each signature carries a `:start-end` line anchor you can Read directly. If none fits, search as you normally would.',
+  ].join('\n');
+
+  /**
+   * Whether a prompt is worth a ranking.
+   * @param {*} prompt
+   * @returns {{ ok: boolean, reason: string|null, query?: string }}
+   */
+  function screen(prompt) {
+    if (typeof prompt !== 'string') return { ok: false, reason: 'no prompt' };
+    const text = prompt.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim();
+    if (!text) return { ok: false, reason: 'empty prompt' };
+    if (/^[/!#]/.test(text)) return { ok: false, reason: 'a slash command, shell escape or note' };
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < MIN_WORDS) return { ok: false, reason: `fewer than ${MIN_WORDS} words` };
+    // One line, bounded; a leading dash would be read by `ask` as a flag.
+    let query = text.replace(/\s+/g, ' ');
+    if (query.length > MAX_QUERY_CHARS) query = query.slice(0, MAX_QUERY_CHARS).replace(/\s+\S*$/, '');
+    query = query.replace(/^[-\s]+/, '');
+    return query ? { ok: true, reason: null, query } : { ok: false, reason: 'empty prompt' };
+  }
+
+  /** The file paths of the ranking `sigmap ask` prints: `1  path/to/file.js   8.290  299 tok`. */
+  function rankedFiles(ranking) {
+    const out = [];
+    for (const line of String(ranking).split('\n')) {
+      const m = /^\s*\d+\s+(\S+)\s+-?[\d.]+\s+\d+\s*tok\b/.exec(line);
+      if (m) out.push(m[1]);
+    }
+    return out;
+  }
+
+  /** header + ranking + signature sections, capped: whole file sections, best-ranked first, and a note saying so. */
+  function compose(ranking, body, maxBytes = MAX_BYTES) {
+    const head = `${HEADER}\n\n${ranking}\n`;
+    const room = maxBytes - Buffer.byteLength(head) - 2;
+    let text = body;
+    if (Buffer.byteLength(text) > room) {
+      const sections = text.split(/\n(?=## )/);
+      let kept = '';
+      for (const s of sections) {
+        if (Buffer.byteLength(kept) + Buffer.byteLength(s) + 1 > room - 60) break;
+        kept += (kept ? '\n' : '') + s;
+      }
+      text = `${kept}\n\n(signatures of the lower-ranked files left out to keep this short)`.trim();
+    }
+    return text ? `${head}\n${text}\n` : head;
+  }
+
+  function _readState(file) {
+    try {
+      const s = JSON.parse(fs.readFileSync(file, 'utf8'));
+      return s && typeof s === 'object' && s.sessions && typeof s.sessions === 'object' ? s : { sessions: {} };
+    } catch (_) { return { sessions: {} }; }
+  }
+
+  function _writeState(file, state, now) {
+    try {
+      const entries = Object.entries(state.sessions)
+        .filter(([, v]) => v && now - (v.at || 0) < STATE_MAX_AGE_MS)
+        .sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, STATE_KEEP);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      const tmp = `${file}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify({ sessions: Object.fromEntries(entries) }), 'utf8');
+      fs.renameSync(tmp, file);
+    } catch (_) { /* a state file that cannot be written only means a repeat may be injected */ }
+  }
+
+  /**
+   * Build the hook's output for one prompt.
+   *
+   * @param {object} payload the UserPromptSubmit payload (`prompt`, `session_id`)
+   * @param {string} cwd the project root
+   * @param {{ script?: string, env?: object, now?: number, maxBytes?: number, timeoutMs?: number }} [opts]
+   *   `script` is the SigMap entry to run `ask` with (default: the one running now)
+   * @returns {{ stdout: string|null, skipped: string|null, files: string[], bytes: number }}
+   */
+  function prefetch(payload, cwd, opts = {}) {
+    const none = (skipped) => ({ stdout: null, skipped, files: [], bytes: 0 });
+    try {
+      const env = opts.env || process.env;
+      if (String(env.SIGMAP_PREFETCH).trim() === '0') return none('SIGMAP_PREFETCH=0');
+      const s = screen(payload && payload.prompt);
+      if (!s.ok) return none(s.reason);
+      const indexFile = __require('./src/retrieval/sig-index-store').indexPath(cwd);
+      if (!fs.existsSync(indexFile)) return none('no index (run sigmap first)');
+
+      const script = opts.script || process.argv[1];
+      if (!script) return none('no sigmap entry to run');
+      const outFile = path.join(cwd, '.context', 'query-context.md');
+      fs.rmSync(outFile, { force: true }); // never read a file an earlier prompt left behind
+      const r = spawnSync(process.execPath, [script, 'ask', s.query], {
+        cwd, encoding: 'utf8', timeout: opts.timeoutMs || TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024,
+        env: { ...env, SIGMAP_NO_UPDATE_CHECK: '1', NO_COLOR: '1' },
+      });
+      if (r.error || r.status !== 0) return none('ask failed');
+      const ranking = String(r.stdout || '').trim();
+      const files = rankedFiles(ranking);
+      if (!ranking || files.length === 0) return none('nothing ranked');
+
+      // The same files as the last block injected in this session: it is already in the conversation.
+      const now = opts.now || Date.now();
+      const sid = payload && typeof payload.session_id === 'string' ? payload.session_id : '';
+      const sig = crypto.createHash('sha1').update(files.join('\n')).digest('hex');
+      const stateFile = path.join(cwd, '.context', STATE_FILE);
+      const state = sid ? _readState(stateFile) : { sessions: {} };
+      if (sid && state.sessions[sid] && state.sessions[sid].sig === sig) return { ...none('same files as the last prompt'), files };
+
+      let body = '';
+      try { body = fs.readFileSync(outFile, 'utf8').replace(/^# SigMap Query Context\n(?:Generated: .*\n)?/, '').trim(); } catch (_) { body = ''; }
+      const block = compose(ranking, body, opts.maxBytes || MAX_BYTES);
+      if (sid) { state.sessions[sid] = { sig, at: now }; _writeState(stateFile, state, now); }
+      return {
+        stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: EVENT, additionalContext: block } }),
+        skipped: null, files, bytes: Buffer.byteLength(block),
+      };
+    } catch (e) {
+      return none(`error: ${e && e.message ? e.message : e}`);
+    }
+  }
+
+  module.exports = { EVENT, HEADER, MIN_WORDS, MAX_BYTES, TIMEOUT_MS, screen, rankedFiles, compose, prefetch };
   
 };
 
@@ -49439,20 +49645,22 @@ function main() {
       const st = hi.inspectClaudeHooks(cwd);
       if (jsonOut) { writeAll(1, JSON.stringify(st) + '\n'); process.exit(0); }
       console.log(st.wired ? '[sigmap] Claude Code session hooks: wired' : '[sigmap] Claude Code session hooks: not wired (install: sigmap hooks install claude)');
+      console.log(st.prefetch ? '[sigmap] Claude Code prefetch hook (ranking before each prompt): wired' : '[sigmap] Claude Code prefetch hook (ranking before each prompt): not wired (install: sigmap hooks install claude --prefetch)');
       for (const f of st.files) console.log(`  ${rel(f.path)}  ${f.error ? 'unreadable: ' + f.error : f.events.join(', ')}`);
       for (const s of st.missingScript) console.log(`  ⚠ a hook runs ${s}, which no longer exists — re-run: sigmap hooks install claude`);
       process.exit(0);
     }
     if ((sub === 'install' || sub === 'remove') && args[2] === 'claude') {
       if (sub === 'remove') {
-        const res = hi.removeClaudeHooks(cwd);
+        // `--prefetch` removes only the prefetch hook and leaves session capture wired.
+        const res = hi.removeClaudeHooks(cwd, args.includes('--prefetch') ? { events: ['UserPromptSubmit'] } : {});
         if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
         if (jsonOut) writeAll(1, JSON.stringify(res) + '\n');
-        else if (res.files.length === 0) console.log('[sigmap] no SigMap session hooks to remove');
+        else if (res.files.length === 0) console.log(args.includes('--prefetch') ? '[sigmap] no SigMap prefetch hook to remove' : '[sigmap] no SigMap session hooks to remove');
         else for (const f of res.files) console.log(`[sigmap] removed ${f.removed} hook(s) from ${rel(f.path)}`);
         process.exit(0);
       }
-      const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), shared: args.includes('--shared') });
+      const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), prefetch: args.includes('--prefetch'), shared: args.includes('--shared') });
       if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
       if (jsonOut) { writeAll(1, JSON.stringify(res) + '\n'); process.exit(0); }
       console.log(`[sigmap] Claude Code hooks → ${rel(res.path)}`);
@@ -49460,10 +49668,11 @@ function main() {
       if (/[\\/]_npx[\\/]/.test(path.resolve(scriptPath))) {
         console.warn('[sigmap] ⚠ this ran from an npx cache, which is temporary — the hooks would point at a path that disappears. Install sigmap (global or devDependency) and re-run.');
       }
+      if (args.includes('--prefetch')) console.log('  Prefetch: each substantive prompt gets SigMap\'s ranking of the repository\'s files as extra context (not slash commands, not prompts under four words, not a repeat of the last block). It needs an index (run sigmap first). Turn it off with SIGMAP_PREFETCH=0 or: sigmap hooks remove claude --prefetch');
       console.log('  Restart Claude Code sessions to load them. Each hook exits 0 whatever happens.');
       process.exit(0);
     }
-    console.error('[sigmap] usage: sigmap hooks install claude [--stop] [--shared] | hooks status | hooks remove claude');
+    console.error('[sigmap] usage: sigmap hooks install claude [--stop] [--prefetch] [--shared] | hooks status | hooks remove claude [--prefetch]');
     process.exit(1);
   }
 

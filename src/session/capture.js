@@ -25,7 +25,8 @@ const store = require('./store');
 const { parseTranscript } = require('./claude-transcript');
 const { tryGit } = require('../util/git');
 
-const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
+// UserPromptSubmit is the opt-in prefetch hook (src/session/prefetch.js); the other three capture a session.
+const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd', 'UserPromptSubmit'];
 
 function _branch(cwd) {
   return store.cleanStr(tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }), 120);
@@ -238,6 +239,15 @@ function handleHook(event, payload, cwd, opts = {}) {
     out.id = id;
     const env = opts.env || process.env;
     const config = opts.config || {};
+
+    // The prefetch hook records nothing about the session: it answers one prompt with a ranking, or with nothing.
+    if (event === 'UserPromptSubmit') {
+      _attempt(out, 'prefetch', () => {
+        const r = require('./prefetch').prefetch(payload, cwd, { script: opts.script, env, now: opts.now, maxBytes: opts.maxBytes, timeoutMs: opts.timeoutMs });
+        if (r.stdout) { out.stdout = r.stdout; out.actions.push('prefetch'); } else out.actions.push(`skip: ${r.skipped}`);
+      });
+      return out;
+    }
 
     if (event === 'SessionStart') {
       _attempt(out, 'start', () => {

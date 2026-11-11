@@ -191,8 +191,9 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   // The MCP server reads its tool profile from the config in the directory it runs in, so the
   // lean arm's 7-tool profile is set here and nowhere else. The index it answers from is unchanged.
   if (variant === 'lean' || variant === 'index') config.mcp = { tools: 'core' };
-  // `locate` is `index` with the tool list cut to the two tools a locate question uses (a setting SigMap already has: a list of tool names).
-  if (variant === 'locate') config.mcp = { tools: ['query_context', 'get_lines'] };
+  // `locate` is `index` with the `locate` MCP profile: the two tools a locate question uses. (The study's runs wrote the same two names as a list,
+  // before the named profile existed; the server advertises the identical tools either way.)
+  if (variant === 'locate') config.mcp = { tools: 'locate' };
   // `index` is the docs' own setup for an agent that calls the tools: an always-on map instead of a
   // signature dump. The index the tools answer from is written before the strategy split and is
   // byte-identical (retrieval is the same under every strategy; checked on the pilot's questions).

@@ -60,8 +60,18 @@ npx sigmap --adapter claude      # builds .context/sig-index.json and writes a s
 ```
 
 Register the MCP server with your agent (`npx -y sigmap --mcp`; see [MCP](/guide/mcp)). With the `core` profile the agent sees seven
-tools instead of twenty-two. If your agent can run a command before the first turn, there is a second route that needs no tools at all:
-run `sigmap ask "<the question>"` and put its output after the question. The study calls that `prefetch`.
+tools instead of twenty-two.
+
+Two things the study led to are now in SigMap, both opt-in:
+
+- **`"mcp": { "tools": "locate" }`** advertises only `query_context` and `get_lines`, the two tools agents used. It cuts the tool definitions
+  from 1,505 tokens to 426 on every turn and was cheaper than `core` on the same questions (−4% for Haiku 5.5 over 887 paired runs, −10% for
+  Sonnet 5.5 over 110). Use it when you ask where code is; keep `core` when the agent also changes and checks code, because `locate` drops
+  the impact, callee and verification tools and the study did not test those. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
+- **`sigmap hooks install claude --prefetch`** is the route that needs no tools at all. A Claude Code `UserPromptSubmit` hook runs
+  `sigmap ask` on each substantive prompt and hands the model the ranking as context before the turn starts. The study calls this
+  `prefetch`. It skips slash commands and prompts under four words, never repeats a block already in the conversation, and caps the block
+  at 8 KiB. See [the prefetch hook](/guide/cli#the-prefetch-hook) for what it does and does not do.
 
 **What the model carries.** With `strategy: "index"` the `CLAUDE.md` section is a map of about 0.8k tokens (761 on the API's
 token counter): the modules and how many files and signatures each holds, the entry points, and how to ask. It contains no signatures.
@@ -224,8 +234,8 @@ Five repositories could not say how often SigMap saves, so the rule that chose t
 (`scripts/select-heldout-repos.mjs`, `build-heldout-set.mjs`; one more, `emilk/egui_plot`, was refused by the harness's own check that a
 copy is clean at its pinned commit, before any model call, and is not in the set). Twenty repositories in eight languages and 222 questions
 taken from their merged changes, Haiku 5.5, four repetitions, `index`, `prefetch` and `locate` each against its own no-SigMap baseline.
-`locate` is `index` with the tool list cut from seven to the two tools agents actually called, which drops about 860 of the 1,197 tokens of
-tool definitions.
+`locate` is `index` with the tool list cut from seven to the two tools agents actually called, which takes the tool definitions from 1,505 tokens
+to 426 (marginal, on the API's token counter), 1,079 fewer on every turn.
 
 The bar was written first (see the protocol): the pooled estimate, resampling repositories, entirely below zero; at least half of the
 repositories saving and at most 15% costing more; the file found to within two points of the baseline.

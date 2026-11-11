@@ -182,7 +182,7 @@ Sonnet 5.5 with 2 (`prefetch` was left out there to keep the spend down). The sa
 ## Second round: more repositories, and a smaller tool list
 
 The held-out result (five repositories, one of which carried the saving) leaves the question open at the level that matters: **across
-repositories, how often does SigMap save?** And it showed where the cost sits: `index` adds 2,266 tokens to every turn, 1,197 of them tool
+repositories, how often does SigMap save?** And it showed where the cost sits: `index` adds 2,266 tokens to every turn, 1,505 of them tool
 definitions, while agents called only two of the seven tools. Both are tested next, with the rules written before any run.
 
 ### Experiment A: about twenty repositories
@@ -205,9 +205,9 @@ points over all runs. Anything short of that is reported as what it is, with the
 
 ### Experiment B: `locate`, a two-tool profile
 
-`--sigmap-variant locate` is `index` with the tool list cut to `query_context` and `get_lines` (`mcp.tools: ["query_context",
-"get_lines"]`, a setting that already exists), the two tools the agents used. Same section, same index. It drops about 860 of the 1,197
-tokens of tool definitions. It is a probe for locate questions only: the tools it drops (`get_impact`, `verify_suggestion` and others) are
+`--sigmap-variant locate` is `index` with the tool list cut to `query_context` and `get_lines` (the runs wrote `mcp.tools: ["query_context",
+"get_lines"]`; the named profile `"locate"` added afterwards advertises the same two tools), the two tools the agents used. Same section, same index. It takes the tool definitions from 1,505 tokens to
+426, 1,079 fewer on every turn. It is a probe for locate questions only: the tools it drops (`get_impact`, `verify_suggestion` and others) are
 for editing and checking, which these questions do not exercise, so a saving here says nothing about their value.
 
 **Runs.** On the five repositories of the first round (existing `index` runs are the comparison): Haiku 5.5 with 4 repetitions and

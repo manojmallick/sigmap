@@ -1838,7 +1838,7 @@ const treeHash = (dir) => {
     const cfg = (a) => JSON.parse(fs.readFileSync(path.join(a.cwd, 'gen-context.config.json'), 'utf8'));
     assert.strictEqual(cfg(idx).strategy, 'index');
     assert.strictEqual(cfg(loc).strategy, 'index');
-    assert.deepStrictEqual(cfg(loc).mcp, { tools: ['query_context', 'get_lines'] });
+    assert.deepStrictEqual(cfg(loc).mcp, { tools: 'locate' });
     assert.deepStrictEqual(cfg(idx).mcp, { tools: 'core' });
     assert.strictEqual(loc.sigmapContext, idx.sigmapContext, 'the same section');
     assert.ok(loc.mcpConfig && loc.binDir);
