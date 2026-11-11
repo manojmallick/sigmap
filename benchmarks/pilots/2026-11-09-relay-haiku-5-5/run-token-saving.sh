@@ -2,9 +2,11 @@
 # Measure what SigMap saves, with your own Anthropic API key, on your own machine.
 #
 #   export ANTHROPIC_API_KEY=...          # in your shell only: never in a file, a chat or a commit
+#                                         # (a cloud session reads BENCH_ANTHROPIC_KEY instead, so the session's own login is not switched to this key)
 #   bash benchmarks/pilots/2026-11-09-relay-haiku-5-5/run-token-saving.sh           # checks + plan + cost ceiling; starts NOTHING
 #   GO=1 bash benchmarks/pilots/2026-11-09-relay-haiku-5-5/run-token-saving.sh      # runs it
 #
+# One tiny test call (about $0.002) runs with the checks unless KEY_CHECK=0; the batches start only with GO=1.
 # It runs the agent A/B (scripts/run-agent-ab.mjs: the same questions with and without SigMap, in clean copies of pinned
 # repositories, Claude Code under --bare) on two sets of questions and prints one report per set:
 #   unfamiliar   30 labelled questions about THIS repository's source, which a model has not memorised (closed-book.mjs: 0 of 30
@@ -21,12 +23,17 @@
 #   MAX_TOTAL_USD   25                          stop before the next batch once the spend recorded so far passes this
 #   BUDGET          0.25                        the agent's own cap for ONE run, in USD
 #   OUT             ./token-saving-runs         where reports, raw records and the unfamiliar data root go
+#   KEY_CHECK       1                           make one tiny Claude Code call with the key first (about $0.002): a key that plain API
+#                                               calls accept can still be refused for Claude Code requests, and it is better to know now
 #   CLAUDE_BIN                                  another claude executable (the tests use a fake one)
 #
 # It is resumable: a batch whose raw.json exists is skipped, a batch that fails records nothing, so rerunning carries on.
 # Spend so far is read from the saved records (the agent's own total_cost_usd per run). Haiku 5.5 measured about $0.003 a run
 # on the session login; under an API key and --bare the prompt prefix is smaller, so expect that order of size, not that figure.
 set -u
+# A cloud session keeps its own login in ANTHROPIC_API_KEY's place, so the benchmark key is given under another name there.
+ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-${BENCH_ANTHROPIC_KEY:-}}
+export ANTHROPIC_API_KEY
 cd "$(dirname "$0")/../../.." || exit 1
 HERE=benchmarks/pilots/2026-11-09-relay-haiku-5-5
 SETS=${SETS:-"unfamiliar famous"}; VARIANTS=${VARIANTS:-"index prefetch"}; MODEL=${MODEL:-claude-haiku-5-5}
@@ -57,6 +64,22 @@ for set in $SETS; do
     *) bad "unknown set \"$set\" (unfamiliar, famous)" ;;
   esac
 done
+if [ "$problems" -eq 0 ] && [ "${KEY_CHECK:-1}" = "1" ]; then
+  probe_dir=$(mktemp -d)
+  verdict=$(cd "$probe_dir" && printf 'Reply with the single word: ok' | "$CLAUDE" -p --bare --output-format json --no-session-persistence --model "$MODEL" --tools "" --permission-mode dontAsk --max-budget-usd 0.05 --strict-mcp-config 2>/dev/null | node -e '
+let t = ""; process.stdin.on("data", (d) => { t += d; }).on("end", () => {
+  let r = null;
+  for (const l of t.split("\n")) { try { const o = JSON.parse(l); if (o && o.type === "result") r = o; else if (o && !o.type && "is_error" in o) r = o; } catch (_) { /* not json */ } }
+  if (!r) { console.log("NORESULT"); return; }
+  console.log(r.is_error ? "REFUSED " + String(r.result).replace(/\s+/g, " ").slice(0, 160) : "OK");
+});')
+  rm -rf "$probe_dir"
+  case "$verdict" in
+    OK) ok "Claude Code accepts this key (one test call to $MODEL)" ;;
+    REFUSED*) bad "Claude Code was refused with this key: ${verdict#REFUSED }. A key that plain API calls accept can still fail here (a user-scoped sk-ant-usr key did); create a standard key in Console → API keys under the organisation that holds the credit, and check Plans & Billing" ;;
+    *) bad "the test call to Claude Code returned nothing readable (run: echo ok | $CLAUDE -p --bare --model $MODEL) — fix that before spending anything" ;;
+  esac
+fi
 for v in $VARIANTS; do case "$v" in index|prefetch|lean|current) ;; *) bad "variant \"$v\" is not one this script runs with an API key (index, prefetch, lean, current; the skill variants need --session-auth)" ;; esac; done
 
 questions=0; batches=0

@@ -1454,7 +1454,7 @@ const treeHash = (dir) => {
   await test('run-token-saving.sh checks first and starts nothing without GO=1, never prints the key, and refuses to start with a problem', () => {
     const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
     const f = fixture();
-    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts') }, extra);
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts'), KEY_CHECK: '0' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 240000, env: env(extra) });
 
     const plan = sh({});
@@ -1476,13 +1476,41 @@ const treeHash = (dir) => {
     assert.match(badVariant.stdout, /skill variants need --session-auth/);
     const badSet = sh({ SETS: 'everything' });
     assert.match(badSet.stdout, /unknown set "everything"/);
+
+    // a cloud session gives the key under another name, so its own login is not switched to it
+    const viaBench = sh({ ANTHROPIC_API_KEY: '', BENCH_ANTHROPIC_KEY: 'sk-test-BENCH-VALUE' });
+    assert.strictEqual(viaBench.status, 0, viaBench.stdout);
+    assert.match(viaBench.stdout, /ANTHROPIC_API_KEY is set \(not shown\)/);
+    assert.ok(!(viaBench.stdout + viaBench.stderr).includes('BENCH-VALUE'));
+  });
+
+  await test('run-token-saving.sh makes one test call with the key before anything else, and stops on a refusal with what to do', () => {
+    const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'kc') }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
+
+    const good = sh({});
+    assert.strictEqual(good.status, 0, good.stdout + good.stderr);
+    assert.match(good.stdout, /Claude Code accepts this key \(one test call to claude-haiku-5-5\)/);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 1, 'exactly one call, and no batch');
+    assert.ok(calls[0].argv.includes('--bare') && calls[0].argv.includes('--max-budget-usd'));
+    assert.ok(!fs.existsSync(path.join(f.out, 'kc')), 'nothing else was started');
+
+    const refused = sh({ FAKE_MODE: 'error', GO: '1' });
+    assert.strictEqual(refused.status, 1);
+    assert.match(refused.stdout, /Claude Code was refused with this key: boom/);
+    assert.match(refused.stdout, /standard key in Console/);
+    assert.match(refused.stdout, /nothing started/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, 2, 'GO=1 did not get past the failed check');
   });
 
   await test('run-token-saving.sh with GO=1 runs batch by batch under the API key, stops at the spend limit, and resumes', () => {
     const script = path.join(ROOT, 'benchmarks', 'pilots', '2026-11-09-relay-haiku-5-5', 'run-token-saving.sh');
     const f = fixture();
     const out = path.join(f.out, 'ts');
-    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1' }, extra);
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1', KEY_CHECK: '0' }, extra);
     const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 300000, env: env(extra) });
 
     // The fake agent reports $0.03 without SigMap and $0.01 with it: the first batch (8 questions) records $0.32.
