@@ -6,22 +6,33 @@ The plan these runs follow was fixed first and is on [the protocol page](/guide/
 article [*"I Tested Six Ways to Save $$$ on 5.6 Sol"*](https://www.stet.sh/blog/gpt-56-token-saving-modes): a baseline against treatments,
 every arm repeated, the whole-batch estimate beside a paired typical-task estimate, an interval on every claim.
 
-**What was run:** 5,064 agent runs: 4,920 for the question study (2,520 in Claude Code at $46.18 as the agent reported it; 2,400 in a
-small Messages-API agent at $41.81 computed from usage and prices) and 144 for the change-task stage below ($5.39). Every run is one row of
+**What was run:** 7,724 agent runs: 2,520 in Claude Code ($46.18 as the agent reported it) and 5,204 in a small Messages-API agent ($72.36
+computed from usage and prices). Of those, 4,920 are the first question study, 2,660 the two controls added afterwards (a placebo arm, and
+five repositories SigMap was not tuned on) and 144 the change-task stage. Every run is one row of
 [`benchmarks/agent-study/data/runs.ndjson`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/agent-study/data/runs.ndjson);
 every number on this page is `node benchmarks/agent-study/summarize.mjs` over that file.
 
 ## The short answer
 
-- **SigMap saves money and time where the model has not memorised the code.** On 30 questions about SigMap's own source, `index` cut the
-  real cost of a task by **28% to 44%** on every model and both agents (every interval below zero, and a saving in both repetitions), tool
-  calls by 46% to 51%, and found the right file as often or more often (53 of 60 against 54 in Claude Code; 107 of 120 against 100,
-  55 of 60 against 51 and 48 of 60 against 44 in the API agent).
+- **SigMap saves money where the code is large and the model does not know it, and how much depends on the repository.** On 30 questions
+  about SigMap's own source, `index` cut the real cost of a task by **28% to 44%** on every model and both agents (every interval below
+  zero, and a saving in both repetitions), tool calls by 46% to 51%, and found the right file as often or more often. That is the best
+  case: its ranker was tuned on that code. On **five repositories it was never tuned on** the saving is much smaller: **−7% [−12, 0]** for
+  Haiku 5.5 and **−8% [−18, +2]** for Sonnet 5.5 pooled, carried by one repository (`flamingock-java`: −37% and −32%), within the noise
+  on three of the other four, and a *cost* of +24% on one (Haiku 5.5, `cluster-api-provider-proxmox`).
+- **It is not just text in the prompt.** A size-matched block of generic search guidance, with no SigMap in it, did not produce the saving:
+  against that placebo `index` is still −38% and −27% (Sonnet 5.5, unfamiliar and famous questions) and −46% and −37% (Haiku 5.5). On
+  Haiku 5.5 the placebo on its own *raised* cost by 7% to 17%. On the unseen repositories the Sonnet comparison is inside the noise.
+- **`prefetch` is the steadier setup on Haiku 5.5.** Putting `sigmap ask`'s ranking after the question, with no tools and no standing
+  section, cut cost 18% [−25, −10], total tokens 42%, tool calls 52% and time 24% on the unseen repositories, with the file found as often
+  (202 of 220 either way). It was worse on two of the five repositories (+19% and +31%) and best on `flamingock-java` (−64%).
+- **`index` does not reliably save time or tokens on unseen code.** On the unseen repositories Haiku 5.5's wall-clock time was +4% and its
+  total tokens +40% with `index` (tool calls −18%); Sonnet 5.5's time was −18% and tokens +26%.
 - **It does not save on famous frameworks in Claude Code with a strong model.** With Haiku 5.5 on 45 questions about gin, flask, django,
   rails and the like the typical task cost **+3% to +4%** with intervals that include zero, and tokens rose by about a fifth. The model
   already knows those repositories: asked with no repository and no tools it names the expected file for 40 of the 45 questions, and for
   none of the 30 about SigMap's source.
-- **A weaker model saves everywhere.** Haiku 4.5 in Claude Code: `index` cost −29% [−35%, −23%] on the famous frameworks.
+- **A weaker model saves on the famous frameworks too.** Haiku 4.5 in Claude Code: `index` cost −29% [−35%, −23%].
 - **Tokens and cost are not the same number.** In the API agent `index` cut Haiku 5.5's cost by a third on the famous frameworks while
   total tokens were flat (+3%, inside the noise) and Sonnet 5.5's tokens *rose* 24% while its cost fell 28%. The baseline writes every
   grep result into the prompt cache, which is billed at 1.25 times a fresh token; SigMap's fixed prefix is written once and read at a
@@ -47,8 +58,9 @@ Register the MCP server with your agent (`npx -y sigmap --mcp`; see [MCP](/guide
 tools instead of twenty-two. If your agent can run a command before the first turn, there is a second route that needs no tools at all:
 run `sigmap ask "<the question>"` and put its output after the question. The study calls that `prefetch`.
 
-**What the model carries.** With `strategy: "index"` the `CLAUDE.md` section is a map of about 1.6k tokens: the modules and how many
-files and signatures each holds, the entry points, and how to ask. It contains no signatures. For a snapshot of SigMap's own repository the
+**What the model carries.** With `strategy: "index"` the `CLAUDE.md` section is a map of about 0.8k tokens (761 on the API's
+token counter): the modules and how many files and signatures each holds, the entry points, and how to ask. It contains no signatures.
+The seven `core` tool definitions add another 1.5k (1,505), so the setup adds **2,266 tokens to every turn**. For a snapshot of SigMap's own repository the
 whole index is 24,647 tokens across 188 files and is not injected into any prompt. With the default `full` strategy the section would carry
 the signatures themselves (capped to a token budget), which is what `current` did in these runs: 4.3k tokens re-sent on every turn.
 
@@ -75,7 +87,7 @@ file in 80% to 92% of the unfamiliar runs because the ranking is a lead they che
 questions and read 58k tokens from the cache; with `index` it took 3.8 turns, 902 output tokens and 36k cache-read tokens. Fewer turns
 means the context is re-sent fewer times, and the model writes less. Where
 the model already knows where things are (the famous frameworks in Claude Code) there are few turns to remove (4.3 against 4.3) and the
-map is an extra 1.6k tokens re-read on every one of them, so the saving is gone.
+setup adds 2.3k tokens that are re-read on every one of them, so the saving is gone.
 
 ## Results
 
@@ -140,6 +152,67 @@ The optional skills were never called (0 of 270 runs), so they cost and saved no
 and then the agent did its usual `Grep` and `Read` on top. Two identical runs of the `skill` setup differ by 6 points in cost, which is
 the noise floor of a 90-pair row.
 
+### Is it SigMap, or just text in the prompt?
+
+The runs where the API agent saved cost while almost never calling SigMap raised a fair doubt: maybe any block of text in the prompt does
+it. The control is a **placebo**: a size-matched block of generic code-search guidance (it carries the same kind of advice the SigMap
+section does and nothing about SigMap or the repository), in the same place, with no tools. The `index` setup adds 2,266 tokens to every
+turn on the API's token counter; the placebo adds 2,170. Same questions, same repetitions, each arm against its own no-SigMap baseline, and
+`index` against the placebo directly (typical task, real cost; the repetitions are in brackets).
+
+| Agent · model · set | placebo against nothing | `index` against nothing | **`index` against the placebo** |
+|---|---:|---:|---:|
+| Haiku 5.5 · unfamiliar | **+17%** [+9, +26] | −37% [−46, −25] | **−46%** [−54, −37] (−43 −47 −49 −44) |
+| Haiku 5.5 · famous | +7% [+1, +13] | −33% [−37, −29] | **−37%** [−40, −34] (−34 −38 −38 −38) |
+| Sonnet 5.5 · unfamiliar | −11% [−18, −4] | −44% [−53, −34] | **−38%** [−47, −27] (−38 −37) |
+| Sonnet 5.5 · famous | −4% [−11, +5] ~ | −28% [−35, −21] | **−27%** [−34, −20] (−27 −28) |
+| Haiku 5.5 · unseen repositories | +11% [+5, +17] | −7% [−12, 0] | **−19%** [−24, −14] (−21 −15 −18 −22) |
+| Sonnet 5.5 · unseen repositories | −1% [−10, +8] ~ | −8% [−18, +2] ~ | −7% [−16, +2] ~ |
+
+The rule written before the runs: if the interval for `index` against the placebo is entirely below zero and every repetition points the
+same way, the saving cannot be explained by the prompt text. That holds in five of the six rows. The generic guidance on its own did not
+save on the famous questions and, on Haiku 5.5, made things *more* expensive (total tokens +60%: it adds tokens). So the placebo is
+a poor stand-in for "nothing" and a fair test of "text instead of an index". On the unseen repositories with Sonnet 5.5 the data cannot
+tell SigMap from the guidance: both are near zero.
+
+### Five repositories SigMap was not tuned on
+
+The first results rested on one repository, and it was SigMap's own. This set takes five others, one per language (Python, TypeScript, Go,
+Rust, Java), chosen by a rule that was fixed before looking: the first repository in star order, 100 to 500 stars, created before 2026,
+pushed recently, with at least 15 merged pull requests since July. The 55 questions are the titles of those merged changes and the label
+is the source files each change touched (`scripts/build-heldout-set.mjs`; nothing was edited by hand). It is a fair test, not a flattering
+one: the labels are noisy, and the closed-book control shows the models already guess a good share of them.
+
+| Repository (language, questions) | closed-book hit (Haiku · Sonnet) | `index`, Haiku 5.5 | `index`, Sonnet 5.5 | `prefetch`, Haiku 5.5 |
+|---|---:|---:|---:|---:|
+| `stefankoegl/python-json-patch` (Python, 12) | 6/12 · 6/12 | +2% ~ | −8% ~ | **+19%** |
+| `statelyai/agent` (TypeScript, 12) | 1/12 · 3/12 | −5% ~ | −2% ~ | **−27%** |
+| `ionos-cloud/cluster-api-provider-proxmox` (Go, 9) | 5/9 · 8/9 | **+24%** | −8% ~ | **+31%** |
+| `timescale/timescaledb-toolkit` (Rust, 11) | 4/11 · 10/11 | −3% ~ | +13% ~ | −3% ~ |
+| `flamingock/flamingock-java` (Java, 11) | 0/11 · 0/11 | **−37%** | **−32%** | **−64%** |
+| **all five** | 16/55 · 27/55 | **−7%** [−12, 0] | **−8%** [−18, +2] ~ | **−18%** [−25, −10] |
+| the two with closed-book ≤ 30% for both models (`agent`, `flamingock-java`) | | **−22%** [−30, −13] | **−18%** [−31, −2] | **−48%** [−54, −41] |
+
+Real cost, typical task, SigMap arm against its own no-SigMap arm (the repetitions are 4 for Haiku 5.5 and 2 for Sonnet 5.5; Sonnet 5.5 was
+not run with `prefetch` here). Found: `index` 205 of 219 against 204 (Haiku 5.5) and 107 of 110 against 106 (Sonnet 5.5); `prefetch` 202 of
+220 against 202. The other measures on all five: Haiku 5.5 `index` total tokens +40% [+28, +53], tool calls −18% [−23, −11], seconds
++4% [+1, +8]; Haiku 5.5 `prefetch` tokens −42%, tool calls −52%, seconds −24%; Sonnet 5.5 `index` tokens +26% [+9, +44], tool calls −21%,
+seconds −18% [−24, −11].
+
+What this says, without rounding it up:
+
+- **One repository carries the saving.** On `flamingock-java`, the one the models cannot guess (0 of 11 closed-book), every setup saves,
+  by a third to two thirds. On the other four `index` is inside the noise for both models, except for the +24% above. The data cannot say
+  why: unfamiliarity alone does not decide it (`statelyai/agent` is nearly as unknown, 1 of 12 closed-book for Haiku 5.5, and `index` saved
+  nothing clear there), so with five repositories size, language, question style and luck cannot be told apart. On a one-module library
+  (`python-json-patch`, closed-book hit 50%) there is nothing to save and `prefetch` costs 19% more.
+- **The "cleaner cut" is mostly that one repository.** The two repositories with a closed-book hit of 30% or less give −22% and −18% for
+  `index`, but that is `flamingock-java` at −37% and −32% averaged with `agent` at −5% and −2%.
+- **On Haiku 5.5, `index` can cost more.** +24% on `cluster-api-provider-proxmox`, where it added tokens (+137%) without removing enough
+  turns. That is the turn arithmetic of the first results again: a standing 2.3k tokens must buy back at least as many turns as it costs.
+- **Time and tokens do not follow cost.** `index` raised total tokens on the unseen set for both models while cost fell slightly; only
+  `prefetch` lowered tokens, tool calls and seconds together.
+
 ### Change tasks
 
 Stage 2 of the protocol moves from "name the file" to the article's task: the agent gets a bug report and the code as it was before a
@@ -173,10 +246,12 @@ only a test file, use more tasks than nine, and a model strong enough to clear t
 
 ## Where this can mislead
 
-- **The unfamiliar set is one repository, and it is SigMap's own.** Its ranker was tuned on questions like these. The saving there is
-  real for a model that has not read the code, but it is the best case. Run the study on your own repository (below) before quoting it.
-- **Claude Code and the API agent are different agents.** The API agent re-reads about 4k tokens a turn where Claude Code re-reads about
-  12k. The two are never mixed in one row; the difference between them (a 33% saving on the famous frameworks in one, none in the other)
+- **The unfamiliar set is one repository, and it is SigMap's own.** Its ranker was tuned on questions like these, so −28% to −44% is the
+  best case. The five unseen repositories above are the correction: −7% to −8% pooled for `index`. Five repositories is still a small
+  sample of repositories, the labels are the files a commit happened to touch, and one repository carries most of the saving. Run the
+  study on your own repository (below) before quoting any of it.
+- **Claude Code and the API agent are different agents.** The API agent carries about 0.9k tokens of fixed prompt and tool definitions where Claude Code carries
+  about 12k. The two are never mixed in one row; the difference between them (a 33% saving on the famous frameworks in one, none in the other)
   is itself a result: how much SigMap saves depends on the agent as well as the model.
 - **A sensitivity check on the arm problem.** The protocol page describes how the first runs left a generated file searchable in the
   SigMap arm. Re-summarising the Claude Code famous runs without django and rails (where such a file was most likely to be visible)

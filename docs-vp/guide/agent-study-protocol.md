@@ -66,9 +66,9 @@ file for 40 of the 45 famous questions and for none of the 30 unfamiliar ones.
 
 - **Claude Code**, headless, under the isolation of `--setting-sources project`, on the account's own login. The key route was not usable:
   see *What went wrong along the way*.
-- **The Messages API directly**, with a small agent loop (`scripts/lib/agent-ab-api.mjs`): a ~150-token system prompt, four read-only
-  tools (Read, Grep and Glob through ripgrep, a Bash limited to a few read-only commands with no shell), prompt caching, a 25-turn cap.
-  This is **not** Claude Code. It re-reads about 4k tokens a turn where Claude Code re-reads about 12k, so it shows what SigMap does for a
+- **The Messages API directly**, with a small agent loop (`scripts/lib/agent-ab-api.mjs`): a ~150-token system prompt and four read-only
+  tools (about 0.9k tokens with the tool definitions) (Read, Grep and Glob through ripgrep, a Bash limited to a few read-only commands with no shell), prompt caching, a 25-turn cap.
+  This is **not** Claude Code. Its fixed prefix is about 0.9k tokens where Claude Code's is about 12k, so it shows what SigMap does for a
   lean agent. The two are never mixed in one table.
 
 Models: Claude Haiku 5.5, Haiku 4.5 and Sonnet 5.5.
@@ -169,12 +169,15 @@ out. The label is the source files the commit changed; the question is its title
 questions that were test-only or about tooling, and before any agent ran; no question was edited by hand. 55 questions came out, and some
 labels are noisy (a commit's files are not always the only place a behaviour lives): that cost lands on both arms.
 
-**Closed-book control.** The same questions with no repository and no tools. Haiku 5.5 names an expected file for 16 of 55 (29%), from
-0 of 11 (flamingock-java) to 6 of 12 (python-json-patch, a one-file library whose main module is easy to guess). The pooled set is the
-headline; the repositories with a closed-book rate of 30% or less are reported separately as the cleaner cut.
+**Closed-book control.** The same questions with no repository and no tools. Haiku 5.5 names an expected file for 16 of 55 (29%) and
+Sonnet 5.5 for 27 of 55 (49%): from 0 of 11 (flamingock-java) to 6 of 12 (python-json-patch, a one-module library whose main file is easy
+to guess) for Haiku 5.5, and up to 10 of 11 (timescaledb-toolkit) for Sonnet 5.5. The pooled set is the headline; the repositories with a
+closed-book rate of 30% or less for the model under test are reported separately as the cleaner cut (for both models: `statelyai/agent`
+and `flamingock-java`).
 
-**Runs.** `index`, `prefetch` and `placebo`, each against its own baseline, Haiku 5.5 with 4 repetitions and Sonnet 5.5 with 2. The same
-"saves" rule as above.
+**Runs.** `index`, `prefetch` and `placebo`, each against its own baseline, for Haiku 5.5 with 4 repetitions; `index` and `placebo` for
+Sonnet 5.5 with 2 (`prefetch` was left out there to keep the spend down). The same "saves" rule as above. Results are on
+[the results page](/guide/agent-study#is-it-sigmap-or-just-text-in-the-prompt).
 
 ## What went wrong along the way
 
@@ -188,6 +191,13 @@ Recorded because a study that hides its errors is not worth reading.
   keys. That is why the Messages API route exists.
 - **A turn cap recorded as a failure** dropped exactly the questions a weak model cannot finish, which would have flattered it. The cap is
   now a scored miss.
+- **A held-out build with test files as "source".** The first build of the held-out questions counted a root-level `tests.py` as source
+  (one question's only label was the test file) and kept titles about lint and docs. Both were fixed in the rule before any agent ran.
+- **A script edited while it ran.** `run-token-saving.sh` was changed while the two placebo runs were using it; bash reads a script as it
+  goes, so each run printed a syntax error after its last batch. All 12 batches of both had finished, and the counts (600 and 300 runs)
+  match the plan, so no data was affected.
+- **The standing cost of `index` was under-stated.** Earlier text said "about 1.6k tokens a turn"; measured on the API's token counter
+  it is 2,266 (761 for the section and 1,505 for the seven tool definitions). The placebo was sized to the measured figure.
 - **A tool-call drop of about 10% appeared with SigMap present and never called** (the optional skill). Differences of that size in tool
   calls are not evidence that retrieval did anything; the study reads cost and tokens first.
 

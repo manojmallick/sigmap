@@ -47,6 +47,22 @@ node benchmarks/agent-study/to-runs.mjs token-saving-runs --model claude-haiku-5
 
 The script is resumable (a finished batch is skipped).
 
+### The controls: a placebo arm and held-out repositories
+
+```bash
+# placebo (API agent only): a size-matched block of generic search guidance instead of SigMap
+GO=1 AGENT=api VARIANTS=placebo MODEL=claude-haiku-5-5 RUNS=4 bash benchmarks/agent-study/run-token-saving.sh
+node benchmarks/agent-study/summarize.mjs --vs-placebo
+
+# held-out repositories: build the question set from their git history, then run it
+node scripts/build-heldout-set.mjs --out heldout --repos owner/name,owner/name --since 2026-07-01
+HELDOUT_ROOT=heldout SETS=heldout GO=1 AGENT=api VARIANTS="index placebo prefetch" bash benchmarks/agent-study/run-token-saving.sh
+TASKS_FILE=heldout/benchmarks/tasks/retrieval-xrepo.jsonl TAG=heldout node benchmarks/agent-study/closed-book.mjs   # what the model already knows
+```
+
+`data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
+study used; `data/closed-book.heldout.*.json` is its closed-book control.
+
 ### Change tasks (stage 2)
 
 ```bash
@@ -69,6 +85,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `run-remaining.sh` | one batch of questions per invocation, resumable; what the script above calls |
 | `make-unfamiliar-root.mjs` | builds the sanitised data root of this repository's own source with its hard questions |
 | `closed-book.mjs` | the control: the same questions with no repository and no tools |
+| `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
 | `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented |
