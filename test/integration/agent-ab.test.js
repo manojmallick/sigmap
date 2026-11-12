@@ -2022,6 +2022,24 @@ const treeHash = (dir) => {
     assert.ok(!fs.existsSync(path.join(bl.cwd, '.claude')), 'the baseline has no settings');
   });
 
+  await test('--prompt-style wrapped: the whole template with a reference on the question line, unique per run, no framing; the CLI marks the runs fresh and refuses the API agent', () => {
+    const task = { id: 'x001', repo: 'r1', query: 'where is the alpha thing handled', expected_files: ['src/alpha.js'] };
+    const a = ab.wrappedPrompt(task, 'qdeadbeef'), b = ab.wrappedPrompt(task), c = ab.wrappedPrompt(task);
+    assert.ok(a.includes('Question: where is the alpha thing handled [qdeadbeef]') && a.startsWith('You are answering a question') && /Do not modify anything\.$/.test(a), a);
+    assert.strictEqual(a.replace(' [qdeadbeef]', ''), ab.buildPrompt(task), 'the template, and nothing else, apart from the reference');
+    assert.notStrictEqual(b, c, 'unique per call');
+    const f = fixture();
+    assert.match(runCli(['--dry-run', '--prompt-style', 'wrapped', '--agent', 'api'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'k' }).stderr, /--prompt-style wrapped is for the Claude Code agent/);
+    const args = ['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch-hook', '--session-auth', '--prompt-style', 'wrapped', '--allow-unpublishable', '--repos', 'r1', '--raw-out'];
+    const raw = path.join(f.out, 'raw.json');
+    const ok = runCli([...args, raw, '--out-dir', f.out], live(f, { FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    assert.ok(JSON.parse(fs.readFileSync(raw, 'utf8')).every((r) => r.fresh === true));
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.every((c2) => /Question: .* \[q[0-9a-f]{8}\]\n/.test(c2.stdin) && /Do not modify anything/.test(c2.stdin) && !c2.argv.includes('--append-system-prompt')), 'the whole template in the user turn, nothing in the system prompt');
+    assert.strictEqual(new Set(calls.map((c2) => c2.stdin)).size, calls.length, 'no two runs got the same prompt');
+  });
+
   await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {
     const { PLACEBO_SECTION } = await import('../../scripts/lib/agent-ab-placebo.mjs');
     assert.ok(PLACEBO_SECTION.length > 6500 && PLACEBO_SECTION.length < 8500, `${PLACEBO_SECTION.length} characters: sized to what the index setup adds to every turn`);

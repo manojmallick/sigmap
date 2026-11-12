@@ -246,6 +246,15 @@ export function questionPrompt(task, nonce = `q${Math.random().toString(16).slic
   return `${task.query} [${nonce}]`;
 }
 
+/**
+ * The wrapped-style prompt (`--prompt-style wrapped`): the original template prompt, instructions and all, with the same one-token reference
+ * as `questionPrompt` on the question line, so every run is a first ask. It is what a hook is handed when a person (or a harness) puts
+ * instructions around a question, which is the case the hook's query focusing exists for.
+ */
+export function wrappedPrompt(task, nonce = `q${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`) {
+  return buildPrompt({ ...task, query: `${task.query} [${nonce}]` });
+}
+
 // ── scoring ──────────────────────────────────────────────────────────────────
 
 // A path-looking token: dotted segments joined by `/`, ending in an extension. A

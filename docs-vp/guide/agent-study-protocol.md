@@ -470,6 +470,28 @@ sentence's words occur in the repository was tried afterwards, not chosen on it:
 titles; no real prompts were available. What was **not** measured is the effect on an agent: the agent runs above use the bare-question prompt, which
 the rule leaves untouched, so none of their numbers change. `SIGMAP_PREFETCH_FOCUS=0` restores the old behaviour.
 
+### Stage D: does the focusing show up in an agent's cost?
+
+The query focusing was judged on rankings alone. Whether a better ranking moves an agent's cost is a separate question, asked here with the prompt that
+caused the problem.
+
+**Setup.** `--prompt-style wrapped`: the benchmark's original prompt, instructions and all, with a one-token reference on the question line so that
+every run is a first ask. The hook is handed that whole prompt. Two series of the shipped hook on Claude Code (logged-in session), Haiku 5.5, the same
+eight repositories and 87 questions, four repetitions, each with a baseline of its own (696 runs each, 1,392 in all): focusing on, as shipped, and
+focusing off (`SIGMAP_PREFETCH_FOCUS=0`, the hook ranks the whole prompt, as in the first three rounds), run back to back for each repository
+(`run-hook-study.sh`, `prefetch-hook` and `prefetch-hook:nofocus`). A pilot of four questions confirmed the switch reaches the hook inside Claude
+Code: all four ranked lists differed, and without focusing the same file came first for three of the four.
+
+**What the offline result predicts.** On these prompts the focused query puts the expected file in the top five about as often as the bare question
+does (72% against 51% raw), and the focused list equals the bare question's in about three prompts of four.
+
+**Decision rule.** The focusing *shows up end to end* if the real cost of the focused series against the unfocused one, each measured against its own
+baseline (`summarize.mjs --versus prefetch-hook:prefetch-hook-nofocus --adjusted`), has a 95% interval entirely below zero and a point estimate below
+zero in at least three of the four repetitions, and the file is found in no fewer than its baseline's runs less 2 percentage points. If the interval
+includes zero, the result is "not detected at this size", and the ranking numbers are what is established. For reference, not as a rule: the same
+hook with the bare-question prompt (the fourth round's clean runs) took cost −4% [−7, −1] against its baseline. With 348 pairs per series the adjusted
+interval is about ±4 points wide, so only a difference of that size or more can be seen.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

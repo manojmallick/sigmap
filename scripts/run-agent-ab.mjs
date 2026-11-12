@@ -50,7 +50,7 @@ import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
-  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt, isHookVariant,
+  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt, wrappedPrompt, isHookVariant,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
 import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
@@ -124,8 +124,8 @@ const API_AGENT = AGENT === 'api';
 // --change: the tasks are merged bug fixes (scripts/build-change-tasks.mjs); the agent edits a checkout and its patch is graded by hidden tests.
 const CHANGE = has('--change');
 const PROMPT_STYLE = val('--prompt-style', 'template');
-if (PROMPT_STYLE !== 'template' && PROMPT_STYLE !== 'question') fail('--prompt-style is "template" (the default: question plus answer-format instructions) or "question" (the bare question, every run a first ask)', 2);
-if (PROMPT_STYLE === 'question' && (API_AGENT || CHANGE)) fail('--prompt-style question is for the Claude Code agent and the where-is-it questions (not --agent api, not --change)', 2);
+if (!['template', 'question', 'wrapped'].includes(PROMPT_STYLE)) fail('--prompt-style is "template" (the default: question plus answer-format instructions), "question" (the bare question, every run a first ask) or "wrapped" (the template with a reference on the question line, every run a first ask)', 2);
+if (PROMPT_STYLE !== 'template' && (API_AGENT || CHANGE)) fail(`--prompt-style ${PROMPT_STYLE} is for the Claude Code agent and the where-is-it questions (not --agent api, not --change)`, 2);
 if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
 const HOOK_RUN = isHookVariant(VARIANT);
@@ -252,7 +252,8 @@ async function main() {
   let n = 0;
   const entries = await runPlan({
     tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
-    ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
+    ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}),
+    ...(PROMPT_STYLE === 'wrapped' ? { promptFor: (task) => wrappedPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
     ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),
     onRun: ({ task, arm, run, record }) => {
       n++;
@@ -286,7 +287,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE === 'question', limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
+      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE !== 'template', limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);
