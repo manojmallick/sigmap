@@ -666,6 +666,70 @@ flag cannot tell the questions that need it from the two in three that do not.
 three turns the dial the wrong way for most of the questions it touches. What would change that is a flag with much higher precision, or a header that
 asks for one specific check instead of "search as you normally would"; neither has been tried.
 
+## Fifth round: retrieval on the weak repositories
+
+The hook can only be as good as the ranking it injects, and on some of the twenty held-out repositories the ranking is poor: the expected file is among the
+first five for 1 of 12 questions on `TeleBox` and on `mica-mqtt`, 6 of 12 on `agent`, `constructor` and `GDScript-formatter`, against all or all but one on the best
+five. This round asks what in SigMap's own index and ranker causes that, and whether a change helps. It is offline: no model is called, so there is no
+cost to report, only whether the right file is among the first five that `sigmap ask` prints.
+
+### Stage H: files the index has no line for
+
+**Where the misses are (measured before any change).** The 222 held-out questions of the earlier stages, 20 repositories, ranked by the real `sigmap ask`
+(`--top 500`, so a file's rank is known wherever it lands): 160 questions (72.1%) have an expected file among the first five, 99 (44.6%) have one first, mean
+reciprocal rank 0.563. The 62 misses by cause, checked file by file against the index and the question:
+
+| Questions | Cause |
+|---|---|
+| 18 | the expected file has **no entry in the index at all** (8 of the 18 are Chinese-language questions) |
+| 8 | the file is indexed and shares no word with the question |
+| 36 | the file is ranked 6th or lower (14 at 6–10, 9 at 11–20, 5 at 21–50, 8 beyond 50; 10 of the 36 are Chinese-language questions) |
+
+Two causes were looked at and dropped before this plan: demoting examples, docs and scripts (the most it could move is one question) and tokenizing
+Chinese (only 5 of the 22 Chinese-language questions share a character pair with the indexed text of their expected file, and those files are already
+indexed). What is left, and large enough to act on, is the 18 with no entry. The 36 ranked 6th or lower have not been studied and are not part of this stage.
+
+**Why a file has no entry.** The index lists what a file *declares and exports*, read by a regex extractor per language. A file for which the extractor
+reads nothing gets no line, however much code it holds, and cannot be ranked at all: not by a word in its name, which the ranker weighs three times as
+much as a word in a signature, and not by anything else. The 18 questions concern 11 files. Looking at each: a PHP migration (`final class ... extends
+AbstractMigration`) that the PHP extractor reads nothing from, because its class pattern accepts `abstract class` and not `final class`, `readonly`, a
+namespaced `extends` or an `enum` (checked on small inputs: all five of those forms return no signature at all, which is a bug for every PHP repository,
+not only this one); `export default new AgentPlugin()` and `export default plugin` of a plugin object (TypeScript); an exported `let` array (JavaScript); a
+script with an unexported class (JavaScript); a Rust binary with no `pub` item (two files); a module of constants (Python); a Rust file of macro-generated
+items; a PHP config file that returns a builder chain. 13 of the 18 questions share a word with their file's path (`agent` for seven of them), which is the
+most a path-only entry could match.
+
+**Two changes, measured one after the other.**
+
+*E, the PHP extractor.* `src/extractors/php.js` reads `final`, `abstract` and `readonly` in any order, a backslash in a parent or interface name,
+several interfaces, and `enum` (with or without a backing type). Pure bug fix, with fixtures; it changes the context file of any repository that has such
+classes (it adds the lines that should have been there).
+
+*P, path-only entries.* A file the extractors cover, in a programming language (not data or markup: no YAML, TOML, XML, HTML, CSS, Markdown, SQL), that
+still yields no signature, is not a test, a mock, generated or a declaration file, and has at least 5 non-blank lines, is recorded in the index as a
+path-only entry: it can be ranked on its path and on nothing else. The context file that is handed to an agent does not change for P (the entries are in
+`.context/sig-index.json` only, in a `bare` list). `sigmap ask`, `--query`, the MCP `query_context`, the planner and the evidence pack rank over them;
+every other tool that reads the index (`doctor`, the call graph, the wiki, `verify`) sees the index it saw before. The 5 lines, the list of languages
+and the exclusions are fixed here and not tuned.
+
+**Registered before either change is measured.** Three measurements, indexes regenerated for each: the code as it was (B), with E (B+E), with E and P
+(B+E+P). The confirm split (15 repositories, 167 questions) decides; the tune split (5 repositories, 55 questions) only checks that the code does what it
+should (entries appear, `ask` still prints, nothing crashes) and is not used to choose anything.
+
+1. *Primary: files ranked.* On the confirm split the expected file is among the first five for **at least 4 more questions** with B+E+P than with B
+   (115 of 167 before; 12 of the 13 questions that share a path word are in this split), and mean reciprocal rank does not fall. E and P are also reported
+   alone (B+E against B, and B+E+P against B+E).
+2. *No harm, per repository.* No repository loses more than one question at top five, and the number of questions that lose the top slot (first before,
+   not first after) is reported with the number that gain it.
+3. *No harm, gates.* `run-retrieval-gate.mjs --gate --no-regress` on the hard, mined, easy and jvm sets, and `run-xrepo-gate.mjs`, lose no task they won
+   before. The mined task `m053` flips from 5th to 6th on this branch for a reason unrelated to the ranker (the corpus grew from 566 to 573 files: see
+   the changelog); it is reported separately and not counted.
+4. *The context file is untouched by P.* With E held fixed, the context files of every repository are byte-identical with and without P, and the size of
+   `sig-index.json` grows by less than 5% for each repository.
+
+If 1 fails, the changes are not shipped. If 1 holds and 2, 3 or 4 fails, the failing check is reported and the changes are not shipped as they stand.
+E is a bug fix and is kept whatever 1 shows for it alone, provided 2 and 3 hold for it.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
