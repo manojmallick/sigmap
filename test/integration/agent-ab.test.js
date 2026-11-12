@@ -915,8 +915,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, placebo, skill-shipped\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'prefetch-hook', 'placebo', 'skill-shipped']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, placebo, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'placebo', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1064,7 +1064,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, placebo, skill-shipped \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, placebo, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1966,6 +1966,60 @@ const treeHash = (dir) => {
     assert.ok(calls.every((c) => /\[q[0-9a-f]{8}\]$/.test(c.stdin.trim()) && !/Question:|repository-relative/.test(c.stdin)), `the bare question and a reference, nothing else: ${JSON.stringify(calls.map((c) => c.stdin).slice(0, 2))}`);
     assert.strictEqual(new Set(calls.map((c) => c.stdin)).size, calls.length, 'no two runs got the same prompt');
     assert.ok(calls.every((c) => c.argv.includes('--append-system-prompt') && c.argv[c.argv.indexOf('--append-system-prompt') + 1] === ab.ANSWER_FRAMING), 'the framing in every run, both arms');
+  });
+
+  await test('stage B1 prototypes: each style calls the product\'s prefetch() and changes only what is printed (plain text; a firmer header; a shorter block); a hook that cannot answer prints nothing', () => {
+    const proto = require(path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'));
+    const prefetchMod = require(path.join(ROOT, 'src/session/prefetch.js'));
+    assert.deepStrictEqual(proto.STYLES, ['plain', 'firm', 'brief']);
+    assert.ok(proto.FIRM_HEADER.startsWith('## Files SigMap ranked for this question') && /Start with them/.test(proto.FIRM_HEADER) && !/leads, not an answer/.test(proto.FIRM_HEADER));
+    assert.ok(proto.BRIEF_BYTES < prefetchMod.MAX_BYTES);
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing handled', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-proto-');
+    const run = (variant, prompt) => {
+      const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, variant), codeRoot: ROOT, variant, sessionAuth: true });
+      const settings = JSON.parse(fs.readFileSync(path.join(a.cwd, '.claude', 'settings.json'), 'utf8'));
+      const cmd = settings.hooks.UserPromptSubmit[0].hooks[0].command;
+      const r = spawnSync('sh', ['-c', cmd], { cwd: a.cwd, input: JSON.stringify({ session_id: `s-${variant}`, hook_event_name: 'UserPromptSubmit', cwd: a.cwd, prompt }), encoding: 'utf8', timeout: 60000 });
+      return { a, cmd, r, probe: arms.probeHook({ cwd: a.cwd, codeRoot: ROOT }) };
+    };
+    const q = 'where is the alpha thing handled in this repository';
+    const shipped = run('prefetch-hook', q);
+    const shippedCtx = JSON.parse(shipped.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(shippedCtx.startsWith(prefetchMod.HEADER));
+
+    const plain = run('hook-plain', q);
+    assert.ok(/prototype-hook\.cjs/.test(plain.cmd) && / plain /.test(plain.cmd), plain.cmd);
+    assert.strictEqual(plain.r.status, 0);
+    assert.strictEqual(plain.r.stdout, shippedCtx, 'plain: exactly the product\'s block, as text');
+    assert.ok(plain.probe.ok && plain.probe.bytes > 0, JSON.stringify(plain.probe));
+
+    const firm = run('hook-firm', q);
+    const firmCtx = JSON.parse(firm.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(firmCtx.startsWith(proto.FIRM_HEADER) && firmCtx.slice(proto.FIRM_HEADER.length) === shippedCtx.slice(prefetchMod.HEADER.length), 'firm: only the header differs');
+    assert.ok(firm.probe.ok, JSON.stringify(firm.probe));
+
+    const brief = run('hook-brief', q);
+    const briefCtx = JSON.parse(brief.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(Buffer.byteLength(briefCtx) <= proto.BRIEF_BYTES && briefCtx.startsWith(prefetchMod.HEADER), 'brief: the same header and ranking, a shorter body');
+    assert.deepStrictEqual(prefetchMod.rankedFiles(briefCtx), prefetchMod.rankedFiles(shippedCtx), 'and the same five files');
+    assert.ok(brief.probe.ok, JSON.stringify(brief.probe));
+
+    // Silence on anything it cannot answer, like the shipped hook.
+    const silent = spawnSync('sh', ['-c', plain.cmd], { cwd: plain.a.cwd, input: JSON.stringify({ session_id: 'x', cwd: plain.a.cwd, prompt: 'yes' }), encoding: 'utf8' });
+    assert.strictEqual(silent.status, 0); assert.strictEqual(silent.stdout, '');
+    assert.strictEqual(spawnSync(process.execPath, [path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'), 'bogus', 'x'], { input: '{}', encoding: 'utf8' }).stdout, '');
+    assert.strictEqual(spawnSync(process.execPath, [path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'), 'plain', path.join(ROOT, 'gen-context.js')], { input: 'not json', encoding: 'utf8' }).stdout, '');
+
+    // They run the hook integrity check like the shipped one; the baseline gets no settings.
+    for (const v of ['hook-plain', 'hook-firm', 'hook-brief']) {
+      assert.ok(ab.isHookVariant(v) && /PROTOTYPE/.test(ab.SIGMAP_VARIANTS[v]));
+      assert.ok(ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900 }] }).ok);
+      assert.ok(!ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [] }).ok, `${v}: a hook that never ran is not a result`);
+    }
+    const bl = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: path.join(tmp, 'bl'), codeRoot: ROOT, variant: 'hook-firm', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(bl.cwd, '.claude')), 'the baseline has no settings');
   });
 
   await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {

@@ -354,6 +354,47 @@ setups paired against each other on the same questions and repetitions.
   question left is whether either saves, answered by each setup's own interval and the bar of the second round.
 - *The hook is better* if the interval is entirely below zero. Reported as found.
 
+**Stage B0, what happened.** 696 runs, none failed, every run a first ask, the hook and the prompt text ranking identical text. Prompt text
+against its baseline: real cost −13% [−17, −10] (tokens −33%, tool calls −55%, time −22%), −13% [−22, −4] pooled by repository (4 save, none costs
+more), the file found in 157 runs of 174 against 162. The hook against its baseline: −5% [−10, −1], −5% [−15, +3] by repository (2 save, 6 no clear
+change), found 160 against 163. Hook against prompt text, paired: **+6% [+2, +9]**, above zero in both repetitions (+4%, +7%): the rule's first
+branch, so delivery explains what is left of the gap, and Stage B1 follows. The traces: after the hook the agent made 2.6 tool calls and read a
+ranked file in 31% of runs, after the prompt text 1.95 and 22%; the answer named a ranked file in 90% and 94%. It checks the hook's list more. The
+prompt text's higher trust has a price: it found the file in 3 points fewer runs than its baseline, the hook in 2.
+
+### Stage B1: three deliveries of the same ranking
+
+All three are prototypes in `benchmarks/agent-study/hooks/prototype-hook.cjs`, calling the product's own `prefetch()` (same ranking, same
+signatures, same dedupe) and changing only what Claude Code is handed. Each is a change a hook can make; none rewrites the prompt, which this
+version of Claude Code does not allow.
+
+- `hook-plain`: the block as plain stdout instead of JSON `additionalContext`. Claude Code adds both as a `<system-reminder>` message, labelled
+  "hook success:" rather than "hook additional context:". The only other documented channel; expected to change little.
+- `hook-firm`: the same block under a header that says where to start ("The answer is usually in the first few. Start with them… search only
+  if none of them fits") in place of "These are leads, not an answer". Tests whether the checking is the hedge. It asks the agent to trust more,
+  and the prompt text, which is trusted more, found the file less often, so found is part of the rule.
+- `hook-brief`: the same header and ranking with at most 2.5 KB of signatures instead of 8 KB. Tests whether less to carry and re-read helps.
+
+**Runs.** Each variant on Claude Code (logged-in session), the stage B0 setup (`--prompt-style question`), the same eight repositories and 87
+questions, Haiku 5.5, 2 repetitions, a baseline of its own: 348 runs each, 1,044 in all. The stage B0 `prefetch-hook` and `prefetch` runs are
+the references.
+
+**Decision rule, per variant.** A variant *improves on the shipped hook* if all of:
+
+1. its real cost against the shipped hook, paired on the same questions and repetitions, has a 95% interval entirely below zero in the pooled
+   runs and a point estimate below zero in both repetitions;
+2. the file is found in no fewer runs than its own baseline's, less 2 percentage points over all runs;
+3. at most one of the eight repositories costs more than its baseline (its own 95% interval entirely above zero).
+
+It *matches the prompt text* if, in addition, its cost against the prompt text has an interval that includes zero or lies below it. Otherwise it
+is reported as what it is, with the number that failed.
+
+**Three variants are screened against one reference**, so one that passes is more likely to be chance than the same result from a single
+planned comparison. A variant that passes is therefore re-run before anything is concluded about it: two fresh repetitions on all eight
+repositories, the shipped hook run alongside as the reference, the same rule. Only a variant that passes both is a candidate for the product,
+and screening alone changes nothing in the product or its documentation. If none passes, the shipped delivery stays and the numbers are
+reported.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

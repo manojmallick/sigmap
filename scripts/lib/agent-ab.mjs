@@ -71,9 +71,16 @@ export const SIGMAP_VARIANTS = Object.freeze({
   prefetch: 'SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors after the question in the user turn, + the sigmap CLI; no MCP server, no standing section, no extra tool call',
   locate: 'SigMap index strategy + a two-tool MCP profile (query_context and get_lines only): the tools the agents used, without the five they did not',
   'prefetch-hook': 'the real prefetch hook (`sigmap hooks install claude --prefetch`): Claude Code runs it on the prompt and adds SigMap\'s ranking as context; no MCP server, no standing section, nothing in the prompt we write (Claude Code with --session-auth only)',
+  'hook-plain': 'PROTOTYPE of the prefetch hook: the same block printed as plain stdout instead of JSON additionalContext (Claude Code labels it "hook success:"); everything else as prefetch-hook',
+  'hook-firm': 'PROTOTYPE of the prefetch hook: the same block under a header that says where to start ("start with them... search only if none fits") instead of "leads, not an answer"; everything else as prefetch-hook',
+  'hook-brief': 'PROTOTYPE of the prefetch hook: the same ranking with at most ~2.5 KB of signatures instead of ~8 KB; everything else as prefetch-hook',
   placebo: 'NOT SigMap: a size-matched block of generic code-search guidance in the system prompt, no repository information, no tools added (the control for "is it SigMap or just prompt text?")',
   'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });
+
+/** The variants that run a UserPromptSubmit hook inside Claude Code: the shipped one and the prototype deliveries of stage B1. */
+export const HOOK_VARIANTS = Object.freeze(['prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief']);
+export const isHookVariant = (v) => HOOK_VARIANTS.includes(v);
 
 /**
  * The variants that hand SigMap over as Claude Code skills. A skill costs the agent its name and
@@ -402,10 +409,10 @@ export function checkIntegrity(init, arm, opts = {}) {
 
   const sigmap = servers.find((s) => s && s.name === SIGMAP_SERVER);
   const sigmapTools = mcp.filter((t) => t.startsWith(prefix));
-  if (opts.variant === 'prefetch' || opts.variant === 'placebo' || opts.variant === 'prefetch-hook') {
+  if (opts.variant === 'prefetch' || opts.variant === 'placebo' || isHookVariant(opts.variant)) {
     // The ranking (or the placebo text) is already in the prompt; neither arm has an MCP server, so one in either arm is a contaminated run.
     if (sigmap || sigmapTools.length) problems.push(`the ${opts.variant} variant holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
-    if (opts.variant === 'prefetch-hook') problems.push(...hookProblems(opts.hooks, arm));
+    if (isHookVariant(opts.variant)) problems.push(...hookProblems(opts.hooks, arm));
     return { ok: problems.length === 0, problems, builtins };
   }
   const wanted = SKILL_VARIANTS[opts.variant];

@@ -50,7 +50,7 @@ import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
-  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt,
+  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt, isHookVariant,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
 import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
@@ -128,8 +128,8 @@ if (PROMPT_STYLE !== 'template' && PROMPT_STYLE !== 'question') fail('--prompt-s
 if (PROMPT_STYLE === 'question' && (API_AGENT || CHANGE)) fail('--prompt-style question is for the Claude Code agent and the where-is-it questions (not --agent api, not --change)', 2);
 if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
-const HOOK_RUN = VARIANT === 'prefetch-hook';
-if (HOOK_RUN && (API_AGENT || !SESSION_AUTH)) fail('--sigmap-variant prefetch-hook runs the real hook inside Claude Code, which needs --agent claude and --session-auth (--bare skips hooks)', 2);
+const HOOK_RUN = isHookVariant(VARIANT);
+if (HOOK_RUN && (API_AGENT || !SESSION_AUTH)) fail(`--sigmap-variant ${VARIANT} runs a UserPromptSubmit hook inside Claude Code, which needs --agent claude and --session-auth (--bare skips hooks)`, 2);
 if (VARIANT === 'placebo' && !API_AGENT) fail('--sigmap-variant placebo puts its text in the system prompt, which only --agent api controls', 2);
 const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
 if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);

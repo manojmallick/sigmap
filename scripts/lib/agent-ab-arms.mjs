@@ -26,7 +26,7 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
 import { PLACEBO_SECTION } from './agent-ab-placebo.mjs';
-import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS, PREFETCH_HEADER, PREFETCH_MAX_BYTES } from './agent-ab.mjs';
+import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS, PREFETCH_HEADER, PREFETCH_MAX_BYTES, isHookVariant } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -208,11 +208,11 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, var
   const claudeMd = fs.existsSync(path.join(dest, 'CLAUDE.md')) ? fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8') : '';
   scrubGenerated(dest);
   if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
-  if (variant === 'prefetch-hook') {
+  if (isHookVariant(variant)) {
     // The real hook, and only it: the index, and one UserPromptSubmit entry in the project's own settings file (the one a
     // `--setting-sources project` run reads), written with the command line SigMap itself writes. No MCP server, no section, no
     // skill, and nothing in the prompt: Claude Code runs the hook and adds what it prints.
-    writeHookSettings(dest, codeRoot);
+    writeHookSettings(dest, codeRoot, variant === 'prefetch-hook' ? null : variant.replace(/^hook-/, ''));
     return Object.assign(prepared, { hook: true });
   }
   if (variant === 'prefetch') {
@@ -267,7 +267,7 @@ export function probeMcp({ cwd, codeRoot = CODE_ROOT, timeoutMs = 30000 }) {
  * Merge the prefetch hook into `<dest>/.claude/settings.json` using the product's own command shape (src/session/hooks-install.js).
  * Anything already in the file stays; an own entry already there is replaced, not duplicated.
  */
-export function writeHookSettings(dest, codeRoot = CODE_ROOT) {
+export function writeHookSettings(dest, codeRoot = CODE_ROOT, style = null) {
   const hi = createRequire(import.meta.url)(path.join(codeRoot, 'src', 'session', 'hooks-install.js'));
   const file = path.join(dest, '.claude', 'settings.json');
   let settings = {};
@@ -276,7 +276,12 @@ export function writeHookSettings(dest, codeRoot = CODE_ROOT) {
   settings.hooks = settings.hooks && typeof settings.hooks === 'object' ? settings.hooks : {};
   const groups = Array.isArray(settings.hooks.UserPromptSubmit) ? settings.hooks.UserPromptSubmit : [];
   const kept = groups.map((g) => (g && Array.isArray(g.hooks) ? { ...g, hooks: g.hooks.filter((h) => !(h && hi.isOwnCommand(h.command))) } : g)).filter((g) => !(g && Array.isArray(g.hooks) && g.hooks.length === 0));
-  kept.push({ hooks: [{ type: 'command', command: hi.hookCommand(path.join(codeRoot, 'gen-context.js'), 'UserPromptSubmit'), timeout: hi.TIMEOUT_S }] });
+  // The shipped hook, written with SigMap's own command line; a prototype style (stage B1) runs benchmarks/agent-study/hooks/prototype-hook.cjs,
+  // which calls the same prefetch() and changes only what is printed.
+  const command = style
+    ? `node ${hi.shellQuote(path.join(codeRoot, 'benchmarks', 'agent-study', 'hooks', 'prototype-hook.cjs'))} ${style} ${hi.shellQuote(path.join(codeRoot, 'gen-context.js'))}`
+    : hi.hookCommand(path.join(codeRoot, 'gen-context.js'), 'UserPromptSubmit');
+  kept.push({ hooks: [{ type: 'command', command, timeout: hi.TIMEOUT_S }] });
   settings.hooks.UserPromptSubmit = kept;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
@@ -290,7 +295,7 @@ export function writeHookSettings(dest, codeRoot = CODE_ROOT) {
 export function probeHook({ cwd, codeRoot = CODE_ROOT, timeoutMs = 60000 }) {
   let settings;
   try { settings = JSON.parse(fs.readFileSync(path.join(cwd, '.claude', 'settings.json'), 'utf8')); } catch (e) { return { ok: false, error: `no readable .claude/settings.json: ${e.message}` }; }
-  const entry = ((settings.hooks || {}).UserPromptSubmit || []).flatMap((g) => (g && g.hooks) || []).find((h) => h && /session hook UserPromptSubmit/.test(h.command || ''));
+  const entry = ((settings.hooks || {}).UserPromptSubmit || []).flatMap((g) => (g && g.hooks) || []).find((h) => h && /session hook UserPromptSubmit|prototype-hook\.cjs/.test(h.command || ''));
   if (!entry) return { ok: false, error: 'no UserPromptSubmit hook registered in .claude/settings.json' };
   // A question about a file that is certainly indexed, so the ranking has something to say whatever the repository is.
   let stem = 'main';
@@ -304,10 +309,14 @@ export function probeHook({ cwd, codeRoot = CODE_ROOT, timeoutMs = 60000 }) {
   fs.rmSync(path.join(cwd, '.context', 'prefetch-state.json'), { force: true });
   if (r.error) return { ok: false, error: r.error.message };
   if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
-  try {
-    const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
-    return typeof ctx === 'string' && ctx.length > 0 ? { ok: true, error: null, bytes: Buffer.byteLength(ctx) } : { ok: false, error: 'the hook printed no context' };
-  } catch (e) { return { ok: false, error: `the hook printed no JSON a host can read: ${(r.stdout || '').slice(0, 120)}` }; }
+  let ctx = null;
+  try { ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext; }
+  catch (e) {
+    // A prototype that prints plain text is also context to Claude Code; the shipped hook must print the JSON.
+    if (/prototype-hook\.cjs \S*plain\b|prototype-hook\.cjs' plain/.test(entry.command) && (r.stdout || '').trim()) ctx = r.stdout.trim();
+    else return { ok: false, error: `the hook printed no JSON a host can read: ${(r.stdout || '').slice(0, 120)}` };
+  }
+  return typeof ctx === 'string' && ctx.length > 0 ? { ok: true, error: null, bytes: Buffer.byteLength(ctx) } : { ok: false, error: 'the hook printed no context' };
 }
 
 export function probeCli({ cwd, binDir, timeoutMs = 60000 }) {
