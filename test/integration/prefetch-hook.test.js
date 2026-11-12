@@ -25,6 +25,11 @@
  *  12. exit 0 and no output on garbage, an empty stdin, an unindexed project and SIGMAP_PREFETCH=0
  *  consistency
  *  13. the header equals the one the benchmark harness measured
+ *  query focus (src/session/query-focus.js)
+ *  14. a prompt of two dozen words or fewer is ranked exactly as written; a long one keeps the sentences that say something
+ *  15. labels ("scope: ...", "Task: ...", "What I'm trying to do: ...") and identifiers survive; pasted output goes; nothing left means the prompt as is
+ *  16. a megabyte of paste costs milliseconds, before or after the question
+ *  17. screen() and the hook: focused by default, SIGMAP_PREFETCH_FOCUS=0 ranks the whole prompt, and focusing changes which file ranks first
  *
  * Run: node test/integration/prefetch-hook.test.js
  */
@@ -39,6 +44,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const GEN = path.join(ROOT, 'gen-context.js');
 const hi = require(path.join(ROOT, 'src/session/hooks-install'));
 const pf = require(path.join(ROOT, 'src/session/prefetch'));
+const qf = require(path.join(ROOT, 'src/session/query-focus'));
 const { handleHook } = require(path.join(ROOT, 'src/session/capture'));
 
 let passed = 0;
@@ -275,6 +281,97 @@ test('the header equals the one the benchmark harness measured, and so does the 
   const ab = await import(path.join(ROOT, 'scripts/lib/agent-ab.mjs'));
   assert.strictEqual(pf.HEADER, ab.PREFETCH_HEADER, 'src/session/prefetch.js and scripts/lib/agent-ab.mjs must say the same thing');
   assert.strictEqual(pf.MAX_BYTES, ab.PREFETCH_MAX_BYTES);
+});
+
+// ── query focus ──────────────────────────────────────────────────────────
+
+const WRAPPED = 'Hi! I just joined this team and I am still getting familiar with the codebase. Could you help me with something? '
+  + 'Where is the payment retry budget computed for failed payments? Thanks so much. A short explanation is plenty, there is no need to be exhaustive.';
+
+test('a prompt of two dozen words or fewer is ranked exactly as written; a long one keeps the sentences that say something', () => {
+  for (const p of ['where is the payment retry budget computed', 'Hi! Thanks so much for any help with this, much appreciated, truly', 'x '.repeat(24).trim()]) {
+    assert.deepStrictEqual(qf.focusQuery(p), { query: p, focused: false }, p);
+  }
+  assert.ok(WRAPPED.split(/\s+/).length > qf.MIN_WORDS);
+  const f = qf.focusQuery(WRAPPED);
+  assert.strictEqual(f.focused, true);
+  assert.ok(/Where is the payment retry budget computed for failed payments/.test(f.query), f.query);
+  assert.ok(!/joined this team|Could you help|short explanation|exhaustive/.test(f.query), `the conversation is gone: ${f.query}`);
+  // The instructions a harness (or a person) puts around a question go too.
+  const wrapped = 'You are answering a question about the source code of an open-source project checked out in the current directory.\n\n'
+    + 'Question: where is the payment retry budget computed for failed payments\n\n'
+    + 'Name the repository-relative path of each file that implements this, most relevant first (at most 5), one per line, in backticks. Then give one sentence on why. Do not modify anything.';
+  assert.strictEqual(qf.focusQuery(wrapped).query, 'Question: where is the payment retry budget computed for failed payments');
+  assert.deepStrictEqual(qf.focusQuery(WRAPPED), qf.focusQuery(WRAPPED), 'deterministic');
+  assert.deepStrictEqual(qf.focusQuery(undefined), { query: '', focused: false });
+});
+
+test('labels and identifiers survive; pasted output goes; nothing left means the prompt as written', () => {
+  const pad = 'Thanks a lot for taking a look at this, I really appreciate it, and I hope your week is going well so far today.';
+  // a scope label before a colon is part of the sentence, not a sentence of its own
+  assert.ok(/^goproxmox: make bestSubset template matching independent of resource order/.test(qf.focusQuery(`${pad} goproxmox: make bestSubset template matching independent of resource order ${pad}`).query));
+  // a chatty lead-in cannot dilute the question that follows it
+  const lead = qf.focusQuery(`I am seeing a crash and I am not sure where to start, it is quite strange. What I am trying to do: fix retry logic in the uploader. ${pad}`);
+  assert.ok(/fix retry logic in the uploader/.test(lead.query), lead.query);
+  // identifiers keep a sentence that has few other words
+  assert.ok(/computeInvoiceTotal/.test(qf.focusQuery(`${pad} Look at computeInvoiceTotal please. ${pad} ${pad}`).query));
+  // fenced blocks and tool output are dropped, the prose around them is not
+  const logged = 'Why does the payment retry budget stay at zero for failed payments?\n\n```\n$ npm test\nPASS tests/a.test.js\nTests: 3 passed\n```\n\n'
+    + 'Traceback (most recent call last):\n  File "main.py", line 42, in run\nRuntimeError: unexpected state\n2026-11-12 10:00:01 INFO worker started\n' + pad;
+  const l = qf.focusQuery(logged);
+  assert.strictEqual(l.query, 'Why does the payment retry budget stay at zero for failed payments?');
+  // nothing that carries content: the prompt is used as written
+  const chatter = 'Hello! Thanks! Please help! Okay then, so, well, honestly, really, just checking in on this one today, thanks so much for all of it, regards and kind wishes to you.';
+  assert.deepStrictEqual(qf.focusQuery(chatter), { query: chatter, focused: false });
+  const onlyCode = `\`\`\`\n${'line of code here\n'.repeat(40)}\`\`\``;
+  assert.strictEqual(qf.focusQuery(onlyCode).focused, false);
+  // never more than the cap once it has focused
+  const many = `${Array.from({ length: 60 }, (_, i) => `The payment retry budget module number ${i} computes failed charges.`).join(' ')} Thanks so much.`;
+  const capped = qf.focusQuery(many);
+  assert.ok(capped.focused && capped.query.split(/\s+/).length === qf.MAX_WORDS, 'a focused query is bounded');
+  // and when nothing is dropped the prompt is simply left as written
+  const allContent = Array.from({ length: 60 }, (_, i) => `The payment retry budget module number ${i} computes failed charges.`).join(' ');
+  assert.deepStrictEqual(qf.focusQuery(allContent), { query: allContent, focused: false });
+});
+
+test('a megabyte of paste costs milliseconds, before or after the question, and the question is kept either way', () => {
+  const q = 'Where is the payment retry budget computed for failed payments and what bounds the number of attempts?';
+  const log = '2026-11-12 10:00:01 INFO worker started pid=1234 queue=default\n';
+  for (const prompt of [`${q}\n\n${log.repeat(16000)}`, `${log.repeat(16000)}\n${q}`, `${q}\n\`\`\`python\n${'x = foo(bar)\n'.repeat(40000)}`, ' '.repeat(200000) + 'word '.repeat(30)]) {
+    const t0 = Date.now();
+    const f = qf.focusQuery(prompt);
+    assert.ok(Date.now() - t0 < 1000, `slow: ${Date.now() - t0} ms for ${prompt.length} chars`);
+    if (prompt.includes(q)) assert.ok(f.query.includes(q), 'the question survives');
+  }
+});
+
+test('screen(): focused by default, the whole prompt when focusing is off, and a short prompt is never touched', () => {
+  const s = pf.screen(WRAPPED);
+  assert.ok(s.ok && s.focused === true && /^Where is the payment retry budget/.test(s.query), JSON.stringify(s));
+  const off = pf.screen(WRAPPED, { focus: false });
+  assert.ok(off.ok && off.focused === false && /Hi! I just joined this team/.test(off.query));
+  const short = pf.screen(PROMPT);
+  assert.deepStrictEqual([short.query, short.focused], [PROMPT, false]);
+  assert.ok(pf.screen('thanks so much for the help today', {}).ok, 'a prompt of four words or more still gets a ranking');
+});
+
+test('the hook ranks the focused prompt, SIGMAP_PREFETCH_FOCUS=0 ranks the whole one, and focusing changes which file comes first', () => {
+  const dir = indexedProject();
+  // Boilerplate that pulls toward the auth file: login sessions are created and expired, none of it is the question.
+  const prompt = 'Hi! I am writing some notes about how users log in and how login sessions are created and expired, which is not what this is about, '
+    + 'and I really hope it does not matter. Where is the payment retry budget computed for failed payments? Thanks so much for the help.';
+  const on = pf.prefetch({ session_id: 's-f1', prompt }, dir, { script: GEN, env: ENV });
+  assert.strictEqual(on.focused, true);
+  assert.ok(/^Where is the payment retry budget computed for failed payments\?$/.test(on.query), on.query);
+  assert.strictEqual(pf.rankedFiles(JSON.parse(on.stdout).hookSpecificOutput.additionalContext)[0], 'src/billing/invoice.js');
+  const off = pf.prefetch({ session_id: 's-f2', prompt }, dir, { script: GEN, env: { ...ENV, SIGMAP_PREFETCH_FOCUS: '0' } });
+  assert.strictEqual(off.focused, false);
+  assert.ok(/log in and how login sessions/.test(off.query), 'the whole prompt');
+  assert.strictEqual(pf.rankedFiles(JSON.parse(off.stdout).hookSpecificOutput.additionalContext)[0], 'src/auth/session.js', 'and the boilerplate wins when nothing is dropped');
+  // Through the real command (the bundled gen-context.js), not just the module.
+  const r = spawnSync(process.execPath, [GEN, 'session', 'hook', 'UserPromptSubmit'], { cwd: dir, input: JSON.stringify({ session_id: 's-f3', hook_event_name: 'UserPromptSubmit', cwd: dir, prompt }), encoding: 'utf8', env: ENV });
+  assert.strictEqual(r.status, 0, r.stderr);
+  assert.strictEqual(pf.rankedFiles(JSON.parse(r.stdout).hookSpecificOutput.additionalContext)[0], 'src/billing/invoice.js', 'the bundle focuses too');
 });
 
 (async () => {

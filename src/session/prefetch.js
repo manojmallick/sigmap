@@ -12,18 +12,22 @@
  * repositories, first asks) this hook took real cost -4% [-7%, -1%], tool calls -41%, time -11%, total tokens -23%; the same ranking
  * placed in the prompt itself took cost -12%. A hook cannot write into the user's own turn: Claude Code adds its output as a separate
  * reminder, and the agent re-checks that list more. Three variants (plain stdout, a firmer header, a shorter block) did no better.
- * The hook ranks the whole prompt it is given, so a long prompt full of instructions dilutes the ranking. It is opt-in.
+ * A long prompt is focused before it is ranked (src/session/query-focus.js), because a ranking over a whole prompt is only as good as the
+ * prompt is focused. It is opt-in.
  *
  * What it does NOT do, and why:
  *   - It does not inject on every prompt. A prompt is skipped when it is a slash command, a shell escape or a note, has fewer than
  *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
  *     and write nothing but its own state).
+ *   - It does not rank conversation. A prompt of more than two dozen words is reduced to the sentences that say something before it is
+ *     ranked; a short one is ranked exactly as written.
  *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it
  *     adds nothing: the earlier block is already in the conversation, and a long session would otherwise carry the same text on every turn.
  *   - It is bounded. The block is capped at 8 KiB (whole file sections, best-ranked first), the work at 8 seconds, and every failure
  *     is silent: no output, exit 0. A hook must never fail or stall someone's session.
  *
- * `SIGMAP_PREFETCH=0` in the environment turns it off without touching the settings file.
+ * `SIGMAP_PREFETCH=0` in the environment turns it off without touching the settings file. `SIGMAP_PREFETCH_FOCUS=0` keeps the hook but
+ * ranks the whole prompt as it was written, instead of the sentences of a long prompt that say something (src/session/query-focus.js).
  *
  * Zero dependencies.
  */
@@ -32,6 +36,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { focusQuery } = require('./query-focus');
 
 const EVENT = 'UserPromptSubmit';
 const MIN_WORDS = 4;
@@ -53,22 +58,28 @@ const HEADER = [
 ].join('\n');
 
 /**
- * Whether a prompt is worth a ranking.
+ * Whether a prompt is worth a ranking, and what to rank.
+ *
+ * A prompt of more than a couple of dozen words is focused first (src/session/query-focus.js): the sentences that are only conversation,
+ * instructions about the answer, or pasted tool output are left out of the query. A short prompt is ranked exactly as it was written.
+ *
  * @param {*} prompt
- * @returns {{ ok: boolean, reason: string|null, query?: string }}
+ * @param {{ focus?: boolean }} [opts] `focus: false` ranks the whole prompt
+ * @returns {{ ok: boolean, reason: string|null, query?: string, focused?: boolean }}
  */
-function screen(prompt) {
+function screen(prompt, opts) {
   if (typeof prompt !== 'string') return { ok: false, reason: 'no prompt' };
   const text = prompt.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim();
   if (!text) return { ok: false, reason: 'empty prompt' };
   if (/^[/!#]/.test(text)) return { ok: false, reason: 'a slash command, shell escape or note' };
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length < MIN_WORDS) return { ok: false, reason: `fewer than ${MIN_WORDS} words` };
+  const f = opts && opts.focus === false ? { query: text, focused: false } : focusQuery(text);
   // One line, bounded; a leading dash would be read by `ask` as a flag.
-  let query = text.replace(/\s+/g, ' ');
+  let query = f.query.replace(/\s+/g, ' ');
   if (query.length > MAX_QUERY_CHARS) query = query.slice(0, MAX_QUERY_CHARS).replace(/\s+\S*$/, '');
   query = query.replace(/^[-\s]+/, '');
-  return query ? { ok: true, reason: null, query } : { ok: false, reason: 'empty prompt' };
+  return query ? { ok: true, reason: null, query, focused: f.focused } : { ok: false, reason: 'empty prompt' };
 }
 
 /** The file paths of the ranking `sigmap ask` prints: `1  path/to/file.js   8.290  299 tok`. */
@@ -124,14 +135,14 @@ function _writeState(file, state, now) {
  * @param {string} cwd the project root
  * @param {{ script?: string, env?: object, now?: number, maxBytes?: number, timeoutMs?: number }} [opts]
  *   `script` is the SigMap entry to run `ask` with (default: the one running now)
- * @returns {{ stdout: string|null, skipped: string|null, files: string[], bytes: number }}
+ * @returns {{ stdout: string|null, skipped: string|null, files: string[], bytes: number, query?: string, focused?: boolean }}
  */
 function prefetch(payload, cwd, opts = {}) {
   const none = (skipped) => ({ stdout: null, skipped, files: [], bytes: 0 });
   try {
     const env = opts.env || process.env;
     if (String(env.SIGMAP_PREFETCH).trim() === '0') return none('SIGMAP_PREFETCH=0');
-    const s = screen(payload && payload.prompt);
+    const s = screen(payload && payload.prompt, { focus: String(env.SIGMAP_PREFETCH_FOCUS).trim() !== '0' });
     if (!s.ok) return none(s.reason);
     const indexFile = require('../retrieval/sig-index-store').indexPath(cwd);
     if (!fs.existsSync(indexFile)) return none('no index (run sigmap first)');
@@ -163,7 +174,7 @@ function prefetch(payload, cwd, opts = {}) {
     if (sid) { state.sessions[sid] = { sig, at: now }; _writeState(stateFile, state, now); }
     return {
       stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: EVENT, additionalContext: block } }),
-      skipped: null, files, bytes: Buffer.byteLength(block),
+      skipped: null, files, bytes: Buffer.byteLength(block), query: s.query, focused: s.focused,
     };
   } catch (e) {
     return none(`error: ${e && e.message ? e.message : e}`);

@@ -332,7 +332,7 @@ hook delivers less and the route does not explain it. Two flaws in my setup made
    harness ranked the bare question. Against the expected files the bare question puts one in the top five for 61 of 87 questions and first for 32;
    the wrapped prompt, for 47 and 11, and the two lists were never identical. The hook arm had a worse ranking.
 
-The same problem will meet any user who pastes a long prompt: the hook ranks what it is given.
+The same problem meets anyone who pastes a long prompt, so the hook now focuses a long prompt before ranking it (below).
 
 **The clean comparison.** The prompt is the bare question plus a one-token reference no other run shares (so every run is a first ask), the
 instructions that wrapped it move to the system prompt of both arms, and offline the hook's top five then equals the bare question's for all 87
@@ -382,6 +382,15 @@ What this does not show: eight repositories picked after the fact are not a samp
 a hook that can only add a reminder, which is the whole of what this version of Claude Code lets a hook do. It does not say a different
 version, or another agent, would behave the same. And the only comparison that was planned and passed cleanly is the hook against the prompt
 text; the rest is what four runs and one wrong turn left standing.
+
+**Fixing the diluted query in the product.** The hook now reduces a prompt of more than two dozen words to the sentences that say something
+(`src/session/query-focus.js`): greetings, instructions about the answer and pasted tool output are left out, a `label: question` lead-in stays with
+its sentence, and a short prompt is ranked exactly as written. Judged offline, with no model, on 222 held-out questions inside thirteen kinds of
+wrapper (2,886 prompts): the expected file was in the top five for 59% of the raw prompts, 66% after focusing and 72% for the bare question (first
+for 28%, 36% and 45%). It recovers `template`, `log` and `context` almost fully (51% → 72%, 46% → 72%, 60% → 70%) and does nothing for a block of
+constraints written in ordinary software words (46% → 46%, 55% → 55%). Not measured: the effect on an agent, since the runs above use the bare
+question. The first attempts, the bug that spent my confirmation split and the limits are in the
+[protocol](/guide/agent-study-protocol#afterwards-focusing-the-query-for-long-prompts-a-product-fix-measured-offline).
 
 Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and
 `node benchmarks/agent-study/trace-analysis.mjs`. The hook rounds ran on a logged-in session, not API credit (about $13 by Claude Code's own count).

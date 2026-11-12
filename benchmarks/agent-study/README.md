@@ -97,6 +97,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --versus a:b --adjusted` | the same, each series' change against its own baseline, so a dearer or cheaper hour cancels |
 | `summarize.mjs --ask first` | Claude Code rows only: a question's first ask, without the repeats the host serves from the prompt cache |
 | `run-hook-study.sh` | the hook rounds: eight repositories, 87 questions, one delivery of the ranking at a time on a logged-in Claude Code session (`PROMPT_STYLE=question` for the clean design) |
+| `query-focus-eval.mjs` | offline, no model call: 222 held-out questions inside thirteen kinds of wrapper, ranked by the real `sigmap ask` raw and after the hook's query focusing; the result of record is `data/query-focus-eval.txt` |
 | `trace-analysis.mjs` | what the agent does first, from the ordered tool calls the harness records: first call, whether it read a ranked file, calls before that |
 | `hooks/prototype-hook.cjs` | the three prototype deliveries of the prefetch hook (plain stdout, a firmer header, a shorter block); not shipped |
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |

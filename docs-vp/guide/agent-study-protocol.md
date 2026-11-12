@@ -429,6 +429,47 @@ the results page, "The real hook, and the same text in the prompt".
 agent from now on; `--versus` has an `--adjusted` form; and the Claude Code results from before the fourth round are best read on first asks. The
 Messages-API results, where no such effect appeared by repetition, stand as reported.
 
+### Afterwards: focusing the query for long prompts (a product fix, measured offline)
+
+The rounds above found that the hook ranks whatever prompt it is handed: the expected file was in the top five for 47 of 87 questions when
+the question sat inside about fifty words of instructions, against 61 for the bare question. The fix is in the hook (`src/session/query-focus.js`),
+and it is judged without a model: ranking only, by the real `sigmap ask`, over the 222 held-out questions of the 20 repositories, each put inside
+a wrapper. `benchmarks/agent-study/query-focus-eval.mjs` runs it; the result of record is `data/query-focus-eval.txt`.
+
+**Split and criteria, written before any candidate was scored.** The 55 questions of the first five repositories design the rule; the 167 of
+the other fifteen test it. Wrappers: seven while designing (`template`, the benchmark's own prompt; `polite`, `rules`, `log` with a pasted test
+run, `context`, `standards`, a block of coding conventions), three written before the rule was scored on the second split (`task`,
+`trace`, `chat`). A rule is acceptable if: (1) a prompt of two dozen words or fewer is ranked exactly as written, which the bare questions
+(at most 19 words) show; (2) under the long wrappers `template`, `log`, `context` and `standards` the top-five rate is within 4 points of the
+bare question's and the top-one rate within 6; (3) no wrapper ends more than 2 points below the raw prompt; (4) it costs under 150 ms. A tie
+between rules goes to the one that needs no index.
+
+**What did not work.** Each of these ranked worse than the raw prompt on the design split (mean top-five hits of 55 over the six long wrappers: raw
+35.8): dropping the words that appear in 3% to 20% of the repository's files (32.7 down to 22.2, because it takes question words such as `list` and
+`install` with it); keeping the 8 or 12 words with the highest inverse document frequency (8.0, 12.2); keeping the one or two sentences with the
+most rare-term mass (22.2, 29.8, because boilerplate is often longer than the question). What worked is dropping *sentences* that are only
+conversation or instructions about the answer (a function-word and conversation list, a content-word ratio of 0.5, at least two content words),
+and fenced or pasted tool output. Two bugs in it, found by reading the cases it got wrong: splitting at colons, which cut `goproxmox: make ...`
+into a scope label with nothing in it and threw the label away (the chosen rule's 37.2 became 42.2 when fixed), and a chatty lead-in
+(`What I'm trying to do: <question>`) pulling a sentence under the content ratio, which left the `trace` wrapper at 70 of 167 hits on the
+second split against 88 for the raw prompt. The second was found *by* that split, so the split no longer tests the rule as it stands; the fix (judge a sentence on what follows a
+short label) was checked on four new wrappers written before the fixed rule was scored on anything: `issue`, `review`, `longpolite`, `instr2`.
+
+**Result of record: 222 questions, 13 wrappers, 2,886 prompts.** Expected file in the top five: raw wrapped prompt 59.4%, focused 65.6%, the bare
+question 71.6%; first: 27.7%, 36.4% and 44.6%. About half the gap. By wrapper (top five, raw → focused, bare 72%): `template` 51% → 72%, `log`
+46% → 72%, `context` 60% → 70%, `polite` 66% → 72%, `chat` 68% → 71%, `instr2` 67% → 71%, `trace` 59% → 66%, `rules` 70% → 70%, `issue` 62% → 64%,
+`review` 63% → 65%, `longpolite` 59% → 61%, `standards` 46% → 46%, `task` 55% → 55%. Criteria: (1) met, 0 of 222 bare questions changed; (2) met for
+`template`, `log` and `context`, **not** for `standards` (46% against 72%); (3) met, the worst wrapper is one hit of 222 below raw; (4) met,
+at most 19 ms for a megabyte of paste with the question before or after it.
+
+**What it cannot do.** `standards` and `task` are lists of constraints written in ordinary software words ("keep the public API unchanged",
+"add tests for any new behaviour"), which a word list does not tell from a question; chatter in ordinary words survives (`longpolite`); a pasted
+traceback loses its frames, which in real use may be the best lead in the prompt (nothing here measures that). A variant that also asks whether a
+sentence's words occur in the repository was tried afterwards, not chosen on it: much better on `standards` (113 against 68 of 167) and `task`
+(109 against 88), much worse on `trace` (58 against 94), so it is not shipped. All wrappers are mine, in English, and the questions are commit
+titles; no real prompts were available. What was **not** measured is the effect on an agent: the agent runs above use the bare-question prompt, which
+the rule leaves untouched, so none of their numbers change. `SIGMAP_PREFETCH_FOCUS=0` restores the old behaviour.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
