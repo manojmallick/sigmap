@@ -6,11 +6,11 @@ The plan these runs follow was fixed first and is on [the protocol page](/guide/
 article [*"I Tested Six Ways to Save $$$ on 5.6 Sol"*](https://www.stet.sh/blog/gpt-56-token-saving-modes): a baseline against treatments,
 every arm repeated, the whole-batch estimate beside a paired typical-task estimate, an interval on every claim.
 
-**What was run:** 21,200 agent runs: 11,328 in Claude Code ($76.96 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
+**What was run:** 22,540 agent runs: 12,668 in Claude Code ($82.22 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
 computed from usage and prices). Of those, 4,920 are the first question study, 2,660 the first two controls (a placebo arm, and five
 repositories SigMap was not tuned on), 4,668 the second round (fifteen more repositories and a two-tool profile), 144 the change-task stage and
-8,808 the hook rounds (the real hook in a live Claude Code session, the same text in the prompt, what went wrong with the first comparison, whether
-focusing the query shows up in an agent's cost, on eight repositories and on twelve others, and a confidence guard). Every run is one row of
+10,148 the hook rounds (the real hook in a live Claude Code session, the same text in the prompt, what went wrong with the first comparison, whether
+focusing the query shows up in an agent's cost, on eight repositories and on twelve others, a confidence guard, and a more doubtful header). Every run is one row of
 [`benchmarks/agent-study/data/runs.ndjson`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/agent-study/data/runs.ndjson);
 every number on this page is `node benchmarks/agent-study/summarize.mjs` over that file.
 
@@ -398,7 +398,11 @@ roughly 5% to 7% of cost and a point or two of accuracy where the ranking is poo
 under 90% of the prompt's letters are ASCII, which is what the ranker can read. Run on the same twelve repositories (1,080 runs) the guarded hook took cost
 **−8% [−10, −5]** and found the file in **485 of 540** runs against 492 for its baseline (1.3 points fewer, net −7 pairs, p = 0.28, where the unguarded hook
 was 2.6 fewer, p = 0.02), with no measurable cost to the saving (0% [−3, +2] against the unguarded series). It fires on 22 of the 222 questions, all in the two
-Chinese-language repositories; English prompts with a wrong ranking are not caught by any signal tried (AUC at most 0.66). The first attempts, the bug that spent my confirmation split and the limits are in the
+Chinese-language repositories; English prompts with a wrong ranking are not caught by any signal tried (AUC at most 0.66). **A more doubtful header, tried and not kept.** For the 67 questions whose ranking is flat (the last shown score above 57% of the first; 34% of them have a
+wrong ranking against 22% overall), a header saying the ranking looks weak made the agent verify much more (tool calls +25% [+16, +35] against the standard
+header, each against its own baseline) and halved the accuracy loss on the 23 whose ranking really was wrong (net −15 pairs to −7), but it cost +11% [+7, +15]
+against the standard header, and the file-found gain over the standard header was +2.4 points [−0.3, +6.0]. Two thirds of the flagged questions have a right
+ranking, where the header only throws away the saving (−8.7% became +1.0%). The shipped hook is unchanged. The first attempts, the bug that spent my confirmation split and the limits are in the
 [protocol](/guide/agent-study-protocol#afterwards-focusing-the-query-for-long-prompts-a-product-fix-measured-offline).
 
 Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and

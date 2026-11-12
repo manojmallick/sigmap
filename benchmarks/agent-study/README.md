@@ -18,7 +18,7 @@ node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails
 |---|---|
 | `series` | one invocation of the harness (route, model, question set, SigMap setup, both arms); pairs never cross series |
 | `route` | `claude-code` or `api` (the Messages API directly) |
-| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask), `heldout-w` (the same with the benchmark's wrapped prompt: the query-focusing and guard checks; the variants `prefetch-hook`, `prefetch-hook-nofocus` and `prefetch-hook-guard`, the last being the shipped hook run after the guard was added) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
+| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask), `heldout-g` (the 67 thin-ranking questions, standard header against `hook-doubt`), `heldout-w` (the same as `heldout-q` with the benchmark's wrapped prompt: the query-focusing and guard checks; the variants `prefetch-hook`, `prefetch-hook-nofocus` and `prefetch-hook-guard`, the last being the shipped hook run after the guard was added) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
 | `repo`, `task`, `arm`, `run` | the question, `with` or `without` SigMap, the repetition |
 | `ok`, `pass` | the run finished; the expected file was among the five named (for `change`: the hidden tests passed) |
 | `turns`, `calls`, `mcp`, `cli`, `skill` | model turns; tool calls; of those, SigMap MCP calls, `sigmap` CLI commands and Skill calls |
@@ -95,6 +95,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --by-repo [--per-repo]` | repository level: how many repositories save, a pooled estimate that resamples repositories, and the pre-set bar |
 | `summarize.mjs --versus locate:index` | one setup directly against another, on the same questions and repetitions |
 | `summarize.mjs --versus a:b --adjusted` | the same, each series' change against its own baseline, so a dearer or cheaper hour cancels |
+| `summarize.mjs --versus a:b --adjusted --found-did` | also the difference of the two series' file-found changes, with an interval that resamples questions |
 | `summarize.mjs --ask first` | Claude Code rows only: a question's first ask, without the repeats the host serves from the prompt cache |
 | `run-hook-study.sh` | the hook rounds: eight repositories, 87 questions, one delivery of the ranking at a time on a logged-in Claude Code session (`PROMPT_STYLE=question` for the clean design) |
 | `query-focus-eval.mjs` | offline, no model call: 222 held-out questions inside thirteen kinds of wrapper, ranked by the real `sigmap ask` raw and after the hook's query focusing; the result of record is `data/query-focus-eval.txt` |

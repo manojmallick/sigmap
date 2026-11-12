@@ -644,6 +644,28 @@ about 4 points of the wrong-ranking pairs (2 or 3 points of these flagged questi
 clause is the part this run can settle. The found difference is a difference of differences (each series against its own baseline), with a 95% interval from
 resampling questions (10,000 times, seed 1).
 
+**Stage G, what happened.** 1,340 runs, none failed; the hook injected in every SigMap-arm run (the 67 questions pass the guard), the doubtful header in
+the one series and the standard in the other, every run a first ask, baselines alike ($0.00402 and $0.00398 a run).
+
+*Part 1, the mechanism: met.* The header does change what the agent does. Doubtful against standard, each against its own baseline: tool calls **+25%
+[+16, +35]**, total tokens +15% [+10, +22], time +6% [+2, +9]: the agent verifies much more.
+
+*Part 2, the payoff: not met, on both clauses.* The file-found difference of differences is **+2.4 points [−0.3, +6.0]** over 67 questions: the interval
+includes zero. And the cost saving is not kept: on these questions the standard header took real cost **−7% [−10, −4]** against its baseline, the doubtful
+one **+3% [0, +6]**, so the doubtful series is **+11% [+7, +15]** dearer (positive in all five repetitions: +10%, +9%, +13%, +5%, +16%). The file was found in
+309 of 335 runs against 315 for the doubtful header's baseline (−1.8 points) and 302 against 316 for the standard's (−4.2).
+
+*A descriptive split, not registered, that shows why.* Of the 67 flagged questions 44 have a right ranking and 23 a wrong one (the flag is 34% precise). Where the
+ranking was right the standard header saved 8.7% and lost the file once in 220 pairs; the doubtful one saved nothing (+1.0%), for no accuracy to gain. Where it was
+wrong the standard header lost the file in 17 pairs and gained it in 2 (net −15 of 115), the doubtful one in 10 and 3 (net −7): it halves the loss, at +7.4% of cost
+against −3.3%. That net −15 is a larger accuracy loss than the 7-pair bound estimated above for all 44 wrong rankings, so the bound was too pessimistic or
+these 23 questions are a bad draw (their earlier runs were in that estimate); the run cannot tell which. Either way the header buys accuracy with cost and the
+flag cannot tell the questions that need it from the two in three that do not.
+
+**Not shipped.** The shipped hook is unchanged. A header is a dial between cost and accuracy, not a free improvement, and a flag that is wrong two times in
+three turns the dial the wrong way for most of the questions it touches. What would change that is a flag with much higher precision, or a header that
+asks for one specific check instead of "search as you normally would"; neither has been tried.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

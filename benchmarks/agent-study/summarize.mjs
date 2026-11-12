@@ -9,6 +9,7 @@
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
 //   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
 //   node benchmarks/agent-study/summarize.mjs --versus locate:index --set heldout   # one setup directly against another (the SigMap arms of the same questions)
+//   ... add --found-did to print the difference of the two series' file-found changes, with an interval that resamples questions
 //   node benchmarks/agent-study/summarize.mjs --versus a:b --adjusted --set heldout  # the same, but each series' change against its own baseline (cancels a dearer or cheaper hour)
 //   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
 //   node benchmarks/agent-study/summarize.mjs --route claude-code --ask first   # only first asks (a question's first run in its batch); `repeat` for the rest
@@ -22,7 +23,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { geometricChange, workloadChange } from '../../scripts/lib/agent-ab-stats.mjs';
+import { geometricChange, workloadChange, makeRng, BOOTSTRAP_ITERATIONS, BOOTSTRAP_SEED } from '../../scripts/lib/agent-ab-stats.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -35,6 +36,7 @@ const STUDY = argv.includes('--study');
 const VS_PLACEBO = argv.includes('--vs-placebo');
 const BY_REPO = argv.includes('--by-repo');
 const VERSUS = val('--versus', null);
+const FOUND_DID = argv.includes('--found-did'); // with --versus --adjusted: also the difference of the two series' file-found changes, resampling questions
 const ADJUSTED = argv.includes('--adjusted'); // with --versus: compare each series' change against its OWN baseline, so a cheaper or dearer hour cancels
 const ASK = val('--ask', null); // first | repeat: Claude Code rows only (see to-runs.mjs)
 if (ASK && ASK !== 'first' && ASK !== 'repeat') { console.error('--ask is first or repeat'); process.exit(2); }
@@ -133,6 +135,18 @@ if (VERSUS) {
     const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => val2(p, metrics.cost))).change)).join(' / ');
     const hit = (xs) => xs.filter((r) => r.pass).length;
     console.log(`| ${lab} | **\`${va}\` against \`${vb}\`${ADJUSTED ? ' (each against its own baseline)' : ''}** | ${pairs.length} | **${cell(gg.cost)}** | ${byRep} | ${cell(gg.tokens)} | ${cell(gg.calls)} | ${cell(gg.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
+    if (FOUND_DID && ADJUSTED) {
+      // Per question: the mean over repetitions of (a's found change - b's found change); the interval resamples questions, so five repetitions of one question are not five independent looks.
+      const byQ = new Map();
+      for (const p of pairs) { const q = p.key.split('|')[0]; const d = (Number(!!p.arm.pass) - Number(!!p.armBase.pass)) - (Number(!!p.base.pass) - Number(!!p.baseBase.pass)); (byQ.get(q) || byQ.set(q, []).get(q)).push(d); }
+      const qs = [...byQ.values()].map((v) => v.reduce((x, y) => x + y, 0) / v.length);
+      const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+      const rng = makeRng(BOOTSTRAP_SEED); const means = [];
+      for (let it = 0; it < BOOTSTRAP_ITERATIONS; it++) { let t = 0; for (let k = 0; k < qs.length; k++) t += qs[Math.floor(rng() * qs.length)]; means.push(t / qs.length); }
+      means.sort((x, y) => x - y);
+      const pts = (x) => `${x >= 0 ? '+' : ''}${(100 * x).toFixed(1)} points`;
+      console.log(`file found, difference of differences (\`${va}\` minus \`${vb}\`, each against its own baseline), ${qs.length} questions: ${pts(mean(qs))} [${pts(means[Math.floor(0.025 * means.length)])}, ${pts(means[Math.floor(0.975 * means.length)])}]`);
+    }
   }
   process.exit(0);
 }
