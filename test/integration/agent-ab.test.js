@@ -503,7 +503,7 @@ const treeHash = (dir) => {
       asst('m3', [use('t3', 'Bash', { command: 'sigmap ask "x"' })], U(20, 5, 0, 0)),
       { type: 'result', subtype: 'success', is_error: false, num_turns: 4, result: 'ANSWER', total_cost_usd: 0.05, usage: U(500, 40, 2000, 100) },
     ]));
-    assert.deepStrictEqual(p.toolCalls, { total: 3, byTool: { Read: 1, Bash: 2 }, byCommand: { grep: 1, sigmap: 1 } });
+    assert.deepStrictEqual(p.toolCalls, { total: 3, byTool: { Read: 1, Bash: 2 }, byCommand: { grep: 1, sigmap: 1 }, sequence: ['Read', 'Bash:grep -rn x .', 'Bash:sigmap ask "x"'] });
     assert.deepStrictEqual(p.usage, { in: 500, out: 40, cacheRead: 2000, cacheWrite: 100 });
     assert.strictEqual(p.usageSource, 'result');
     assert.strictEqual(p.costUsd, 0.05);
@@ -1816,8 +1816,8 @@ const treeHash = (dir) => {
       line({ type: 'system', subtype: 'init', tools: ['Read', 'Grep'], mcp_servers: [] }),
     ].join('\n'));
     assert.deepStrictEqual(parsed.hooks, [
-      { event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: Buffer.byteLength('héllo ranked files') },
-      { event: 'SessionStart', outcome: 'success', exitCode: 0, bytes: 0 },
+      { event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: Buffer.byteLength('héllo ranked files'), files: [] },
+      { event: 'SessionStart', outcome: 'success', exitCode: 0, bytes: Buffer.byteLength('plain text'), files: [] },
     ]);
     assert.deepStrictEqual(claude.parseStream('').hooks, []);
 
@@ -1835,6 +1835,28 @@ const treeHash = (dir) => {
     ]) { const r = chk(arm, hooks); assert.ok(!r.ok && re.test(r.problems.join(' ')), `${why}: ${JSON.stringify(r.problems)}`); }
     const mcp = chk('with', good, { tools: [...init.tools, 'mcp__sigmap__query_context'], mcpServers: [{ name: 'sigmap', status: 'connected' }] });
     assert.ok(!mcp.ok && /holds the sigmap MCP server/.test(mcp.problems.join(' ')));
+  });
+
+  await test('the run record keeps the order of the agent\'s tool calls (relative to its checkout) and the files the ranking named, whether the hook printed JSON or plain text', () => {
+    const ranking = ['## Files SigMap ranked for this question', 'x', '', '  1  src/a.js   8.290  299 tok', '  2  lib/b.py   5.100  120 tok', 'not a ranking line'].join('\n');
+    assert.deepStrictEqual(claude.rankedFilesOf(ranking), ['src/a.js', 'lib/b.py']);
+    assert.strictEqual(claude.callKey({ name: 'Read', input: { file_path: '/tmp/x/src/a.js' } }), 'Read:/tmp/x/src/a.js');
+    assert.strictEqual(claude.callKey({ name: 'Grep', input: { pattern: 'foo.*bar' } }), 'Grep:foo.*bar');
+    assert.strictEqual(claude.callKey({ name: 'Bash', input: { command: '  ls   -la\n' } }), 'Bash:ls -la');
+    assert.strictEqual(claude.callKey({ name: 'TodoWrite', input: {} }), 'TodoWrite');
+    const json = JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: ranking } });
+    for (const stdout of [json, ranking]) {
+      const parsed = claude.parseStream([
+        JSON.stringify({ type: 'system', subtype: 'hook_response', hook_event: 'UserPromptSubmit', outcome: 'success', exit_code: 0, stdout }),
+        JSON.stringify({ type: 'assistant', message: { id: 'm1', role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'Read', input: { file_path: '/tmp/arm/with/src/a.js' } }, { type: 'tool_use', id: 't2', name: 'Grep', input: { pattern: 'foo' } }], usage: { input_tokens: 1, output_tokens: 1 } } }),
+        JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: 'x', num_turns: 2 }),
+      ].join('\n'));
+      assert.deepStrictEqual(parsed.hooks[0].files, ['src/a.js', 'lib/b.py']);
+      assert.strictEqual(parsed.hooks[0].bytes, Buffer.byteLength(ranking), 'plain stdout is context too, so it counts');
+      const rec = claude.toRecord(parsed, { wallMs: 1, cwds: ['/tmp/arm/with'], model: 'claude-haiku-5-5', timedOut: false, code: 0 });
+      assert.deepStrictEqual(rec.toolCalls.sequence, ['Read:src/a.js', 'Grep:foo']);
+    }
+    assert.strictEqual(claude.parseStream(Array.from({ length: 200 }, (_, i) => JSON.stringify({ type: 'assistant', message: { id: `m${i}`, role: 'assistant', content: [{ type: 'tool_use', id: `t${i}`, name: 'Read', input: {} }], usage: { input_tokens: 1, output_tokens: 1 } } })).join('\n')).toolCalls.sequence.length, 80, 'the sequence is bounded; the totals are not');
   });
 
   await test('prefetch-hook: the two arms get identical command lines, --bare is refused (it skips hooks), and nothing is added to the prompt', () => {

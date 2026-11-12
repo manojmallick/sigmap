@@ -115,6 +115,29 @@ export function childEnv(base = process.env) {
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
 const str = (v) => (typeof v === 'string' && v ? v.slice(0, 200) : null);
 
+const SEQUENCE_MAX = 80;
+
+/** One tool call as a short string: the tool, and what it was pointed at (a path, a pattern, or the first words of a command). */
+export function callKey(block) {
+  const i = block.input && typeof block.input === 'object' ? block.input : {};
+  const arg = typeof i.file_path === 'string' ? i.file_path
+    : typeof i.pattern === 'string' ? i.pattern
+    : typeof i.path === 'string' ? i.path
+    : typeof i.command === 'string' ? i.command.trim().replace(/\s+/g, ' ')
+    : '';
+  return arg ? `${block.name}:${arg.slice(0, 120)}` : block.name;
+}
+
+/** The file paths of a ranking block: `1  path/to/file.js   8.290  299 tok` (what `sigmap ask` prints). */
+export function rankedFilesOf(text) {
+  const out = [];
+  for (const line of String(text).split('\n')) {
+    const m = /^\s*\d+\s+(\S+)\s+-?[\d.]+\s+\d+\s*tok\b/.exec(line);
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+
 /**
  * Read one run's `stream-json` output.
  *
@@ -129,7 +152,7 @@ const str = (v) => (typeof v === 'string' && v ? v.slice(0, 200) : null);
 export function parseStream(text) {
   const out = {
     init: null,
-    toolCalls: { total: 0, byTool: {}, byCommand: {} },
+    toolCalls: { total: 0, byTool: {}, byCommand: {}, sequence: [] },
     usage: null, usageSource: 'unavailable', cacheGaps: 0,
     costUsd: null, turns: null,
     result: false, isError: false, subtype: null, answer: null,
@@ -153,12 +176,15 @@ export function parseStream(text) {
     if (o.type === 'system' && o.subtype === 'hook_response') {
       // A hook that ran, with what it said: its event, whether it succeeded and how much context it added.
       let bytes = 0;
+      let ctx = null;
+      const raw = typeof o.stdout === 'string' ? o.stdout : '';
       try {
-        const j = JSON.parse(typeof o.stdout === 'string' ? o.stdout : '');
-        const ctx = j && j.hookSpecificOutput && j.hookSpecificOutput.additionalContext;
-        if (typeof ctx === 'string') bytes = Buffer.byteLength(ctx);
-      } catch (_) { /* plain-text output or none: nothing counted */ }
-      out.hooks.push({ event: str(o.hook_event), outcome: str(o.outcome), exitCode: typeof o.exit_code === 'number' ? o.exit_code : null, bytes });
+        const j = JSON.parse(raw);
+        const c = j && j.hookSpecificOutput && j.hookSpecificOutput.additionalContext;
+        if (typeof c === 'string') ctx = c;
+      } catch (_) { if (raw.trim()) ctx = raw.trim(); } // not JSON: plain stdout, which Claude Code also adds as context
+      if (ctx !== null) bytes = Buffer.byteLength(ctx);
+      out.hooks.push({ event: str(o.hook_event), outcome: str(o.outcome), exitCode: typeof o.exit_code === 'number' ? o.exit_code : null, bytes, files: ctx === null ? [] : rankedFilesOf(ctx) });
     } else if (o.type === 'system' && o.subtype === 'init') {
       out.init = {
         tools: Array.isArray(o.tools) ? o.tools.map(String) : null,
@@ -184,6 +210,7 @@ export function parseStream(text) {
         const cmd = b.name === 'Bash' && b.input && typeof b.input.command === 'string'
           ? b.input.command.trim().split(/\s+/)[0].slice(0, 40) : null;
         if (cmd) out.toolCalls.byCommand[cmd] = (out.toolCalls.byCommand[cmd] || 0) + 1;
+        if (out.toolCalls.sequence.length < SEQUENCE_MAX) out.toolCalls.sequence.push(callKey(b));
       }
       const u = o.message.usage;
       const id = typeof o.message.id === 'string' ? o.message.id : null;
@@ -241,6 +268,13 @@ export function parseStream(text) {
   return out;
 }
 
+/** The checkout's own directory is a temporary path: take it out of the call sequence so runs can be compared. */
+function relativeCalls(calls, cwds) {
+  const roots = (cwds || []).filter((c) => typeof c === 'string' && c).map((c) => (c.endsWith('/') ? c : `${c}/`));
+  if (!calls.sequence || roots.length === 0) return calls;
+  return { ...calls, sequence: calls.sequence.map((k) => roots.reduce((acc, r) => acc.split(r).join(''), k)) };
+}
+
 /**
  * Turn a parsed stream plus process facts into the record the harness consumes.
  * A run is `ok` only when a successful `result` event carried an answer.
@@ -267,7 +301,7 @@ export function toRecord(parsed, { wallMs, cwds, model, timedOut, code }) {
     cwds: cwds || [],
     init: parsed.init,
     hooks: parsed.hooks,
-    toolCalls: parsed.result || parsed.toolCalls.total ? parsed.toolCalls : null,
+    toolCalls: parsed.result || parsed.toolCalls.total ? relativeCalls(parsed.toolCalls, cwds) : null,
     usage: parsed.usage,
     usageSource: parsed.usageSource,
     cacheGaps: parsed.cacheGaps,
@@ -361,6 +395,7 @@ export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare =
     const r = await runClaude({ bin, args, prompt, cwd: arm.cwd, env: env2, timeoutMs });
     if (r.spawnError) throw new Error(`cannot start "${bin}": ${r.spawnError}`);
     const record = toRecord(parseStream(r.stdout), { wallMs: r.wallMs, cwds: arm.cwds, model, timedOut: r.timedOut, code: r.code });
+    if (pre) record.ranked = rankedFilesOf(pre);
     if (!record.ok && r.overflow) record.error = 'output too large';
     if (!record.ok && !record.init && r.stderr) record.stderr = r.stderr.trim().split('\n').slice(-3).join(' | ').slice(0, 300);
     return record;

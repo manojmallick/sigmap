@@ -296,6 +296,31 @@ no-SigMap baseline of its own: 348 runs.
 −15% [−24, −6], so the route does not explain the gap, but its rank correlation with the API-route results was 0.40, short of the 0.5 the
 delivery branch asked for). The results page, "The real hook, and the same text in the prompt", gives the numbers and what they support.
 
+## Fourth round: delivering the same ranking differently
+
+The third round left one measured fact and one open question. The same ranking took Haiku 5.5's cost −15% when the harness put it in the
+prompt and −1% when Claude Code's `UserPromptSubmit` hook delivered it, on the same route and questions. This round looks for a delivery that
+closes that gap. What a hook can do is narrow, which shapes the experiment: in the Claude Code version used (2.1.322) the hook's JSON output
+for this event takes only `additionalContext`, with no way to rewrite the prompt, and both that and plain stdout arrive as a separate
+`<system-reminder>` message after the user's turn (labelled "UserPromptSubmit hook additional context:" or "...hook success:"). The prompt
+text sits inside the user's own message, which a hook cannot reach. What can be varied is what the reminder says and how much of it there is.
+
+### Stage A: is the gap real, and what does the agent do first?
+
+Two questions, asked before any variant is designed.
+
+**1. Does the gap reproduce?** `prefetch-hook` and `prefetch` run again on Claude Code with the same eight repositories, 87 questions and
+Haiku 5.5, two new repetitions each (numbered 3 and 4 and merged with the first two), a fresh baseline for each. *Rule:* the gap reproduces if
+the paired hook-against-prompt real-cost difference over the new runs alone has a 95% interval entirely above zero. If it includes zero, the
+estimate is the four-repetition pooled one, and the +17% of the third round is reported as not reproduced at that size. The four-repetition
+pooled estimate is reported either way.
+
+**2. What does the agent do after each delivery?** The harness now records the order of each run's tool calls and the files the ranking
+named. For each delivery (and the baseline): the share of runs whose first call is a Read, Grep, Glob or Bash; the share that read at least one
+ranked file; the share that read the top-ranked file; the share that searched before reading a ranked file; and the number of calls before the
+first read of a ranked file. These are descriptive, with no estimator and no decision rule, and exploratory: their only use is to choose the
+delivery variants of Stage B, which are written here, with their rule, and committed before they run.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
