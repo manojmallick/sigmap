@@ -629,6 +629,21 @@ standard one, paired on the same questions and repetitions, each against its own
 found-rate gain over the standard one (each against its own baseline) has a 95% interval entirely above zero, and it keeps at least half of the standard
 header's cost saving on those questions. The run size and the exact question list follow once the rule is fitted, and will be written here before any run.
 
+**The rule that was fitted, and the run (written before any run).** Leave-one-repository-out over the 200 questions the guard lets through, aiming at half of
+the wrong rankings: flatness flags 48% of them and 25% of the right ones (top score 52% and 26%, margin 50% and 39%, pairs no better); flatness is scale-free,
+so it wins the tie with the top score, which would flag every prompt in a small repository. Fitted on all 200: **flat when the last shown score is more than 57%
+of the first** (`flatness < 0.429`). It flags 67 of the 200 questions, 23 of them with a wrong ranking: 34% against 22% overall, so "more often than usual"
+in the header is true. Pushed through the real prototype process with fresh random reference tokens, 67 questions got the doubtful header, 22 were silent
+(the guard) and 133 got the standard header, exactly as predicted offline.
+
+The run: the 67 flagged questions of 17 repositories (the other 133 get the same block under either header, so they carry no information), the
+benchmark's wrapped prompt with a per-run reference, the standard shipped hook and `hook-doubt` run back to back for each repository, five repetitions,
+a baseline of its own for each series: 1,340 runs. **Power, stated now:** with about 335 pairs per series, tool calls per run can be compared to within
+roughly ±5% and cost to within ±5 points, but the file-found difference to only about ±8 points, while the whole accuracy loss available to recover is
+about 4 points of the wrong-ranking pairs (2 or 3 points of these flagged questions). The payoff clause below is therefore close to untestable; the mechanism
+clause is the part this run can settle. The found difference is a difference of differences (each series against its own baseline), with a 95% interval from
+resampling questions (10,000 times, seed 1).
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

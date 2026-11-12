@@ -915,8 +915,8 @@ const treeHash = (dir) => {
 
   await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
     const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
-    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, placebo, skill-shipped\)/);
-    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'placebo', 'skill-shipped']);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, hook-doubt, placebo, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt', 'placebo', 'skill-shipped']);
     const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
     const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
     assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
@@ -1064,7 +1064,7 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
     const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(bad.status, 2);
-    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, placebo, skill-shipped \(got "bogus"\)/);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, hook-doubt, placebo, skill-shipped \(got "bogus"\)/);
     const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
     assert.strictEqual(noVal.status, 2);
     assert.match(noVal.stderr, /--sigmap-variant needs a value/);
@@ -1971,7 +1971,7 @@ const treeHash = (dir) => {
   await test('stage B1 prototypes: each style calls the product\'s prefetch() and changes only what is printed (plain text; a firmer header; a shorter block); a hook that cannot answer prints nothing', () => {
     const proto = require(path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'));
     const prefetchMod = require(path.join(ROOT, 'src/session/prefetch.js'));
-    assert.deepStrictEqual(proto.STYLES, ['plain', 'firm', 'brief']);
+    assert.deepStrictEqual(proto.STYLES, ['plain', 'firm', 'brief', 'doubt']);
     assert.ok(proto.FIRM_HEADER.startsWith('## Files SigMap ranked for this question') && /Start with them/.test(proto.FIRM_HEADER) && !/leads, not an answer/.test(proto.FIRM_HEADER));
     assert.ok(proto.BRIEF_BYTES < prefetchMod.MAX_BYTES);
 
@@ -2013,7 +2013,7 @@ const treeHash = (dir) => {
     assert.strictEqual(spawnSync(process.execPath, [path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'), 'plain', path.join(ROOT, 'gen-context.js')], { input: 'not json', encoding: 'utf8' }).stdout, '');
 
     // They run the hook integrity check like the shipped one; the baseline gets no settings.
-    for (const v of ['hook-plain', 'hook-firm', 'hook-brief']) {
+    for (const v of ['hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt']) {
       assert.ok(ab.isHookVariant(v) && /PROTOTYPE/.test(ab.SIGMAP_VARIANTS[v]));
       assert.ok(ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900 }] }).ok);
       assert.ok(!ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [] }).ok, `${v}: a hook that never ran is not a result`);
@@ -2038,6 +2038,38 @@ const treeHash = (dir) => {
     const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     assert.ok(calls.every((c2) => /Question: .* \[q[0-9a-f]{8}\]\n/.test(c2.stdin) && /Do not modify anything/.test(c2.stdin) && !c2.argv.includes('--append-system-prompt')), 'the whole template in the user turn, nothing in the system prompt');
     assert.strictEqual(new Set(calls.map((c2) => c2.stdin)).size, calls.length, 'no two runs got the same prompt');
+  });
+
+  await test('stage G prototype: the doubtful header replaces the standard one exactly when the list is flat, and nothing else in the block changes', () => {
+    const proto = require(path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'));
+    const pf = require(path.join(ROOT, 'src/session/prefetch.js'));
+    const block = (scores) => `${pf.HEADER}\n\n${scores.map((x, i) => `  ${i + 1}  src/f${i}.js   ${x.toFixed(3)}  100 tok`).join('\n')}\n\n## src/f0.js\nfunction a()  :1-1\n`;
+    assert.strictEqual(proto.flatness(block([10, 6, 4])), 1 - 4 / 10);
+    assert.ok(!proto.isThin(block([10, 6, 4])), 'a peaked list is not thin');
+    assert.ok(proto.isThin(block([10, 9.5, 8])), 'a flat list is');
+    assert.ok(proto.isThin(block([8.639, 8.304, 8.147, 8.146, 8.113])), 'the mica-mqtt example from the study: scores 8.6 to 8.1');
+    assert.ok(!proto.isThin(block([12.943])), 'one file is never thin');
+    assert.ok(!proto.isThin(block([0, 0])) && !proto.isThin('no ranking here'), 'nothing to measure, nothing flagged');
+    assert.strictEqual(proto.THIN_FLATNESS, 0.429);
+    assert.ok(proto.DOUBT_HEADER.startsWith('## Files SigMap ranked for this question (a weak ranking)') && /not to follow|not leads to\s+follow|guesses to check, not leads to follow/.test(proto.DOUBT_HEADER) && /Read directly/.test(proto.DOUBT_HEADER));
+    assert.ok(!/leads, not an answer/.test(proto.DOUBT_HEADER));
+
+    // Through the real process: on the fixture project, whatever the shipped block's flatness, the header follows it and only the header differs.
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing handled', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-doubt-');
+    const shipped = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 's'), codeRoot: ROOT, variant: 'prefetch-hook', sessionAuth: true });
+    const doubt = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'd'), codeRoot: ROOT, variant: 'hook-doubt', sessionAuth: true });
+    const cmd = (a) => JSON.parse(fs.readFileSync(path.join(a.cwd, '.claude', 'settings.json'), 'utf8')).hooks.UserPromptSubmit[0].hooks[0].command;
+    assert.ok(/prototype-hook\.cjs/.test(cmd(doubt)) && / doubt /.test(cmd(doubt)), cmd(doubt));
+    const run = (a, prompt) => spawnSync('sh', ['-c', cmd(a)], { cwd: a.cwd, input: JSON.stringify({ session_id: `s-${Math.random()}`, hook_event_name: 'UserPromptSubmit', cwd: a.cwd, prompt }), encoding: 'utf8', timeout: 60000 });
+    for (const prompt of ['where is the alpha thing handled in this repository', 'which module handles the beta feature and its helpers here']) {
+      const a = run(shipped, prompt), b = run(doubt, prompt);
+      if (!a.stdout) { assert.strictEqual(b.stdout, '', 'silent where the shipped hook is silent'); continue; }
+      const ca = JSON.parse(a.stdout).hookSpecificOutput.additionalContext, cb = JSON.parse(b.stdout).hookSpecificOutput.additionalContext;
+      if (proto.isThin(ca)) assert.strictEqual(cb, proto.DOUBT_HEADER + ca.slice(pf.HEADER.length), 'thin: only the header differs');
+      else assert.strictEqual(cb, ca, 'not thin: identical to the shipped block');
+    }
+    assert.ok(arms.probeHook({ cwd: doubt.cwd, codeRoot: ROOT }).ok);
   });
 
   await test('the confidence guard in the integrity check: a hook that runs and says nothing is right exactly when the product\'s own screen() says the prompt is guarded', async () => {

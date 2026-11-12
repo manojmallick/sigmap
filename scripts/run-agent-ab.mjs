@@ -254,7 +254,7 @@ async function main() {
   const entries = await runPlan({
     tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
     // The hook's own verdict on a prompt: the guard keeps it silent for a prompt the ranker cannot read, and the integrity check expects exactly that.
-    ...(HOOK_RUN && VARIANT === 'prefetch-hook' ? { silentFor: (prompt) => !createRequire(import.meta.url)(path.join(CODE_ROOT, 'src', 'session', 'prefetch.js')).screen(prompt, { focus: String(process.env.SIGMAP_PREFETCH_FOCUS).trim() !== '0', guard: String(process.env.SIGMAP_PREFETCH_GUARD).trim() !== '0' }).ok } : {}),
+    ...(HOOK_RUN ? { silentFor: (prompt) => !createRequire(import.meta.url)(path.join(CODE_ROOT, 'src', 'session', 'prefetch.js')).screen(prompt, { focus: String(process.env.SIGMAP_PREFETCH_FOCUS).trim() !== '0', guard: String(process.env.SIGMAP_PREFETCH_GUARD).trim() !== '0' }).ok } : {}),
     ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}),
     ...(PROMPT_STYLE === 'wrapped' ? { promptFor: (task) => wrappedPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
     ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),

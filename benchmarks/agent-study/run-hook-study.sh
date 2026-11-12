@@ -6,6 +6,7 @@
 #   SHARD=0..3 runs one quarter (two repositories) so four can run side by side; unset, it runs all eight.
 #   VARIANTS may carry a modifier: `prefetch-hook:nofocus` runs the hook with SIGMAP_PREFETCH_FOCUS=0 into $OUT/nofocus/.
 #   PROMPT_STYLE=question|wrapped is passed on to run-remaining.sh (see there).
+#   IDS_FILE=<file> of `<repo>:<id>,<id>` lines runs only those questions (stage G: the questions whose ranking is thin).
 #
 # HELDOUT_ROOT / HELDOUT2_ROOT hold benchmarks/tasks/retrieval-xrepo.jsonl and the pinned repositories of the first and second
 # held-out rounds (see run-token-saving.sh). MODEL and RUNS default to claude-haiku-5-5 and 2; BUDGET to 0.25 USD a run.
@@ -30,6 +31,10 @@ for job in $JOBS; do
   [ -f "$root/benchmarks/tasks/retrieval-xrepo.jsonl" ] || { echo "$root has no benchmarks/tasks/retrieval-xrepo.jsonl" >&2; exit 1; }
   ids=$(node -e 'const t=require("fs").readFileSync(process.argv[1]+"/benchmarks/tasks/retrieval-xrepo.jsonl","utf8").split("\n").filter(Boolean).map(JSON.parse).filter(x=>x.repo===process.argv[2]).map(x=>x.id).join(","); console.log(t)' "$root" "$repo")
   [ -n "$ids" ] || { echo "no questions for $repo in $root" >&2; exit 1; }
+  # IDS_FILE: lines of `<repo>:<id>,<id>,...` restrict a repository to those questions; a repository with no line is skipped.
+  if [ -n "${IDS_FILE:-}" ]; then
+    ids=$(grep -m1 "^$repo:" "$IDS_FILE" | cut -d: -f2); [ -n "$ids" ] || continue
+  fi
   # One variant after another for each repository, so a slow hour of the service falls on every variant alike.
   # `variant:nofocus` runs the variant with SIGMAP_PREFETCH_FOCUS=0 (the hook ranks the whole prompt) into $OUT/nofocus/.
   for spec in $VARIANTS; do

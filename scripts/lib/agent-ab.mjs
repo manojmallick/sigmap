@@ -74,12 +74,13 @@ export const SIGMAP_VARIANTS = Object.freeze({
   'hook-plain': 'PROTOTYPE of the prefetch hook: the same block printed as plain stdout instead of JSON additionalContext (Claude Code labels it "hook success:"); everything else as prefetch-hook',
   'hook-firm': 'PROTOTYPE of the prefetch hook: the same block under a header that says where to start ("start with them... search only if none fits") instead of "leads, not an answer"; everything else as prefetch-hook',
   'hook-brief': 'PROTOTYPE of the prefetch hook: the same ranking with at most ~2.5 KB of signatures instead of ~8 KB; everything else as prefetch-hook',
+  'hook-doubt': 'PROTOTYPE of the prefetch hook: when the list is flat (the last shown score is more than 57% of the first), the same block under a header that says the ranking looks weak; otherwise the shipped block, unchanged',
   placebo: 'NOT SigMap: a size-matched block of generic code-search guidance in the system prompt, no repository information, no tools added (the control for "is it SigMap or just prompt text?")',
   'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
 });
 
 /** The variants that run a UserPromptSubmit hook inside Claude Code: the shipped one and the prototype deliveries of stage B1. */
-export const HOOK_VARIANTS = Object.freeze(['prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief']);
+export const HOOK_VARIANTS = Object.freeze(['prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt']);
 export const isHookVariant = (v) => HOOK_VARIANTS.includes(v);
 
 /**
