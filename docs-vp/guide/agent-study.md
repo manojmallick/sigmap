@@ -6,11 +6,11 @@ The plan these runs follow was fixed first and is on [the protocol page](/guide/
 article [*"I Tested Six Ways to Save $$$ on 5.6 Sol"*](https://www.stet.sh/blog/gpt-56-token-saving-modes): a baseline against treatments,
 every arm repeated, the whole-batch estimate beside a paired typical-task estimate, an interval on every claim.
 
-**What was run:** 17,960 agent runs: 8,088 in Claude Code ($64.44 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
+**What was run:** 20,120 agent runs: 10,248 in Claude Code ($72.82 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
 computed from usage and prices). Of those, 4,920 are the first question study, 2,660 the first two controls (a placebo arm, and five
 repositories SigMap was not tuned on), 4,668 the second round (fifteen more repositories and a two-tool profile), 144 the change-task stage and
-5,568 the hook rounds (the real hook in a live Claude Code session, the same text in the prompt, what went wrong with the first comparison, and
-whether focusing the query shows up in an agent's cost). Every run is one row of
+7,728 the hook rounds (the real hook in a live Claude Code session, the same text in the prompt, what went wrong with the first comparison, and
+whether focusing the query shows up in an agent's cost, on the eight repositories and on the twelve others). Every run is one row of
 [`benchmarks/agent-study/data/runs.ndjson`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/agent-study/data/runs.ndjson);
 every number on this page is `node benchmarks/agent-study/summarize.mjs` over that file.
 
@@ -388,10 +388,13 @@ text; the rest is what four runs and one wrong turn left standing.
 its sentence, and a short prompt is ranked exactly as written. Judged offline, with no model, on 222 held-out questions inside thirteen kinds of
 wrapper (2,886 prompts): the expected file was in the top five for 59% of the raw prompts, 66% after focusing and 72% for the bare question (first
 for 28%, 36% and 45%). It recovers `template`, `log` and `context` almost fully (51% → 72%, 46% → 72%, 60% → 70%) and does nothing for a block of
-constraints written in ordinary software words (46% → 46%, 55% → 55%). **In an agent:** with the benchmark's own wrapped prompt (1,392 runs, every one a first
-ask), the hook against its baseline took cost **−3% [−6, 0]** with focusing and **+3% [0, +6]** without it, and the focused series against the
-unfocused one, each against its own baseline, was **−6% [−9, −2]** (negative in three repetitions of four; the file found as often as the baseline).
-The focused hook is back at about the bare-question hook's −4%. The first attempts, the bug that spent my confirmation split and the limits are in the
+constraints written in ordinary software words (46% → 46%, 55% → 55%). **In an agent:** with the benchmark's own wrapped prompt (every run a first ask), the hook against its baseline took cost **−3% [−6, 0]** with focusing
+and **+3% [0, +6]** without it on the eight repositories (1,392 runs), and **−7% [−10, −5]** and **0% [−3, +2]** on the twelve other repositories of the
+twenty (2,160 runs; chosen by nothing, they are what was left). Focused against unfocused, each against its own baseline: −6% [−9, −2] and −7% [−10,
+−4], negative in seven repetitions of eight. **But on the twelve the focused hook found the file less often:** 483 runs of 540 against 497 for its baseline
+(net −14 pairs, p = 0.02; unfocused net +9), mostly on `TeleBox`, where the expected file is in the top five for 3 of 12 questions however the query
+is built. Over all twenty repositories the focused hook is −6% [−7, −4] with 13 runs fewer found of 888 (p = 0.08). The honest reading: focusing buys
+roughly 5% to 7% of cost and a point or two of accuracy where the ranking is poor, and nothing here guards against a poor ranking. The first attempts, the bug that spent my confirmation split and the limits are in the
 [protocol](/guide/agent-study-protocol#afterwards-focusing-the-query-for-long-prompts-a-product-fix-measured-offline).
 
 Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and

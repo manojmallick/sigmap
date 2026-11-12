@@ -521,6 +521,25 @@ holds outside the eight if the Stage D rule is met again: focused against unfocu
 negative in at least three of four repetitions. Reported without a rule: the twenty repositories together (these twelve and the eight of Stage D,
 the same prompt and hook), by repository.
 
+**Stage E, what happened.** 2,160 runs, none failed; the hook fired in every SigMap-arm run of both series and in no baseline run, every run a first
+ask, and the two series' baselines cost the same per run ($0.00399 and $0.00395). The focused hook against its own baseline: real cost **−7% [−10, −5]**
+(tokens −18%, tool calls −38%, time −10%); pooled by repository **−7% [−11, −3]**, 4 of 12 repositories saving clearly and none costing more. The
+unfocused hook: 0% [−3, +2] (tokens −7%, tool calls −29%), 2 of 12 saving and 1 costing more. Focused against unfocused, each against its own
+baseline, **−7% [−10, −4]**, negative in all four repetitions (−5%, −4%, −11%, −7%).
+
+**The rule, by its letter: the saving is not shown to hold, because of the accuracy clause.** The cost parts are met (the typical-task interval is
+entirely below zero, the by-repository point estimate is below zero, and the focusing contrast is met again). The file was found in **483 of 540**
+runs against 497 for the focused hook's baseline, 2.6 points fewer where the rule allowed 2. This is not noise at the usual level: in 23 pairs the
+focused hook lost a file its baseline found and in 9 the reverse (net −14, exact sign test p = 0.02), where the unfocused hook was net +9 (p = 0.12) and
+the eight repositories of Stage D were a wash (7 against 8). Most of it is one repository: `TeleBox` went from 28 of 48 found to 20, and the
+others that lost a few (`sip` −3, `openscad-playground` −3, `Salesforce-Inspector-reloaded` −3) were offset by repositories that gained. Without
+`TeleBox` the net is −6 of 492 pairs. Offline, focusing did not make any ranking worse there: the expected file is in the top five for only 3 of 12
+`TeleBox` questions with the bare question, 4 with the raw wrapped prompt, 3 focused, so the list is poor however the query is built. It looks like
+the same trade as the prompt text in the fourth round: an agent that leans on a poor list spends less and finds the file less often. Over all twenty
+repositories (the eight of Stage D and these twelve) the focused hook was −6% [−7, −4] against its baseline (888 pairs; −5% [−10, −1] pooled by
+repository, 6 saving, 11 no clear change, 3 costing more) and found the file 13 runs fewer of 888 (p = 0.08); the unfocused hook +1% [−1, +3] and
+7 runs more.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
