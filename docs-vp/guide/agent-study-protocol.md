@@ -416,6 +416,19 @@ hook, each against its own baseline, has a 95% interval entirely below zero in t
 repetitions. The unadjusted figure is reported beside it. If `hook-firm` does not pass, the shipped delivery stays, and the result is "no
 delivery tried closes the gap".
 
+**Confirmation, what happened.** 1,044 runs, none failed: the shipped hook, `hook-firm` and the prompt text back to back for each repository, two
+fresh repetitions of all 87 questions. `hook-firm` against the shipped hook, each against its own baseline: **−3% [−8, +2]**, by repetition 0% and
+−5%. The declared criterion needs an interval entirely below zero and both repetitions below zero; it has neither. (Unadjusted: −2% [−5, 0], also
+including zero.) `hook-firm` does not pass, and **no delivery tried improves on the shipped hook**. The confirmation also reproduced the stage B0
+result: the shipped hook against the prompt text +7% [+3, +11], +7% in both repetitions. Over the four clean repetitions: the prompt text −12% [−15,
+−9] against its baseline (found 315 of 348 against 328), the shipped hook −4% [−7, −1] (found 321 against 326), the hook against the prompt text
++6% [+4, +9]; `hook-firm` −6% [−9, −3] against its baseline and −2% [−5, +2] against the shipped hook. The numbers and what they do not show are on
+the results page, "The real hook, and the same text in the prompt".
+
+**What this round changed in the study itself.** Rows are tagged `ask: first | repeat`; `--prompt-style question` is the way to run the Claude Code
+agent from now on; `--versus` has an `--adjusted` form; and the Claude Code results from before the fourth round are best read on first asks. The
+Messages-API results, where no such effect appeared by repetition, stand as reported.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
@@ -445,6 +458,10 @@ Recorded because a study that hides its errors is not worth reading.
 - **A tool-call drop of about 10% appeared with SigMap present and never called** (the optional skill). Differences of that size in tool
   calls are not evidence that retrieval did anything; the study reads cost and tokens first.
 
+- **A comparison that let the weather in (found in Stage B1).** The first rule for the delivery variants compared one series' SigMap arm with
+  another's, so a series whose baseline happened to be 4% cheaper looked 3% better. Each series' change against its own baseline
+  (`--adjusted`) cancels that, and the confirmation was judged on it. The rule was written before I knew the baselines drifted; the
+  adjustment was written down before the confirmation ran, and the screening result by the letter is still reported.
 - **A launch with an empty question list.** The first driver for the real-hook run built its question ids with a script that printed the
   wrong variable, so every batch was refused with "--task-ids needs a value" before any call (nothing ran, nothing was spent). Fixed and
   relaunched after the design above was committed.

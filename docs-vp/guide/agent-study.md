@@ -6,10 +6,11 @@ The plan these runs follow was fixed first and is on [the protocol page](/guide/
 article [*"I Tested Six Ways to Save $$$ on 5.6 Sol"*](https://www.stet.sh/blog/gpt-56-token-saving-modes): a baseline against treatments,
 every arm repeated, the whole-batch estimate beside a paired typical-task estimate, an interval on every claim.
 
-**What was run:** 13,088 agent runs: 3,216 in Claude Code ($48.41 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
+**What was run:** 16,568 agent runs: 6,696 in Claude Code ($59.46 as the agent reported it) and 9,872 in a small Messages-API agent ($85.50
 computed from usage and prices). Of those, 4,920 are the first question study, 2,660 the first two controls (a placebo arm, and five
-repositories SigMap was not tuned on), 4,668 the second round (fifteen more repositories and a two-tool profile), 696 the third round (the
-real hook, and the same text in the prompt, in a live Claude Code session) and 144 the change-task stage. Every run is one row of
+repositories SigMap was not tuned on), 4,668 the second round (fifteen more repositories and a two-tool profile), 144 the change-task stage and
+4,176 the hook rounds (the real hook in a live Claude Code session, the same text in the prompt, and what went wrong with the first
+comparison). Every run is one row of
 [`benchmarks/agent-study/data/runs.ndjson`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/agent-study/data/runs.ndjson);
 every number on this page is `node benchmarks/agent-study/summarize.mjs` over that file.
 
@@ -35,13 +36,14 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
   ranking after the question, with no tools and no standing section: pooled over the twenty repositories cost −8% [−11, −4], total tokens
   −27%, tool calls −44% and time −18%, but it was clearly dearer on five of them (up to +31%) and the file was found in 798 runs of 888
   against 809 without it.
-- **The installed hook has not been shown to save, and the comparison I first reported was confounded twice.** The first run (Haiku 5.5,
-  eight of the twenty repositories, Claude Code) had the hook at cost −1% and the same ranking put in the prompt at −15%. Two flaws in my own
-  setup produced most of that gap. Claude Code serves a repeated question's identical opening prompt from the prompt cache, which flattered
-  the prompt-text arm: on first asks it is **−4% [−9, +1]** (not a clear change) and on repeats −27%. And the hook ranks the whole submitted
-  prompt, benchmark boilerplate included, so it ranked a diluted query (the expected file in its top five for 47 of 87 questions against 61
-  of 87 for the bare question). On first asks the hook is **+1% [−3, +5]**. A clean comparison, with the same bare question ranked by both and every
-  run a first ask, is the next step (see [the real hook](#the-real-hook-and-the-same-text-in-the-prompt)).
+- **The installed hook saves about a third of what the same text saves when it is in the prompt.** On a clean comparison (Haiku 5.5, eight of
+  the twenty repositories, every run a first ask, the hook and the prompt text ranking the identical question; 348 pairs each): the text in the
+  prompt took real cost **−12% [−15, −9]**, tool calls −54%, time −22% and total tokens −32%, but the file was found in 315 runs of 348 against
+  328 without it; the hook took cost **−4% [−7, −1]**, tool calls −41%, time −11% and tokens −23%, found 321 against 326. Pair for pair the hook cost
+  **+6% [+4, +9]** more than the prompt text. Three changes to what the hook prints (plain stdout, a firmer header, a shorter block) did not
+  close the gap. A hook cannot put text in the user's own turn; Claude Code adds its output as a separate `<system-reminder>`, and the agent
+  checks that list more than it checks the same text in its prompt. My first comparison got this wrong in both directions, for two reasons
+  that are described [below](#the-real-hook-and-the-same-text-in-the-prompt).
 - **It does not save on famous frameworks in Claude Code with a strong model.** With Haiku 5.5 on 45 questions about gin, flask, django,
   rails and the like the typical task cost **+3% to +4%** with intervals that include zero, and tokens rose by about a fifth. The model
   already knows those repositories: asked with no repository and no tools it names the expected file for 40 of the 45 questions, and for
@@ -129,6 +131,14 @@ includes zero. Negative is cheaper.
 | API agent · Haiku 5.5 | **−37%** [−46, −25] | **−40%** [−49, −29] | **−33%** [−37, −29] | **−18%** [−23, −11] |
 | API agent · Sonnet 5.5 | **−44%** [−53, −34] | **−30%** [−39, −20] | **−28%** [−35, −21] | +9% [−2, +22] ~ |
 | API agent · Haiku 4.5 | **−28%** [−40, −13] | −13% [−36, +21] ~ | **−19%** [−27, −11] | **−36%** [−43, −29] |
+
+**First asks and repeats, Claude Code rows.** Each Claude Code number above pools two runs of every question: its first ask, and a repeat
+minutes later in the same checkout, which Claude Code serves from the prompt cache. A repeat is not what a user's question looks like. On
+first asks alone: `index` on SigMap's own source **−28% [−39, −16]** (repeat −44%), `prefetch` there **−23% [−31, −13]** (repeat −45%),
+`prefetch` on the famous frameworks **+16% [+5, +27]** (repeat −14%), `index` on the famous frameworks +5% [−3, +13] (repeat +3%). Most other
+Claude Code series show no gap between the two (`lean`, `current`, the skills, Haiku 4.5; one earlier `index` series on the famous
+frameworks went from +8% to −1%), but the ones that add question-specific text show a large one. The Messages-API rows are not affected: `prefetch` there, by repetition, was −9%, −8%, −3% and −10%. Every Claude Code row
+in `data/runs.ndjson` is tagged `ask: first | repeat`, and `summarize.mjs --ask first` reads first asks only.
 
 ### The rest of `index`
 
@@ -308,80 +318,73 @@ What it says, and does not:
 
 ### The real hook, and the same text in the prompt
 
-> **Correction, found afterwards while testing other deliveries.** The tables below are the first run as reported, and two things in my setup
-> make the hook-against-prompt comparison unreliable. (1) *Repeated asks.* In every batch each question ran twice in the same checkout, minutes
-> apart; on Claude Code the second run's identical opening prompt is read from the prompt cache. That cut the prompt-text arm's cost far more
-> than the baseline's (first asks −4% [−9, +1], repeats −27% [−31, −23]) and left the hook flat (+1% and −1%). The effect is in the Claude Code
-> series that add question-specific text (`prefetch`: +16% on the first ask and −14% on the repeat for the famous questions, −23% and −45% for
-> SigMap's own source, −4% and −27% here), not in the Messages-API series (`prefetch` there, by repetition: −9%, −8%, −3%, −10%). (2) *Query
-> dilution.* The hook ranks the entire prompt it is given, which in this benchmark wraps the question in about fifty words of instructions; the
-> harness's `prefetch` ranks the bare question. Scored against the expected files, the bare question puts one in the top five for 61 of 87
-> questions and first for 32; the wrapped prompt for 47 and 11, and the two top-five lists were never identical. So the hook arm was handed a
-> worse ranking. The rows are tagged (`ask: first | repeat`; `summarize.mjs --ask first`). What first asks alone show is in the audit table
-> further down; the clean comparison replaces this section when it is done.
+Every `prefetch` number above is the benchmark putting SigMap's ranking in the prompt. What a user installs is different: the
+`UserPromptSubmit` hook, run by Claude Code, whose output Claude Code adds to the conversation. Measuring that took four attempts, and the
+first three were wrong in ways worth stating, because they are easy to repeat.
 
-Every `prefetch` number above is the benchmark putting SigMap's ranking after the question. What a user installs is different: the
-`UserPromptSubmit` hook, run by Claude Code, whose output Claude Code adds to the conversation. So the hook itself was run (`--sigmap-variant
-prefetch-hook`: the SigMap arm's copy gets only a `.claude/settings.json` with the product's own hook command, no MCP server and no section) in
-a live Claude Code session on the logged-in account, Haiku 5.5, with the plan and decision rule written first (see the
-[protocol](/guide/agent-study-protocol#third-round-the-real-hook-in-a-live-claude-code-session)). Eight repositories, chosen after the earlier
-results: the five where `prefetch` cost more and three where it saved. That selection means some of their earlier results were noise and will
-revert on their own, which is why the savers are in as a contrast. 87 questions, two repetitions, both arms: 348 runs. After the result a
-control was added, with its rule committed before it ran: `prefetch` (the text in the prompt) on the same route, repositories, questions and
-repetitions, 348 more.
+**What the first comparison got wrong.** The first run had the hook at cost −1% and the same ranking in the prompt at −15%, and concluded the
+hook delivers less and the route does not explain it. Two flaws in my setup made most of that gap:
 
-The hook did its job on every run: it fired in all 174 SigMap-arm runs and in none of the 174 baseline runs, succeeded each time, and added 2,222
-to 8,185 bytes (median 4,735; the cap is 8 KiB). Nothing failed or hit a cap.
+1. *Repeated questions.* Every question ran twice in the same checkout, minutes apart. On Claude Code the second run's opening prompt is
+   identical to the first's and is read from the prompt cache, which flatters any arm that adds question-specific text. The prompt-text arm on
+   the same questions was −4% [−9, +1] on first asks and −27% [−31, −23] on repeats; the hook +1% and −1%.
+2. *A diluted query.* The hook ranks the whole prompt it is handed, which here was the question inside about fifty words of instructions; the
+   harness ranked the bare question. Against the expected files the bare question puts one in the top five for 61 of 87 questions and first for 32;
+   the wrapped prompt, for 47 and 11, and the two lists were never identical. The hook arm had a worse ranking.
 
-| Haiku 5.5 · Claude Code · 8 repositories | pooled real cost (resampling repositories) | typical task | saves · none · more | file found (baseline) | tokens · tool calls · seconds | bar |
-|---|---:|---:|---:|---:|---|---|
-| `prefetch-hook`, the installed hook | −1% [−10, +8] ~ | −1% [−5, +5] ~ | 2 · 4 · 2 | 159/174 (157/174) | −7% · −33% · −8% | not met |
-| `prefetch`, the text in the prompt | **−15%** [−24, −6] | **−14%** [−19, −9] | 4 · 4 · 0 | 161/174 (160/174) | −20% · −39% · −13% | met, on these eight |
+The same problem will meet any user who pastes a long prompt: the hook ranks what it is given.
 
-Paired on the same questions and repetitions, the hook against the text in the prompt: real cost **+17% [+11, +24]** (+3% and +33% in the two
-repetitions, so the size is rough and the direction is the same in both), total tokens +18% [+9, +27], tool calls +12% [+2, +24], time +8%
-[+4, +13]; the file found in 159 runs against 161. The two baselines cost the same per run ($0.00337 and $0.00333), so the series are
-comparable. After the hook the agent made 3.5 tool calls and 4.5 turns on average, against 2.9 and 3.9 after the same text in the prompt
-(5.0 and 6.0 with neither).
+**The clean comparison.** The prompt is the bare question plus a one-token reference no other run shares (so every run is a first ask), the
+instructions that wrapped it move to the system prompt of both arms, and offline the hook's top five then equals the bare question's for all 87
+questions. Eight repositories chosen after the earlier results (the five where `prefetch` had cost more and three where it saved; they are not
+a sample), 87 questions, Haiku 5.5, Claude Code on a logged-in session, four repetitions (two runs, then two more as a confirmation).
 
-| Repository | `prefetch`, API agent (4 repetitions) | `prefetch`, Claude Code | hook, Claude Code |
-|---|---:|---:|---:|
-| `flamingock-java` | **−64%** ✓ | **−39%** ✓ | −9% ~ |
-| `cluster-api-provider-proxmox` | **+31%** ✗ | **−26%** ✓ | **−20%** ✓ |
-| `statelyai/agent` | **−27%** ✓ | **−19%** ✓ | **+16%** ✗ |
-| `GDScript-formatter` | **−31%** ✓ | **−14%** ✓ | **−17%** ✓ |
-| `python-json-patch` | **+19%** ✗ | +7% ~ | +7% ~ |
-| `chatmail/relay` | **+12%** ✗ | −7% ~ | +5% ~ |
-| `conda/constructor` | **+20%** ✗ | −3% ~ | **+11%** ✗ |
-| `intaro/pinboard` | **+19%** ✗ | −9% ~ | +7% ~ |
+| Haiku 5.5 · Claude Code · 8 repositories · first asks | pairs | real cost, typical task | by repository (pooled · saves · none · costs more) | tokens · tool calls · seconds | file found (without) |
+|---|---:|---:|---|---|---:|
+| the ranking in the prompt (`prefetch`) | 348 | **−12%** [−15, −9] | −11% [−19, −3] · 4 · 4 · 0 | −32% · −54% · −22% | 315/348 (328/348) |
+| the installed hook (`prefetch-hook`) | 348 | **−4%** [−7, −1] | −4% [−14, +5] ~ · 2 · 6 · 0 | −23% · −41% · −11% | 321/348 (326/348) |
 
-✓ saves, ✗ costs more, ~ no clear change (the repository's own 95% interval; two repetitions here, so single rows are rough).
+Paired on the same questions and repetitions the hook cost **+6% [+4, +9]** more than the prompt text (+4%, +7%, +7%, +7% by repetition;
++9% [+5, +13] when each is measured against its own baseline). The prompt text saves more and finds the file less often (3.7 points fewer
+runs than its baseline, against 1.4 for the hook): the agent trusts it more, and trusting a ranking whose top five holds the expected file for
+70% of the questions has a price. Per repository, four-repetition real cost for the prompt text and the hook:
 
-What it says, and does not:
+| Repository | the ranking in the prompt | the installed hook |
+|---|---:|---:|
+| `flamingock-java` | **−28%** ✓ | **−28%** ✓ |
+| `GDScript-formatter` | **−26%** ✓ | **−19%** ✓ |
+| `statelyai/agent` | **−15%** ✓ | +10% ~ |
+| `conda/constructor` | **−11%** ✓ | +4% ~ |
+| `chatmail/relay` | −6% ~ | −1% ~ |
+| `cluster-api-provider-proxmox` | +4% ~ | +11% ~ |
+| `python-json-patch` | −1% ~ | +4% ~ |
+| `intaro/pinboard` | −1% ~ | −5% ~ |
 
-- **The missing saving is not a hook that failed to run, and not the route.** The hook fired every time and the same ranking on the same
-  route took 15% off the cost. What differs between the two arms is how the text reaches the model, and that the hook runs `sigmap ask` itself when
-  the prompt is submitted. The header and the 8 KiB cap are the same (a test keeps the header equal); the ranking was not compared run by run. Why the agent does more after the hook's context than after the same text in its prompt is not
-  tested here; one thing that would be worth testing is whether Claude Code presents hook context as a separate block the model trusts less. That
-  is a guess, not a finding.
-- **The earlier repository labels did not carry over.** The five repositories that cost more under `prefetch` moved 18 points toward saving on
-  average on Claude Code, and the three that saved moved 37 points toward costing more: the signs agree for six of eight, the ranks hardly at all
-  (Spearman 0.06 for the hook, 0.40 for the prompt text on Claude Code, against the API-agent results). Part of that is selection, part the
-  route and two repetitions against four. "It costs more on five of the twenty" describes that run, not a property of those repositories.
-- **The pre-set rules, applied as written.** The hook round's rule: the savers' pooled interval (−5% [−17, +16], three repositories) includes
-  zero, which by its letter makes the outcome "the hook differs from the harness prefetch"; but an interval over three repositories is thirty
-  points wide and almost always includes zero, so the rule could not tell. The control's rule: the route would explain the difference if the
-  prompt text on Claude Code looked like the hook, which it does not (pooled interval below zero); the delivery would explain it if the prompt
-  text on Claude Code reproduced the API-route pattern at a rank correlation of 0.5 or more, and it reached 0.40. So by the letter the control's
-  outcome is "unexplained"; the saving of the prompt text on the same route is what rules out the route.
-- **What this does not show.** Eight repositories picked after the fact are not a sample of repositories; one cheap model; where-is-it
-  questions only; two repetitions. It says nothing about change tasks, other models, or a user's own long sessions. The hook might still help
-  where it is cheap to read and the agent would search a long time, as the first rounds suggest `prefetch` does; it was not shown to.
-- **What it means for the product.** The hook stays opt-in and its documentation now says the saving is not established. The text in the prompt
-  did better than the hook on this setup, so the useful next experiment is a different delivery of the same ranking, not another repetition.
+✓ saves, ~ no clear change (the repository's own 95% interval); no repository costs more under either.
 
-Reproduce: `node benchmarks/agent-study/summarize.mjs --route claude-code --set heldout --by-repo` and `--versus prefetch-hook:prefetch`.
-The 696 runs cost $2.24 by Claude Code's own count and ran on a logged-in session, not API credit.
+**Why the hook does less.** The traces (the order of each run's tool calls, `trace-analysis.mjs`) say it is not that the hook goes unused: the
+answer named a ranked file in 90% of hook runs and 94% of prompt-text runs. The agent's first call was a Grep in 78% of both (93% to 97% without
+SigMap). What differs is checking: after the hook it made 2.6 tool calls and read a ranked file in 31% of runs, after the prompt text 1.95 and
+22%. Claude Code adds hook output as a separate `<system-reminder>` message after the user's turn (the version used, 2.1.322, takes only
+`additionalContext` from this hook, with no way to rewrite the prompt), and the agent looks like it treats a reminder as a lead to verify and
+the same words in its own prompt as nearer to settled. That is a reading of the traces, not a tested cause.
+
+**Three deliveries tried, none better.** Prototypes around the product's own `prefetch()` (`benchmarks/agent-study/hooks/prototype-hook.cjs`), each a
+change a hook can make: the block as plain stdout (`hook-plain`), under a header that says where to start (`hook-firm`), and cut to about 2.5 KB
+(`hook-brief`). Against their own baselines they came out at −7% [−11, −3], −6% [−9, −3] (four repetitions) and −8% [−12, −3]. Against the
+shipped hook, measured against each series' own baseline: −2% [−7, +3], −2% [−5, +2] and −3% [−8, +3], none distinguishable from zero; and +7% to
++8% above the prompt text. `hook-firm` passed the screening rule as I had written it (it compared SigMap arm to SigMap arm, and its series'
+baseline happened to be 4% cheaper); the confirmation the rule required, with the shipped hook and the prompt text run back to back and the
+adjusted comparison declared beforehand as its criterion, gave −3% [−8, +2] and did not pass. `hook-plain` also found the file in 3.4 points fewer
+runs than its baseline. Nothing here changes the shipped hook.
+
+What this does not show: eight repositories picked after the fact are not a sample of repositories; one cheap model; where-is-it questions only;
+a hook that can only add a reminder, which is the whole of what this version of Claude Code lets a hook do. It does not say a different
+version, or another agent, would behave the same. And the only comparison that was planned and passed cleanly is the hook against the prompt
+text; the rest is what four runs and one wrong turn left standing.
+
+Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and
+`node benchmarks/agent-study/trace-analysis.mjs`. The hook rounds ran on a logged-in session, not API credit (about $13 by Claude Code's own count).
 
 ### Change tasks
 
@@ -424,6 +427,10 @@ only a test file, use more tasks than nine, and a model strong enough to clear t
 - **Claude Code and the API agent are different agents.** The API agent carries about 0.9k tokens of fixed prompt and tool definitions where Claude Code carries
   about 12k. The two are never mixed in one row; the difference between them (a 33% saving on the famous frameworks in one, none in the other)
   is itself a result: how much SigMap saves depends on the agent as well as the model.
+- **Repeating a question is not free on Claude Code.** The first four rounds ran each question twice in one checkout, and Claude Code reads the
+  repeat's identical opening prompt from the prompt cache. That moved the cost of arms that add question-specific text by up to 30 points
+  (above). It is why the Claude Code `prefetch` numbers in the tables are read on first asks, and why the hook rounds end with a prompt no two
+  runs share. I found this late, from my own comparison going wrong, and the Claude Code rows from before it are the least safe in the study.
 - **A sensitivity check on the arm problem.** The protocol page describes how the first runs left a generated file searchable in the
   SigMap arm. Re-summarising the Claude Code famous runs without django and rails (where such a file was most likely to be visible)
   gives `index` +7% [+2, +13] cost: still no saving.

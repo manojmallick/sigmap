@@ -18,11 +18,12 @@ node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails
 |---|---|
 | `series` | one invocation of the harness (route, model, question set, SigMap setup, both arms); pairs never cross series |
 | `route` | `claude-code` or `api` (the Messages API directly) |
-| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout` or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
+| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
 | `repo`, `task`, `arm`, `run` | the question, `with` or `without` SigMap, the repetition |
 | `ok`, `pass` | the run finished; the expected file was among the five named (for `change`: the hidden tests passed) |
 | `turns`, `calls`, `mcp`, `cli`, `skill` | model turns; tool calls; of those, SigMap MCP calls, `sigmap` CLI commands and Skill calls |
 | `in`, `out`, `cacheRead`, `cacheWrite` | tokens by class |
+| `ask` | Claude Code rows only: `first`, or `repeat` for the second run of a question in a batch, which the host serves from the prompt cache (see the results page); `summarize.mjs --ask first` reads first asks only. Every `--prompt-style question` run is a first ask |
 | `hookBytes` | `prefetch-hook` runs only: bytes of context the `UserPromptSubmit` hook added to the run (0 in the baseline arm, which must have no hook) |
 | `usd`, `ms`, `limit` | cost (the agent's own figure, or computed from usage for `api`); wall-clock milliseconds; the cap that stopped the run, if any |
 
@@ -93,6 +94,11 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `closed-book.mjs` | the control: the same questions with no repository and no tools |
 | `summarize.mjs --by-repo [--per-repo]` | repository level: how many repositories save, a pooled estimate that resamples repositories, and the pre-set bar |
 | `summarize.mjs --versus locate:index` | one setup directly against another, on the same questions and repetitions |
+| `summarize.mjs --versus a:b --adjusted` | the same, each series' change against its own baseline, so a dearer or cheaper hour cancels |
+| `summarize.mjs --ask first` | Claude Code rows only: a question's first ask, without the repeats the host serves from the prompt cache |
+| `run-hook-study.sh` | the hook rounds: eight repositories, 87 questions, one delivery of the ranking at a time on a logged-in Claude Code session (`PROMPT_STYLE=question` for the clean design) |
+| `trace-analysis.mjs` | what the agent does first, from the ordered tool calls the harness records: first call, whether it read a ranked file, calls before that |
+| `hooks/prototype-hook.cjs` | the three prototype deliveries of the prefetch hook (plain stdout, a firmer header, a shorter block); not shipped |
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
