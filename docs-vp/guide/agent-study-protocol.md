@@ -597,6 +597,38 @@ knowing: on `TeleBox` the guarded hook was silent, so its runs are baseline runs
 the unguarded series' baseline on the same repository found 28. A gap of 3 from nothing but run-to-run variation means part of the `TeleBox` loss
 reported in Stage E was noise.
 
+### Stage G: a more doubtful header when the ranking is thin
+
+The guard of Stage F cannot see an English prompt whose ranking is simply wrong. A cheaper action than silence is to say so: inject the list, but under
+a header that tells the agent this ranking looks weak. Stage B1's `hook-firm` (a header that asks for more trust) changed nothing measurable, so the
+prior for any header is small; this tests the opposite wording where it would matter.
+
+**How much there is to gain.** From the runs already in hand (Stages D and E, the guarded Chinese questions left out): where the ranking was right
+(156 questions, 624 pairs) the focused hook was a wash on accuracy (file lost 3 times, gained 5) and saved 6.3%; where it was wrong (44 questions, 176 pairs)
+it lost the file in 15 pairs and gained it in 8 (net −7, 4.0 points of those pairs, 0.9 points of all 800) and still saved 3.8%. A header can recover at
+most those 7 pairs, and only by making the agent verify more, which spends some of the 3.8%. Accuracy is therefore a poor primary outcome: an effect of
+that size cannot be told from noise. What a header can change visibly is how much the agent checks, so the test has two parts.
+
+**Defining "thin", fixed before it is computed.** The same four families as Stage F, minus readable share (the guard covers it): flatness, top score and
+margin, one threshold each, alone or as an OR of two. Over the 200 questions the guard lets through (44 wrong rankings), chosen leave-one-repository-out as
+in Stage F but aiming at *half* of the wrong rankings, with the fewest right rankings flagged. The rule that ships in the prototype is the one fitted the
+same way on all 200. If the share of wrong rankings among the flagged questions is not clearly above the 22% among all of them, the header is not tested:
+a header that says "weak" about a list that is no weaker than average would be untrue.
+
+**The header** (the standard one is `HEADER` in `src/session/prefetch.js`):
+
+> ## Files SigMap ranked for this question (a weak ranking)
+> SigMap ranked this repository's files against the question from its offline index (no model call), but the scores for this question are low or close
+> together, which in testing went with a list that did not contain the right file more often than usual. Treat these as guesses to check, not leads to
+> follow: search the repository as you normally would, and use the list only where it helps. Each signature carries a `:start-end` line anchor you can
+> Read directly.
+
+**Parts of the test.** (1) *The mechanism*: on the flagged questions, does the agent verify more? Tool calls per run with the doubtful header against the
+standard one, paired on the same questions and repetitions, each against its own baseline. It *works as intended* if that interval is entirely above zero.
+(2) *The payoff*: on the same questions, the file found against baseline, and the real cost, for the two headers. It *pays off* if the doubtful header's
+found-rate gain over the standard one (each against its own baseline) has a 95% interval entirely above zero, and it keeps at least half of the standard
+header's cost saving on those questions. The run size and the exact question list follow once the rule is fitted, and will be written here before any run.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
