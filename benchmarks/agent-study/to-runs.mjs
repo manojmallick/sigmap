@@ -28,6 +28,9 @@ function row(x, set, variant) {
     cli: (t.byCommand && t.byCommand.sigmap) || 0, skill: (t.byTool && t.byTool.Skill) || 0,
     in: x.usage ? x.usage.in : null, out: x.usage ? x.usage.out : null, cacheRead: x.usage ? x.usage.cacheRead : null, cacheWrite: x.usage ? x.usage.cacheWrite : null,
     usd: x.cost ? x.cost.usd : null, ms: x.durationMs ?? null, limit: cap ? x.error : (x.limit || null),
+    // On Claude Code the second run of a question in a batch repeats a byte-identical opening prompt within minutes, and the host serves it
+    // from the prompt cache. `ask` says which is which (summarize.mjs --ask first|repeat); the Messages-API agent shows no such effect.
+    ...(route === 'claude-code' ? { ask: x.run === 1 ? 'first' : 'repeat' } : {}),
     ...(Array.isArray(x.hooks) ? { hookBytes: (x.hooks.find((h) => h && h.event === 'UserPromptSubmit') || {}).bytes || 0 } : {}),
     ...(x.patch ? { files: x.patch.files, added: x.patch.added, removed: x.patch.removed, why: x.why || null } : {}),
   };

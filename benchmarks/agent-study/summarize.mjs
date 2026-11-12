@@ -10,6 +10,7 @@
 //   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
 //   node benchmarks/agent-study/summarize.mjs --versus locate:index --set heldout   # one setup directly against another (the SigMap arms of the same questions)
 //   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
+//   node benchmarks/agent-study/summarize.mjs --route claude-code --ask first   # only first asks (a question's first run in its batch); `repeat` for the rest
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
 //
 // data/runs.ndjson has one row per agent run (see README.md for the fields). A series is one invocation of the harness: one route
@@ -33,9 +34,11 @@ const STUDY = argv.includes('--study');
 const VS_PLACEBO = argv.includes('--vs-placebo');
 const BY_REPO = argv.includes('--by-repo');
 const VERSUS = val('--versus', null);
+const ASK = val('--ask', null); // first | repeat: Claude Code rows only (see to-runs.mjs)
+if (ASK && ASK !== 'first' && ASK !== 'repeat') { console.error('--ask is first or repeat'); process.exit(2); }
 
 const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
-  .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)));
+  .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)) && (!ASK || r.ask === ASK));
 
 const tot = (r) => r.in + r.out + r.cacheRead + r.cacheWrite;
 const pct = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;

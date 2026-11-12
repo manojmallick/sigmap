@@ -35,11 +35,13 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
   ranking after the question, with no tools and no standing section: pooled over the twenty repositories cost −8% [−11, −4], total tokens
   −27%, tool calls −44% and time −18%, but it was clearly dearer on five of them (up to +31%) and the file was found in 798 runs of 888
   against 809 without it.
-- **The installed hook did not reproduce that saving.** The same ranking delivered the way `sigmap hooks install claude --prefetch` delivers
-  it, a `UserPromptSubmit` hook in a live Claude Code session (Haiku 5.5, eight of the twenty repositories, 348 runs): real cost **−1% [−10,
-  +8]**, with tool calls −33%, time −8% and tokens −7%; the file found in 159 runs of 174 against 157. The same ranking put in the prompt on
-  the same route and questions took cost **−15% [−24, −6]**, so the route does not explain it: the hook cost **+17% [+11, +24]** more than
-  the prompt text, pair for pair. Why is not isolated. The eight repositories were chosen after the earlier results and are not a sample.
+- **The installed hook has not been shown to save, and the comparison I first reported was confounded twice.** The first run (Haiku 5.5,
+  eight of the twenty repositories, Claude Code) had the hook at cost −1% and the same ranking put in the prompt at −15%. Two flaws in my own
+  setup produced most of that gap. Claude Code serves a repeated question's identical opening prompt from the prompt cache, which flattered
+  the prompt-text arm: on first asks it is **−4% [−9, +1]** (not a clear change) and on repeats −27%. And the hook ranks the whole submitted
+  prompt, benchmark boilerplate included, so it ranked a diluted query (the expected file in its top five for 47 of 87 questions against 61
+  of 87 for the bare question). On first asks the hook is **+1% [−3, +5]**. A clean comparison, with the same bare question ranked by both and every
+  run a first ask, is the next step (see [the real hook](#the-real-hook-and-the-same-text-in-the-prompt)).
 - **It does not save on famous frameworks in Claude Code with a strong model.** With Haiku 5.5 on 45 questions about gin, flask, django,
   rails and the like the typical task cost **+3% to +4%** with intervals that include zero, and tokens rose by about a fifth. The model
   already knows those repositories: asked with no repository and no tools it names the expected file for 40 of the 45 questions, and for
@@ -305,6 +307,18 @@ What it says, and does not:
   list silently dropped such directories. Fixed (with a test that fails on the old code); the affected runs were redone with the fix.
 
 ### The real hook, and the same text in the prompt
+
+> **Correction, found afterwards while testing other deliveries.** The tables below are the first run as reported, and two things in my setup
+> make the hook-against-prompt comparison unreliable. (1) *Repeated asks.* In every batch each question ran twice in the same checkout, minutes
+> apart; on Claude Code the second run's identical opening prompt is read from the prompt cache. That cut the prompt-text arm's cost far more
+> than the baseline's (first asks −4% [−9, +1], repeats −27% [−31, −23]) and left the hook flat (+1% and −1%). The effect is in the Claude Code
+> series that add question-specific text (`prefetch`: +16% on the first ask and −14% on the repeat for the famous questions, −23% and −45% for
+> SigMap's own source, −4% and −27% here), not in the Messages-API series (`prefetch` there, by repetition: −9%, −8%, −3%, −10%). (2) *Query
+> dilution.* The hook ranks the entire prompt it is given, which in this benchmark wraps the question in about fifty words of instructions; the
+> harness's `prefetch` ranks the bare question. Scored against the expected files, the bare question puts one in the top five for 61 of 87
+> questions and first for 32; the wrapped prompt for 47 and 11, and the two top-five lists were never identical. So the hook arm was handed a
+> worse ranking. The rows are tagged (`ask: first | repeat`; `summarize.mjs --ask first`). What first asks alone show is in the audit table
+> further down; the clean comparison replaces this section when it is done.
 
 Every `prefetch` number above is the benchmark putting SigMap's ranking after the question. What a user installs is different: the
 `UserPromptSubmit` hook, run by Claude Code, whose output Claude Code adds to the conversation. So the hook itself was run (`--sigmap-variant
