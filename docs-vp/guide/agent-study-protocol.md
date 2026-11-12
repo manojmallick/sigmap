@@ -540,6 +540,34 @@ repositories (the eight of Stage D and these twelve) the focused hook was −6% 
 repository, 6 saving, 11 no clear change, 3 costing more) and found the file 13 runs fewer of 888 (p = 0.08); the unfocused hook +1% [−1, +3] and
 7 runs more.
 
+### Stage F: a confidence guard for the hook
+
+Stage E left a trade the hook cannot see for itself: on the twelve repositories outside the eight it saved 7% of cost and found the file in 14 fewer
+runs of 540, mostly where its ranking is poor however the query is built. The guard withholds the injection when the ranking looks weak, so the agent
+behaves as it would without the hook exactly when the list is least likely to be right. It can use only what the hook already holds: the scores
+`sigmap ask` prints, how many files it shows, and the prompt itself.
+
+**Families of signal, fixed before any was scored** (a rule is one of these, or an OR of them, each with one threshold): (1) *flatness*, the last shown
+score over the first; (2) *the top score* alone; (3) *the margin*, the first score over the second; (4) *readable share*, the share of the focused
+query's letters that are ASCII, i.e. what the tokenizer can use (a Chinese commit title leaves only its identifiers). Nothing outside these is tried,
+so that a rule is not found by searching until one works.
+
+**Target and procedure.** For each of the 222 held-out questions, the focused benchmark prompt (what the hook actually ranks) is ranked by the real
+`sigmap ask`, and a ranking is *right* when an expected file is among the files it shows. A threshold is chosen by leave-one-repository-out over the
+20 repositories (so the repository being scored never chose its own threshold), taking, within each family, the loosest threshold that skips at least
+a third of the misses, and the simplest family or OR that meets the criteria below. Agent-level numbers are then read off the 888 pairs of Stages D
+and E by *counterfactual*: a pair the guard would skip takes its baseline arm's outcome, since an uninjected run is a baseline run. That is a
+simulation, so the real test is a run.
+
+**Criteria.** Offline: (O1) the share of wrong rankings skipped exceeds the share of right rankings skipped by at least 0.20; (O2) no more than 35%
+of questions are skipped. Counterfactual over Stages D and E: (O3) the file found no more than 1.0 point below baseline (it is 1.5 points below over
+all twenty repositories and 2.6 below on the twelve), and at least 60% of the unguarded cost saving kept. If any fails, the guard is not shipped.
+
+**The real run, written now.** If the offline criteria are met, the guarded hook runs on the twelve repositories outside the eight (the benchmark's
+wrapped prompt, first asks only, four repetitions, a baseline of its own: 1,080 runs). It *works* if its real cost against its own baseline has a 95%
+interval entirely below zero and the file is found no fewer than its baseline's runs less 2 percentage points, the clause the unguarded hook failed.
+The twelve are not a clean test of the thresholds, which were chosen with their rankings in the data; the runs are new, their outcomes not.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
