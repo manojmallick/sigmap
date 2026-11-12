@@ -18,7 +18,7 @@ node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails
 |---|---|
 | `series` | one invocation of the harness (route, model, question set, SigMap setup, both arms); pairs never cross series |
 | `route` | `claude-code` or `api` (the Messages API directly) |
-| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
+| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask), `heldout-w` (the same with the benchmark's wrapped prompt: the query-focusing check) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
 | `repo`, `task`, `arm`, `run` | the question, `with` or `without` SigMap, the repetition |
 | `ok`, `pass` | the run finished; the expected file was among the five named (for `change`: the hidden tests passed) |
 | `turns`, `calls`, `mcp`, `cli`, `skill` | model turns; tool calls; of those, SigMap MCP calls, `sigmap` CLI commands and Skill calls |

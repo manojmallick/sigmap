@@ -36506,7 +36506,8 @@ __factories["./src/session/query-focus"] = function(module, exports) {
    * behaviour") is not told from a question, a pasted traceback loses its frames, and chatter in ordinary words ("I've been going back
    * and forth on it all week") is kept. Offline over 222 held-out questions in thirteen kinds of wrapper (benchmarks/agent-study/
    * query-focus-eval.mjs, result in data/query-focus-eval.txt) the expected file was in the top five for 59% of the raw wrapped prompts,
-   * 66% after this, and 72% for the bare question; first for 28%, 36% and 45%. Bare questions come back unchanged.
+   * 66% after this, and 72% for the bare question; first for 28%, 36% and 45%. Bare questions come back unchanged. In an agent with the
+   * benchmark's wrapped prompt the hook's real cost against its own baseline was -3% [-6, 0] with this and +3% [0, +6] without it.
    *
    * Zero dependencies. Pure: the same prompt gives the same query.
    */

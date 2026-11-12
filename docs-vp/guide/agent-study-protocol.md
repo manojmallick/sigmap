@@ -467,8 +467,8 @@ at most 19 ms for a megabyte of paste with the question before or after it.
 traceback loses its frames, which in real use may be the best lead in the prompt (nothing here measures that). A variant that also asks whether a
 sentence's words occur in the repository was tried afterwards, not chosen on it: much better on `standards` (113 against 68 of 167) and `task`
 (109 against 88), much worse on `trace` (58 against 94), so it is not shipped. All wrappers are mine, in English, and the questions are commit
-titles; no real prompts were available. What was **not** measured is the effect on an agent: the agent runs above use the bare-question prompt, which
-the rule leaves untouched, so none of their numbers change. `SIGMAP_PREFETCH_FOCUS=0` restores the old behaviour.
+titles; no real prompts were available. The effect on an agent is Stage D, below; the earlier agent runs use the bare-question prompt, which the rule
+leaves untouched, so none of their numbers change. `SIGMAP_PREFETCH_FOCUS=0` restores the old behaviour.
 
 ### Stage D: does the focusing show up in an agent's cost?
 
@@ -491,6 +491,15 @@ zero in at least three of the four repetitions, and the file is found in no fewe
 includes zero, the result is "not detected at this size", and the ranking numbers are what is established. For reference, not as a rule: the same
 hook with the bare-question prompt (the fourth round's clean runs) took cost −4% [−7, −1] against its baseline. With 348 pairs per series the adjusted
 interval is about ±4 points wide, so only a difference of that size or more can be seen.
+
+**Stage D, what happened.** 1,392 runs, none failed; the hook fired in every SigMap-arm run of both series and in no baseline run, and every run was a
+first ask. Against its own baseline the focused hook took real cost **−3% [−6, 0]** (tokens −17%, tool calls −37%, time −14%; file found 321 of 348
+against 320), the unfocused hook **+3% [0, +6]** (tokens −7%, calls −32%, time −9%; found 320 against 322). The two baselines cost the same per run
+($0.00361 and $0.00364). The rule: focused against unfocused, each against its own baseline, **−6% [−9, −2]**, by repetition −10%, +1%, −7%, −6%;
+the file found no less often than its baseline. **Met: the focusing shows up in an agent's cost.** With the wrapped prompt the focused hook is back
+at about the level of the bare-question hook of the fourth round (−4% [−7, −1]); by repository the pooled estimates are −3% [−11, +5] and +3% [−4,
++10], 2 of 8 repositories saving and 3 costing more in each, which is what eight repositories and a small effect look like. This is one model, one
+prompt wrapper, and the same eight repositories chosen after the earlier results.
 
 ## What went wrong along the way
 
