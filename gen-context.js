@@ -36313,6 +36313,8 @@ __factories["./src/session/prefetch"] = function(module, exports) {
    *   - It does not inject on every prompt. A prompt is skipped when it is a slash command, a shell escape or a note, has fewer than
    *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
    *     and write nothing but its own state).
+   *   - It does not guess. A prompt less than 90% of whose letters are ASCII (the ranker reads only those) is not ranked: what is left of it
+   *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions.
    *   - It does not rank conversation. A prompt of more than two dozen words is reduced to the sentences that say something before it is
    *     ranked; a short one is ranked exactly as written.
    *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it
@@ -36322,6 +36324,7 @@ __factories["./src/session/prefetch"] = function(module, exports) {
    *
    * `SIGMAP_PREFETCH=0` in the environment turns it off without touching the settings file. `SIGMAP_PREFETCH_FOCUS=0` keeps the hook but
    * ranks the whole prompt as it was written, instead of the sentences of a long prompt that say something (src/session/query-focus.js).
+   * `SIGMAP_PREFETCH_GUARD=0` ranks a prompt even when less than 90% of its letters are ASCII, which the guard otherwise leaves alone.
    *
    * Zero dependencies.
    */
@@ -36334,6 +36337,7 @@ __factories["./src/session/prefetch"] = function(module, exports) {
 
   const EVENT = 'UserPromptSubmit';
   const MIN_WORDS = 4;
+  const READABLE_MIN = 0.9;
   const MAX_QUERY_CHARS = 2000;
   const MAX_BYTES = 8 * 1024;
   const TIMEOUT_MS = 8000;
@@ -36352,14 +36356,25 @@ __factories["./src/session/prefetch"] = function(module, exports) {
   ].join('\n');
 
   /**
+   * The share of a query's letters that are ASCII: what the ranker can read. Its tokenizer splits on anything that is not A-Z, a-z or 0-9, so
+   * the words of a Chinese, Russian or Greek prompt never reach the ranking and only the identifiers inside it do. A query with no letters
+   * counts as fully readable.
+   */
+  function readableShare(text) {
+    const letters = String(text).match(/\p{L}/gu) || [];
+    if (letters.length === 0) return 1;
+    return letters.filter((c) => /[A-Za-z]/.test(c)).length / letters.length;
+  }
+
+  /**
    * Whether a prompt is worth a ranking, and what to rank.
    *
    * A prompt of more than a couple of dozen words is focused first (src/session/query-focus.js): the sentences that are only conversation,
    * instructions about the answer, or pasted tool output are left out of the query. A short prompt is ranked exactly as it was written.
    *
    * @param {*} prompt
-   * @param {{ focus?: boolean }} [opts] `focus: false` ranks the whole prompt
-   * @returns {{ ok: boolean, reason: string|null, query?: string, focused?: boolean }}
+   * @param {{ focus?: boolean, guard?: boolean }} [opts] `focus: false` ranks the whole prompt; `guard: false` ranks it even when the ranker cannot read most of it
+   * @returns {{ ok: boolean, reason: string|null, query?: string, focused?: boolean, readable?: number }}
    */
   function screen(prompt, opts) {
     if (typeof prompt !== 'string') return { ok: false, reason: 'no prompt' };
@@ -36373,7 +36388,15 @@ __factories["./src/session/prefetch"] = function(module, exports) {
     let query = f.query.replace(/\s+/g, ' ');
     if (query.length > MAX_QUERY_CHARS) query = query.slice(0, MAX_QUERY_CHARS).replace(/\s+\S*$/, '');
     query = query.replace(/^[-\s]+/, '');
-    return query ? { ok: true, reason: null, query, focused: f.focused } : { ok: false, reason: 'empty prompt' };
+    if (!query) return { ok: false, reason: 'empty prompt' };
+    // The confidence guard. Over 222 held-out questions the ranking was wrong for 18 of the 22 whose query was less than 90% ASCII letters, and the
+    // agent that trusted it found the file less often than one with no hook: a ranking built from a few identifiers in a prompt written in
+    // another script is a guess, so nothing is injected and the agent works as it would without the hook.
+    const readable = readableShare(query);
+    if (!(opts && opts.guard === false) && readable < READABLE_MIN) {
+      return { ok: false, reason: `mostly text the ranker cannot read (${Math.round(100 * readable)}% of the letters are ASCII)`, query, focused: f.focused, readable };
+    }
+    return { ok: true, reason: null, query, focused: f.focused, readable };
   }
 
   /** The file paths of the ranking `sigmap ask` prints: `1  path/to/file.js   8.290  299 tok`. */
@@ -36436,7 +36459,7 @@ __factories["./src/session/prefetch"] = function(module, exports) {
     try {
       const env = opts.env || process.env;
       if (String(env.SIGMAP_PREFETCH).trim() === '0') return none('SIGMAP_PREFETCH=0');
-      const s = screen(payload && payload.prompt, { focus: String(env.SIGMAP_PREFETCH_FOCUS).trim() !== '0' });
+      const s = screen(payload && payload.prompt, { focus: String(env.SIGMAP_PREFETCH_FOCUS).trim() !== '0', guard: String(env.SIGMAP_PREFETCH_GUARD).trim() !== '0' });
       if (!s.ok) return none(s.reason);
       const indexFile = __require('./src/retrieval/sig-index-store').indexPath(cwd);
       if (!fs.existsSync(indexFile)) return none('no index (run sigmap first)');
@@ -36475,7 +36498,7 @@ __factories["./src/session/prefetch"] = function(module, exports) {
     }
   }
 
-  module.exports = { EVENT, HEADER, MIN_WORDS, MAX_BYTES, TIMEOUT_MS, screen, rankedFiles, compose, prefetch };
+  module.exports = { EVENT, HEADER, MIN_WORDS, READABLE_MIN, MAX_BYTES, TIMEOUT_MS, screen, readableShare, rankedFiles, compose, prefetch };
   
 };
 

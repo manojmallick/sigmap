@@ -30,6 +30,9 @@
  *  15. labels ("scope: ...", "Task: ...", "What I'm trying to do: ...") and identifiers survive; pasted output goes; nothing left means the prompt as is
  *  16. a megabyte of paste costs milliseconds, before or after the question
  *  17. screen() and the hook: focused by default, SIGMAP_PREFETCH_FOCUS=0 ranks the whole prompt, and focusing changes which file ranks first
+ *  confidence guard
+ *  18. a prompt the ranker mostly cannot read (under 90% ASCII letters) is not ranked, and nothing is spawned for it; English and lightly accented prompts are;
+ *      SIGMAP_PREFETCH_GUARD=0 turns it off; through the real command it prints nothing and exits 0
  *
  * Run: node test/integration/prefetch-hook.test.js
  */
@@ -372,6 +375,40 @@ test('the hook ranks the focused prompt, SIGMAP_PREFETCH_FOCUS=0 ranks the whole
   const r = spawnSync(process.execPath, [GEN, 'session', 'hook', 'UserPromptSubmit'], { cwd: dir, input: JSON.stringify({ session_id: 's-f3', hook_event_name: 'UserPromptSubmit', cwd: dir, prompt }), encoding: 'utf8', env: ENV });
   assert.strictEqual(r.status, 0, r.stderr);
   assert.strictEqual(pf.rankedFiles(JSON.parse(r.stdout).hookSpecificOutput.additionalContext)[0], 'src/billing/invoice.js', 'the bundle focuses too');
+});
+
+// ── confidence guard ─────────────────────────────────────────────────────
+
+const CHINESE = 'ping: 修复 systemPing 命令注入漏洞 的 问题 在 这里';
+
+test('readableShare: the share of letters the ranker can read; no letters at all counts as readable', () => {
+  assert.strictEqual(pf.readableShare(''), 1);
+  assert.strictEqual(pf.readableShare('where is the retry budget'), 1);
+  assert.strictEqual(pf.readableShare('12345 \u{1F600} ... ---'), 1, 'digits, emoji and punctuation are not letters');
+  assert.strictEqual(pf.readableShare('abcd\u4E2D\u6587\u5B57\u7B26'), 0.5);
+  assert.ok(pf.readableShare('Wie funktioniert die Zahlung f\u00FCr m\u00FCller und caf\u00E9') > pf.READABLE_MIN, 'a few accents do not trip it');
+});
+
+test('the guard: a prompt the ranker mostly cannot read is not ranked, one it can read is, and SIGMAP_PREFETCH_GUARD=0 turns it off', () => {
+  const s = pf.screen(CHINESE);
+  assert.ok(!s.ok && /cannot read/.test(s.reason) && s.readable < pf.READABLE_MIN, JSON.stringify(s));
+  assert.ok(pf.screen(CHINESE, { guard: false }).ok, 'guard: false ranks it');
+  assert.ok(pf.screen('Wie funktioniert die Zahlung f\u00FCr m\u00FCller und caf\u00E9 heute').ok);
+  assert.ok(pf.screen('\u041F\u043E\u0447\u0435\u043C\u0443 \u043D\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 retryBudget \u0432 \u043C\u043E\u0434\u0443\u043B\u0435 \u043E\u043F\u043B\u0430\u0442\u044B').ok === false, 'a mostly Cyrillic prompt');
+  const dir = indexedProject();
+  const missing = path.join(dir, 'does-not-exist.js'); // were `ask` run, it would fail: so the reason shows whether the guard stopped it first
+  const guarded = pf.prefetch({ session_id: 'g1', prompt: CHINESE }, dir, { script: missing, env: ENV });
+  assert.strictEqual(guarded.stdout, null);
+  assert.ok(/cannot read/.test(guarded.skipped), guarded.skipped);
+  const off = pf.prefetch({ session_id: 'g2', prompt: CHINESE }, dir, { script: missing, env: { ...ENV, SIGMAP_PREFETCH_GUARD: '0' } });
+  assert.ok(/ask failed/.test(off.skipped), `switched off, it goes on to ask: ${off.skipped}`);
+  assert.ok(!fs.existsSync(path.join(dir, '.context', 'prefetch-state.json')), 'a guarded prompt leaves no state');
+  // an English prompt in the same project is still ranked
+  assert.ok(pf.prefetch({ session_id: 'g3', prompt: PROMPT }, dir, { script: GEN, env: ENV }).stdout, 'English still gets its block');
+  // through the real command
+  const r = spawnSync(process.execPath, [GEN, 'session', 'hook', 'UserPromptSubmit'], { cwd: dir, input: JSON.stringify({ session_id: 'g4', hook_event_name: 'UserPromptSubmit', cwd: dir, prompt: CHINESE }), encoding: 'utf8', env: ENV });
+  assert.strictEqual(r.status, 0, r.stderr);
+  assert.strictEqual(r.stdout, '', 'nothing printed for a prompt it cannot read');
 });
 
 (async () => {

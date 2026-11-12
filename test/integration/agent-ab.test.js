@@ -2040,6 +2040,32 @@ const treeHash = (dir) => {
     assert.strictEqual(new Set(calls.map((c2) => c2.stdin)).size, calls.length, 'no two runs got the same prompt');
   });
 
+  await test('the confidence guard in the integrity check: a hook that runs and says nothing is right exactly when the product\'s own screen() says the prompt is guarded', async () => {
+    const init = { tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] };
+    const silent = [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 0, files: [] }];
+    const loud = [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900, files: [] }];
+    const chk = (hooks, expectSilent, arm = 'with') => ab.checkIntegrity(init, arm, { variant: 'prefetch-hook', hooks, expectSilent });
+    assert.ok(chk(silent, true).ok, 'silent where silence is expected');
+    assert.ok(chk(loud, false).ok, 'context where context is expected');
+    assert.ok(!chk(loud, true).ok && /guard should have kept the hook silent/.test(chk(loud, true).problems.join(' ')), 'context where the guard should have withheld it');
+    assert.ok(!chk(silent, false).ok && /added nothing/.test(chk(silent, false).problems.join(' ')), 'silence where it was not expected is still a defect');
+    assert.ok(!chk([], true).ok && /ran it 0 times/.test(chk([], true).problems.join(' ')), 'a hook that never ran is a defect even when silence is expected');
+    assert.ok(!chk([{ ...silent[0], exitCode: 1, outcome: 'error' }], true).ok, 'and so is one that failed');
+    assert.ok(chk([], true, 'without').ok, 'the baseline arm is unchanged');
+
+    // Through runPlan, with the verdict the CLI uses: the product\'s own screen()
+    const pf = require(path.join(ROOT, 'src/session/prefetch.js'));
+    const zh = { id: 'z1', repo: 'r1', query: '\u4FEE\u590D systemPing \u547D\u4EE4\u6CE8\u5165\u6F0F\u6D1E \u7684 \u95EE\u9898 \u5728 \u8FD9\u91CC', expected_files: ['src/ping.js'] };
+    const en = { id: 'e1', repo: 'r1', query: 'where is the alpha thing handled in this repository', expected_files: ['src/alpha.js'] };
+    const mkRunner = (talk) => async (job) => ({ ok: true, answer: `\`${job.task.expected_files[0]}\``, init, cwds: [], toolCalls: { total: 1, byTool: {}, byCommand: {} }, usage: { in: 1, out: 1, cacheRead: 0, cacheWrite: 0 }, cost: { usd: 0.01, source: 'agent-reported' }, turns: 2, durationMs: 1, hooks: job.arm === 'with' ? [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: talk(job.task) ? 800 : 0, files: [] }] : [] });
+    const silentFor = (prompt) => !pf.screen(prompt, { focus: true, guard: true }).ok;
+    assert.ok(silentFor(ab.wrappedPrompt(zh)) && !silentFor(ab.wrappedPrompt(en)), 'the screen guards the Chinese question and not the English one');
+    const entries = await ab.runPlan({ tasks: [zh, en], runs: 1, runner: mkRunner((t) => t.id === 'e1'), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor });
+    assert.strictEqual(entries.length, 4, 'a guarded question and an unguarded one both pass');
+    await assert.rejects(ab.runPlan({ tasks: [zh], runs: 1, runner: mkRunner(() => true), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor }), /guard should have kept the hook silent/);
+    await assert.rejects(ab.runPlan({ tasks: [en], runs: 1, runner: mkRunner(() => false), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor }), /added nothing/);
+  });
+
   await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {
     const { PLACEBO_SECTION } = await import('../../scripts/lib/agent-ab-placebo.mjs');
     assert.ok(PLACEBO_SECTION.length > 6500 && PLACEBO_SECTION.length < 8500, `${PLACEBO_SECTION.length} characters: sized to what the index setup adds to every turn`);

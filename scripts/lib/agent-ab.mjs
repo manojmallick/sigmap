@@ -386,13 +386,15 @@ export function costFloor(inTokens, model) {
  * The `prefetch-hook` run is only a measurement of the hook if the hook ran in the SigMap arm, exactly once and successfully with
  * something to say, and did not run at all in the baseline. Both are read from the hook events in the run's own stream.
  */
-export function hookProblems(hooks, arm) {
+export function hookProblems(hooks, arm, opts = {}) {
   if (!Array.isArray(hooks)) return ['the run reported no hook events, so it cannot be checked that the hook ran (or did not)'];
   const mine = hooks.filter((h) => h && h.event === 'UserPromptSubmit');
   if (arm === 'without') return hooks.length ? [`the no-SigMap arm ran a hook (${hooks.map((h) => h.event).join(', ')})`] : [];
   if (mine.length !== 1) return [`the SigMap arm should run its UserPromptSubmit hook once; it ran it ${mine.length} times`];
   const h = mine[0];
   if (h.outcome !== 'success' || h.exitCode !== 0) return [`the prefetch hook did not succeed (outcome ${h.outcome}, exit ${h.exitCode})`];
+  // A prompt the confidence guard withholds is one the hook must run on and leave alone: silence is then the right answer, and context a defect.
+  if (opts.expectSilent) return h.bytes > 0 ? ['the confidence guard should have kept the hook silent for this prompt, and it added context'] : [];
   if (!(h.bytes > 0)) return ['the prefetch hook ran and added nothing to the prompt'];
   return [];
 }
@@ -421,7 +423,7 @@ export function checkIntegrity(init, arm, opts = {}) {
   if (opts.variant === 'prefetch' || opts.variant === 'placebo' || isHookVariant(opts.variant)) {
     // The ranking (or the placebo text) is already in the prompt; neither arm has an MCP server, so one in either arm is a contaminated run.
     if (sigmap || sigmapTools.length) problems.push(`the ${opts.variant} variant holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
-    if (isHookVariant(opts.variant)) problems.push(...hookProblems(opts.hooks, arm));
+    if (isHookVariant(opts.variant)) problems.push(...hookProblems(opts.hooks, arm, { expectSilent: !!opts.expectSilent }));
     return { ok: problems.length === 0, problems, builtins };
   }
   const wanted = SKILL_VARIANTS[opts.variant];
@@ -468,13 +470,14 @@ export function checkIntegrity(init, arm, opts = {}) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
+ * @param {(prompt:string) => boolean} [p.silentFor] for a hook variant: whether the product's hook is expected to say nothing for this prompt (the confidence guard)
  * @param {(task:object, run:{run:number, arm:string}) => string} [p.promptFor] the prompt of a run (default: the locate prompt, the same for every run of a task)
  * @param {(record:object, task:object) => Promise<{pass:boolean}>|{pass:boolean}} [p.scoreRun] scores a finished run (default: hit@5 on the files named)
  * @param {boolean} [p.change] the tasks are change tasks: the agent may edit
  * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
  * @returns {Promise<Array<{task:object, arm:string, run:number, record:object}>>}
  */
-export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false }) {
+export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false, silentFor = null }) {
   const out = [];
   const builtinsByArm = {};
   let streak = 0;
@@ -485,7 +488,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
         const prompt = promptFor(task, { run, arm });
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks });
+          const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks, expectSilent: !!(silentFor && silentFor(prompt)) });
           if (!chk.ok) {
             throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
           }
