@@ -568,6 +568,35 @@ wrapped prompt, first asks only, four repetitions, a baseline of its own: 1,080 
 interval entirely below zero and the file is found no fewer than its baseline's runs less 2 percentage points, the clause the unguarded hook failed.
 The twelve are not a clean test of the thresholds, which were chosen with their rankings in the data; the runs are new, their outcomes not.
 
+**Stage F, what happened.** *Offline* (`guard-eval.mjs`, result of record `data/guard-eval.txt`): 222 focused queries, 160 with the expected file among the
+files shown and 62 without. The four families are weak predictors one at a time: AUC 0.62 (flatness), 0.66 (top score), 0.58 (margin), 0.63 (readable
+share). Leave-one-repository-out, the best pair was top score OR readable share (skips 35% of the wrong rankings and 6% of the right ones, separation
+0.30, 14% of questions); the single families sit at the 0.20 boundary of criterion O1, and `readable` alone cannot reach a third of the misses, so the
+procedure selects nothing for it. **What ships is the readable half alone, which departs from the registered "best configuration"**: in the
+counterfactual the score floor adds nothing visible (the same found and cost to one decimal), and an absolute BM25 score floor was never tested on a
+repository smaller than 80 files and could silently switch the hook off in a small project. The threshold is 0.9, not a fitted value: no focused query
+has a readable share between 0.88 and 1.0, and 0.9 does not trip on one accented name in an English prompt. The rule skips 22 of the 222 questions
+(18 wrong rankings, 4 right), all in `TeleBox` and `mica-mqtt`, whose commit titles are Chinese; the per-run reference token cannot move any of them over the
+line (0 of 44,000 draws). *Counterfactual* over the 888 pairs of Stages D and E (a skipped pair takes its baseline arm's outcome): 10% of pairs
+skipped, cost −5.6% becomes −5.2%, 93% of the saving kept, the file found 1.5 points below baseline becomes 0.6 below; on the twelve outside the eight
+−7.2% becomes −6.5% (91% kept) and 2.6 points below becomes 1.1, which is 0.1 over criterion O3's 1.0.
+
+*The real run:* 1,080 runs (the first attempt stopped on all four shards when the plan's usage limit was reached, recorded nothing, and was repeated
+unchanged once it had reset). The hook was silent on exactly 88 runs, 22 questions in four repetitions, as the integrity check required of each; every
+other run injected. Against its own baseline the guarded hook took real cost **−8% [−10, −5]** (tokens −19%, tool calls −36%, time −10%), pooled by
+repository −7% [−12, −4] (5 of 12 saving, none costing more), and the file was found in **485 of 540** runs against 492, **1.3 points fewer**: both clauses of
+the rule are met, including the one the unguarded hook failed (2.6 points). Paired, the guarded hook lost a file its baseline found in 19 pairs and
+gained one in 12 (net −7, p = 0.28), where the unguarded hook was net −14 (p = 0.02). Against the unguarded series, each against its own baseline,
+the guard cost nothing measurable: 0% [−3, +2].
+
+**What this does and does not show.** The guard is, in the data it was built from, a language guard: it fires on prompts written mostly in a script
+the ranker cannot read. It does nothing for English prompts whose ranking is simply wrong (`agent` and `GDScript-formatter` have 6 of 12 wrong,
+`relay` 4 of 10), because none of the four signals predicts those (AUC at most 0.66). Its thresholds were chosen with these repositories' rankings in
+view, so the twelve are not a clean test of the guard, though the runs and their outcomes are new. And the real run carries a noise floor worth
+knowing: on `TeleBox` the guarded hook was silent, so its runs are baseline runs, yet they found 22 of 48 against 25 for the paired baseline, while
+the unguarded series' baseline on the same repository found 28. A gap of 3 from nothing but run-to-run variation means part of the `TeleBox` loss
+reported in Stage E was noise.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.

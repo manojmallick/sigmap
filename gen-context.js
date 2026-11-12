@@ -36314,7 +36314,9 @@ __factories["./src/session/prefetch"] = function(module, exports) {
    *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
    *     and write nothing but its own state).
    *   - It does not guess. A prompt less than 90% of whose letters are ASCII (the ranker reads only those) is not ranked: what is left of it
-   *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions.
+   *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions. On twelve repositories the guarded hook found
+   *     the file in 485 runs of 540 against 492 without a hook (unguarded: 483 against 497), at no measurable cost to its saving. It does not
+   *     catch an English prompt whose ranking is wrong: none of the signals tried predicts that.
    *   - It does not rank conversation. A prompt of more than two dozen words is reduced to the sentences that say something before it is
    *     ranked; a short one is ranked exactly as written.
    *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it
@@ -36531,7 +36533,8 @@ __factories["./src/session/query-focus"] = function(module, exports) {
    * query-focus-eval.mjs, result in data/query-focus-eval.txt) the expected file was in the top five for 59% of the raw wrapped prompts,
    * 66% after this, and 72% for the bare question; first for 28%, 36% and 45%. Bare questions come back unchanged. In an agent with the
    * benchmark's wrapped prompt the hook's real cost against its own baseline was -3% [-6, 0] with this and +3% [0, +6] without it on eight
-   * repositories, and -7% [-10, -5] and 0% [-3, +2] on twelve others, where the file was also found in 14 fewer runs of 540 than without the hook.
+   * repositories, and -7% [-10, -5] and 0% [-3, +2] on twelve others, where the file was also found in 14 fewer runs of 540 than without the hook
+   * (the guard in prefetch.js, which withholds the injection for a prompt the ranker cannot read, halves that).
    *
    * Zero dependencies. Pure: the same prompt gives the same query.
    */

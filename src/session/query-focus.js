@@ -26,7 +26,8 @@
  * query-focus-eval.mjs, result in data/query-focus-eval.txt) the expected file was in the top five for 59% of the raw wrapped prompts,
  * 66% after this, and 72% for the bare question; first for 28%, 36% and 45%. Bare questions come back unchanged. In an agent with the
  * benchmark's wrapped prompt the hook's real cost against its own baseline was -3% [-6, 0] with this and +3% [0, +6] without it on eight
- * repositories, and -7% [-10, -5] and 0% [-3, +2] on twelve others, where the file was also found in 14 fewer runs of 540 than without the hook.
+ * repositories, and -7% [-10, -5] and 0% [-3, +2] on twelve others, where the file was also found in 14 fewer runs of 540 than without the hook
+ * (the guard in prefetch.js, which withholds the injection for a prompt the ranker cannot read, halves that).
  *
  * Zero dependencies. Pure: the same prompt gives the same query.
  */

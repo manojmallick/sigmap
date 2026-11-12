@@ -20,7 +20,9 @@
  *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
  *     and write nothing but its own state).
  *   - It does not guess. A prompt less than 90% of whose letters are ASCII (the ranker reads only those) is not ranked: what is left of it
- *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions.
+ *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions. On twelve repositories the guarded hook found
+ *     the file in 485 runs of 540 against 492 without a hook (unguarded: 483 against 497), at no measurable cost to its saving. It does not
+ *     catch an English prompt whose ranking is wrong: none of the signals tried predicts that.
  *   - It does not rank conversation. A prompt of more than two dozen words is reduced to the sentences that say something before it is
  *     ranked; a short one is ranked exactly as written.
  *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it

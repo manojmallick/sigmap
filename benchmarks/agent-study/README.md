@@ -18,7 +18,7 @@ node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails
 |---|---|
 | `series` | one invocation of the harness (route, model, question set, SigMap setup, both arms); pairs never cross series |
 | `route` | `claude-code` or `api` (the Messages API directly) |
-| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask), `heldout-w` (the same with the benchmark's wrapped prompt: the query-focusing check) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
+| `model`, `set`, `variant` | the model; `famous`, `unfamiliar`, `heldout`, `heldout-q` (the clean hook rounds: bare-question prompt, every run a first ask), `heldout-w` (the same with the benchmark's wrapped prompt: the query-focusing and guard checks; the variants `prefetch-hook`, `prefetch-hook-nofocus` and `prefetch-hook-guard`, the last being the shipped hook run after the guard was added) or `change`; the SigMap setup (`index`, `prefetch`, `prefetch-hook`, `hook-plain`, `hook-firm`, `hook-brief`, `locate`, `placebo`, `lean`, `current`, `skill*`) |
 | `repo`, `task`, `arm`, `run` | the question, `with` or `without` SigMap, the repetition |
 | `ok`, `pass` | the run finished; the expected file was among the five named (for `change`: the hidden tests passed) |
 | `turns`, `calls`, `mcp`, `cli`, `skill` | model turns; tool calls; of those, SigMap MCP calls, `sigmap` CLI commands and Skill calls |
@@ -98,6 +98,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --ask first` | Claude Code rows only: a question's first ask, without the repeats the host serves from the prompt cache |
 | `run-hook-study.sh` | the hook rounds: eight repositories, 87 questions, one delivery of the ranking at a time on a logged-in Claude Code session (`PROMPT_STYLE=question` for the clean design) |
 | `query-focus-eval.mjs` | offline, no model call: 222 held-out questions inside thirteen kinds of wrapper, ranked by the real `sigmap ask` raw and after the hook's query focusing; the result of record is `data/query-focus-eval.txt` |
+| `guard-eval.mjs` | offline, no model call: how well four signals predict that the hook's ranking is wrong, the leave-one-repository-out threshold selection, and the shipped readability guard's counterfactual on the agent runs; the result of record is `data/guard-eval.txt` |
 | `trace-analysis.mjs` | what the agent does first, from the ordered tool calls the harness records: first call, whether it read a ranked file, calls before that |
 | `hooks/prototype-hook.cjs` | the three prototype deliveries of the prefetch hook (plain stdout, a firmer header, a shorter block); not shipped |
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
