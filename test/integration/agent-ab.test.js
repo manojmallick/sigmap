@@ -1921,6 +1921,53 @@ const treeHash = (dir) => {
     }
   });
 
+  await test('--prompt-style question: the prompt is the bare question plus a reference no two runs share, the answer format moves to the system prompt of BOTH arms, and runPlan asks for a prompt per run', () => {
+    const task = { id: 'x001', repo: 'r1', query: 'where is the alpha thing handled', expected_files: ['src/alpha.js'] };
+    const a = ab.questionPrompt(task), b = ab.questionPrompt(task);
+    assert.match(a, /^where is the alpha thing handled \[q[0-9a-f]{8}\]$/);
+    assert.notStrictEqual(a, b, 'no two runs share an opening prompt');
+    assert.strictEqual(ab.questionPrompt(task, 'qdeadbeef'), 'where is the alpha thing handled [qdeadbeef]');
+    assert.ok(!/repository-relative|backticks|open-source/.test(a), 'none of the template in the prompt');
+    assert.ok(/repository-relative path/.test(ab.ANSWER_FRAMING) && /at most 5/.test(ab.ANSWER_FRAMING) && /Do not modify/.test(ab.ANSWER_FRAMING), 'it all moved to the framing');
+
+    // The framing rides in both arms alike; a SigMap arm that appends its own context cannot be combined with it.
+    const hookBase = { model: 'm', budgetUsd: 1, framing: ab.ANSWER_FRAMING, hook: true, bare: false };
+    assert.deepStrictEqual(claude.buildArgs({ ...hookBase, arm: 'with' }), claude.buildArgs({ ...hookBase, arm: 'without' }), 'the hook arms differ in the checkout, not on the command line');
+    for (const arm of ['with', 'without']) {
+      const w = claude.buildArgs({ model: 'm', budgetUsd: 1, framing: ab.ANSWER_FRAMING, prefetch: true, arm });
+      assert.strictEqual(w[w.indexOf('--append-system-prompt') + 1], ab.ANSWER_FRAMING, `${arm}: the framing is there in the prefetch variant too`);
+    }
+    assert.ok(!claude.buildArgs({ model: 'm', budgetUsd: 1, arm: 'without' }).includes('--append-system-prompt'), 'no framing, no flag: the template runs are unchanged');
+    assert.throws(() => claude.buildArgs({ model: 'm', budgetUsd: 1, arm: 'with', framing: ab.ANSWER_FRAMING, sigmapContext: 'x', mcpConfig: '{}' }), /adds nothing to the system prompt/);
+  });
+
+  await test('runPlan builds the prompt once per task by default (both arms, every repetition) and once per run when the prompt function wants the run', async () => {
+    const seen = [];
+    const runner = async (job) => { seen.push({ run: job.run, arm: job.arm, prompt: job.prompt }); return { ok: true, answer: '`src/alpha.js`', init: { tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, toolCalls: { total: 1, byTool: {}, byCommand: {} }, usage: { in: 1, out: 1, cacheRead: 0, cacheWrite: 0 }, cost: { usd: 0.01, source: 'agent-reported' }, cwds: [], turns: 2, durationMs: 1 }; };
+    const tasks = [{ id: 'x001', repo: 'r1', query: 'where is alpha', expected_files: ['src/alpha.js'] }];
+    await ab.runPlan({ tasks, runs: 2, runner, variant: 'placebo' });
+    assert.strictEqual(new Set(seen.map((j) => j.prompt)).size, 1, 'the template prompt is the same for every run');
+    seen.length = 0;
+    await ab.runPlan({ tasks, runs: 2, runner, variant: 'placebo', promptFor: (t) => ab.questionPrompt(t) });
+    assert.strictEqual(new Set(seen.map((j) => j.prompt)).size, 4, 'two runs by two arms, four different prompts');
+  });
+
+  await test('--prompt-style question: the CLI refuses the Messages-API agent, --change and a bad value; through the fake Claude it sends the bare question and the same framing to both arms and marks the runs fresh', () => {
+    const f = fixture();
+    assert.match(runCli(['--dry-run', '--prompt-style', 'plain', '--claude', f.bin], { SIGMAP_XREPO_DATA: f.root }).stderr, /--prompt-style is "template"/);
+    assert.match(runCli(['--dry-run', '--prompt-style', 'question', '--agent', 'api'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'k' }).stderr, /for the Claude Code agent/);
+    const args = ['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch-hook', '--session-auth', '--prompt-style', 'question', '--allow-unpublishable', '--repos', 'r1', '--raw-out'];
+    const raw = path.join(f.out, 'raw.json');
+    const ok = runCli([...args, raw, '--out-dir', f.out], live(f, { FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    const recs = JSON.parse(fs.readFileSync(raw, 'utf8'));
+    assert.ok(recs.length > 0 && recs.every((r) => r.fresh === true), 'every run is marked a first ask');
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.every((c) => /\[q[0-9a-f]{8}\]$/.test(c.stdin.trim()) && !/Question:|repository-relative/.test(c.stdin)), `the bare question and a reference, nothing else: ${JSON.stringify(calls.map((c) => c.stdin).slice(0, 2))}`);
+    assert.strictEqual(new Set(calls.map((c) => c.stdin)).size, calls.length, 'no two runs got the same prompt');
+    assert.ok(calls.every((c) => c.argv.includes('--append-system-prompt') && c.argv[c.argv.indexOf('--append-system-prompt') + 1] === ab.ANSWER_FRAMING), 'the framing in every run, both arms');
+  });
+
   await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {
     const { PLACEBO_SECTION } = await import('../../scripts/lib/agent-ab-placebo.mjs');
     assert.ok(PLACEBO_SECTION.length > 6500 && PLACEBO_SECTION.length < 8500, `${PLACEBO_SECTION.length} characters: sized to what the index setup adds to every turn`);

@@ -29,8 +29,9 @@ function row(x, set, variant) {
     in: x.usage ? x.usage.in : null, out: x.usage ? x.usage.out : null, cacheRead: x.usage ? x.usage.cacheRead : null, cacheWrite: x.usage ? x.usage.cacheWrite : null,
     usd: x.cost ? x.cost.usd : null, ms: x.durationMs ?? null, limit: cap ? x.error : (x.limit || null),
     // On Claude Code the second run of a question in a batch repeats a byte-identical opening prompt within minutes, and the host serves it
-    // from the prompt cache. `ask` says which is which (summarize.mjs --ask first|repeat); the Messages-API agent shows no such effect.
-    ...(route === 'claude-code' ? { ask: x.run === 1 ? 'first' : 'repeat' } : {}),
+    // from the prompt cache. `ask` says which is which (summarize.mjs --ask first|repeat); a `--prompt-style question` run (`fresh`) ends
+    // its prompt with a reference no other run shares, so every one of its runs is a first ask. The Messages-API agent shows no such effect.
+    ...(route === 'claude-code' ? { ask: x.fresh || x.run === 1 ? 'first' : 'repeat' } : {}),
     ...(Array.isArray(x.hooks) ? { hookBytes: (x.hooks.find((h) => h && h.event === 'UserPromptSubmit') || {}).bytes || 0 } : {}),
     ...(x.patch ? { files: x.patch.files, added: x.patch.added, removed: x.patch.removed, why: x.why || null } : {}),
   };

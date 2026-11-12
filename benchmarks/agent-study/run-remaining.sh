@@ -17,6 +17,7 @@
 #   ORDER     "repo:id[,id...] ..." to run instead of the fixed list     CLAUDE_BIN  the claude executable (tests use a fake one)
 #   AGENT=api       talk to the Messages API directly with ANTHROPIC_API_KEY (scripts/lib/agent-ab-api.mjs), not through Claude Code
 #   SESSION_AUTH=1  run on the logged-in Claude Code session, no API key (counts against that account's plan)
+#   PROMPT_STYLE=question  the bare question as the prompt, answer format in the system prompt, every run a first ask (Claude Code only)
 #
 # Linux needs bubblewrap for Claude Code's --bare (apt-get install bubblewrap); the API agent does not.
 set -u
@@ -39,6 +40,7 @@ for variant in $VARIANTS; do
     [ -n "${CLAUDE_BIN:-}" ] && args+=(--claude "$CLAUDE_BIN")
     [ "${SESSION_AUTH:-0}" = "1" ] && args+=(--session-auth)
     [ "${AGENT:-claude}" = "api" ] && args+=(--agent api)
+    [ -n "${PROMPT_STYLE:-}" ] && args+=(--prompt-style "$PROMPT_STYLE")
     if [ "${DRY:-0}" = "1" ]; then node "${args[@]}" --dry-run 2>&1 | sed -n '/tasks /p;/runs /p'; continue; fi
     mkdir -p "$out"
     if ! node "${args[@]}" > "$out/stdout.md" 2> "$out/stderr.log"; then

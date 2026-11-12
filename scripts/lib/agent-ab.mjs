@@ -219,6 +219,26 @@ export function buildPrompt(task) {
   ].join('\n');
 }
 
+/**
+ * The question-style prompt (`--prompt-style question`): what a person types, the question and nothing else. The instructions that
+ * `buildPrompt` wraps around it ride in the system prompt instead (ANSWER_FRAMING, the same in both arms), so a hook that ranks the
+ * submitted prompt ranks the question, as the harness's `prefetch` does, and not fifty words of boilerplate with it.
+ *
+ * The question ends with a one-token reference no two runs share. On Claude Code a repeated opening prompt is read from the prompt
+ * cache, which flatters any arm that adds question-specific text (the study found `prefetch` at -8% on a question's first ask and
+ * -28% on its repeat); with the reference every run is a first ask, and the system prompt and tools stay shared, as in a real session.
+ * The token is a letter and hex digits, so it matches nothing in a ranking.
+ */
+export const ANSWER_FRAMING = [
+  'You are answering questions about the source code of an open-source project checked out in the current directory. Each message is one such question.',
+  `Name the repository-relative path of each file that implements what the question asks about, most relevant first (at most ${TOP_K}), `
+    + 'one per line, in backticks. Then give one sentence on why. Do not modify anything.',
+].join(' ');
+
+export function questionPrompt(task, nonce = `q${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`) {
+  return `${task.query} [${nonce}]`;
+}
+
 // ── scoring ──────────────────────────────────────────────────────────────────
 
 // A path-looking token: dotted segments joined by `/`, ending in an extension. A
@@ -432,7 +452,7 @@ export function checkIntegrity(init, arm, opts = {}) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
- * @param {(task:object) => string} [p.promptFor] the prompt of a task (default: the locate prompt)
+ * @param {(task:object, run:{run:number, arm:string}) => string} [p.promptFor] the prompt of a run (default: the locate prompt, the same for every run of a task)
  * @param {(record:object, task:object) => Promise<{pass:boolean}>|{pass:boolean}} [p.scoreRun] scores a finished run (default: hit@5 on the files named)
  * @param {boolean} [p.change] the tasks are change tasks: the agent may edit
  * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
@@ -443,10 +463,10 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
   const builtinsByArm = {};
   let streak = 0;
   for (const task of tasks) {
-    const prompt = promptFor(task);
     for (let run = 1; run <= runs; run++) {
       const order = run % 2 === 1 ? ARMS : [...ARMS].reverse();
       for (const arm of order) {
+        const prompt = promptFor(task, { run, arm });
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
           const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks });

@@ -61,7 +61,7 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false, hook = false }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false, hook = false, framing = null }) {
   if (hook && bare) throw new Error('the prefetch hook run needs --session-auth: --bare skips hooks');
   if (skills && bare) throw new Error('a skill run needs --session-auth: --bare turns skills off');
   // A skill run keeps the Skill tool in BOTH arms and passes no --disable-slash-commands in either, so the
@@ -84,6 +84,12 @@ export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bar
     '--max-budget-usd', String(budgetUsd),
     '--strict-mcp-config',
   ];
+  // The question-style prompt keeps the answer-format instructions here, in both arms alike (see ANSWER_FRAMING). A SigMap arm that also
+  // appends its generated context would need a second --append-system-prompt, so the two are not combined.
+  if (framing) {
+    if (arm === 'with' && !hook && !prefetch) throw new Error('--prompt-style question needs a variant that adds nothing to the system prompt (prefetch or a hook)');
+    args.push('--append-system-prompt', framing);
+  }
   if (hook) {
     // nothing: see above
   } else if (arm === 'with' && prefetch) {
@@ -380,14 +386,14 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null, hook = false }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null, hook = false, framing = null }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
     // `prefetch(job, arm)` returns the pre-ranked files for this question: computed per run, before the model is called.
     const pre = prefetch && job.arm === 'with' ? prefetch(job, arm) : null;
     if (prefetch && job.arm === 'with' && !pre) throw new Error('the prefetch arm needs the pre-ranked files for its question');
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch, hook });
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch, hook, framing });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
     // The block goes AFTER the question, as hook context does: the system prompt and the tools stay byte-identical in both arms.

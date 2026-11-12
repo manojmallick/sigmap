@@ -50,7 +50,7 @@ import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
   ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
-  selectTasks, runPlan, buildReport, renderMarkdown,
+  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
 import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
@@ -67,7 +67,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent', '--change',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent', '--change', '--prompt-style',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -123,6 +123,9 @@ if (AGENT !== 'claude' && AGENT !== 'api') fail('--agent must be claude (Claude 
 const API_AGENT = AGENT === 'api';
 // --change: the tasks are merged bug fixes (scripts/build-change-tasks.mjs); the agent edits a checkout and its patch is graded by hidden tests.
 const CHANGE = has('--change');
+const PROMPT_STYLE = val('--prompt-style', 'template');
+if (PROMPT_STYLE !== 'template' && PROMPT_STYLE !== 'question') fail('--prompt-style is "template" (the default: question plus answer-format instructions) or "question" (the bare question, every run a first ask)', 2);
+if (PROMPT_STYLE === 'question' && (API_AGENT || CHANGE)) fail('--prompt-style question is for the Claude Code agent and the where-is-it questions (not --agent api, not --change)', 2);
 if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
 if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
 const HOOK_RUN = VARIANT === 'prefetch-hook';
@@ -236,17 +239,20 @@ async function main() {
   const version = API_AGENT ? 'direct Messages API' : agentVersion(BIN, env);
   // One `sigmap ask` per question, cached: both repetitions of a question get the same pre-ranked text.
   const prefetchFor = VARIANT === 'prefetch' ? (job, arm) => {
-    const k = `${job.task.repo}/${job.task.id}`;
-    if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: job.task.query }));
+    // The question-style prompt is what a hook would be handed, so it is what gets ranked, one ranking per run (the reference differs).
+    const q = PROMPT_STYLE === 'question' ? job.prompt : job.task.query;
+    const k = PROMPT_STYLE === 'question' ? `${job.task.repo}/${job.task.id}/${job.run}/${job.arm}` : `${job.task.repo}/${job.task.id}`;
+    if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: q }));
     return prefetched.get(k);
   } : null;
   const runner = API_AGENT
     ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: armFor, prefetch: prefetchFor, change: CHANGE })
-    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor, hook: HOOK_RUN });
+    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor, hook: HOOK_RUN, framing: PROMPT_STYLE === 'question' ? ANSWER_FRAMING : null });
 
   let n = 0;
   const entries = await runPlan({
     tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
+    ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
     ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),
     onRun: ({ task, arm, run, record }) => {
       n++;
@@ -280,7 +286,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
+      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE === 'question', limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);

@@ -321,6 +321,39 @@ ranked file; the share that read the top-ranked file; the share that searched be
 first read of a ranked file. These are descriptive, with no estimator and no decision rule, and exploratory: their only use is to choose the
 delivery variants of Stage B, which are written here, with their rule, and committed before they run.
 
+**Stage A, what happened.** 696 runs, none failed. Under the rule as written the gap reproduced: over the new runs alone the hook cost
++22% [+16, +29] more than the prompt text, paired, and +20% [+15, +24] pooled over all four repetitions. But splitting the runs by whether the
+question had been asked before in its batch showed the comparison was not sound, and looking for why found a second problem (both are in the
+list below). On first asks only, with the hook's ranking still diluted, the prompt text was −4% [−9, +1] against its baseline, the hook +1% [−3,
++5], and the hook +8% [+3, +12] against the prompt text. The traces: the agent's first call was a Grep in 91% of hook runs, 83% of prompt-text
+runs and 90% of baseline runs; the answer named a ranked file in 76% of hook runs and 75% of prompt-text runs; the prompt text cut turns from
+6.0 to 3.6 and the hook from 5.9 to 4.7. Neither delivery changes the agent's opening move, and both are used about equally.
+
+### Stage B0: the clean comparison
+
+With both flaws removed (`--prompt-style question`, below), the comparison is rerun, so that what remains of any difference between the hook and
+the prompt text is delivery alone.
+
+**Setup.** The user's prompt is the bare question followed by a one-token reference no other run shares (`[q` and eight hex digits, which
+matches nothing in a ranking). The instructions the template used to wrap around the question ("name the repository-relative path of each
+file…") move to the system prompt, the same text in both arms. Offline, with this prompt the hook's top five equals the bare question's top
+five for all 87 questions (against none of 87 with the template), so the hook and the harness's `prefetch` rank the same text. The reference
+makes every run a first ask: nothing in the opening prompt repeats, while the system prompt and tools stay shared, as in a session.
+
+**Runs.** `prefetch-hook` and `prefetch`, each with its own baseline, on Claude Code (logged-in session), the same eight repositories and 87
+questions, Haiku 5.5, 2 repetitions: 696 runs.
+
+**Estimators.** As in the third round: typical-task real cost per setup against its baseline, pooled by resampling repositories, and the two
+setups paired against each other on the same questions and repetitions.
+
+**Decision rule.**
+
+- *Delivery explains the gap* if the hook against the prompt text has a 95% interval entirely above zero in the pooled runs and above zero in
+  both repetitions. Stage B1, the delivery variants, then starts, with its variants and rule written and committed before they run.
+- *No gap* if that interval includes zero. The hook then does what the prompt text does and the third round's difference was the two flaws; the
+  question left is whether either saves, answered by each setup's own interval and the bar of the second round.
+- *The hook is better* if the interval is entirely below zero. Reported as found.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
@@ -356,6 +389,21 @@ Recorded because a study that hides its errors is not worth reading.
 - **A decision rule with two groups of different sizes.** The real-hook rule asked whether three repositories "stop saving" by whether their
   pooled interval includes zero; over three repositories that interval is about thirty points wide and nearly always does. The result is
   reported both by the rule as written and by what the per-repository numbers support.
+
+- **Repeated questions were served from the prompt cache (found in the fourth round).** Every batch ran each question twice in the same
+  checkout, minutes apart. On Claude Code the second run's opening prompt is byte-identical to the first's, so the host reads it from the
+  prompt cache, and an arm that adds question-specific text to the prompt gains most. `prefetch` on Claude Code: first asks against repeats
+  +16% and −14% (famous questions), −23% and −45% (SigMap's own source), −4% and −27% (the eight repositories); the Messages-API agent,
+  which does not reuse a prefix this way, showed nothing by repetition (−9%, −8%, −3%, −10%). A source comment from the first round had
+  recorded the same effect for another variant ("cost +14% in repetition 1 and −11% in repetition 2") and I did not carry the lesson to the
+  prompt-text arm. Rows are now tagged `ask: first | repeat` and the third round's conclusion ("the route does not explain the gap") is
+  withdrawn. Earlier Claude Code results that used only two repetitions are best read on first asks; the table on the results page shows both.
+- **The hook ranked the whole prompt (found in the fourth round).** The hook is handed the submitted prompt and ranks all of it. In the
+  benchmark that was the question inside about fifty words of instructions, while the harness's `prefetch` ranked the bare question. Scored
+  against the expected files, the bare question puts one in the top five for 61 of 87 questions and first for 32; the wrapped prompt for 47
+  and 11, and the two top-five lists were never identical. The hook arm of the third round and of Stage A had a worse ranking than the
+  prompt-text arm. The same applies to a person who pastes a long prompt: a hook that ranks everything it is given is as good as the prompt is
+  focused, which is a limit of the product, not just of the benchmark.
 
 ## Reproduce it
 
