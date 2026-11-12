@@ -9,6 +9,7 @@
 //   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
 //   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
 //   node benchmarks/agent-study/summarize.mjs --versus locate:index --set heldout   # one setup directly against another (the SigMap arms of the same questions)
+//   node benchmarks/agent-study/summarize.mjs --versus a:b --adjusted --set heldout  # the same, but each series' change against its own baseline (cancels a dearer or cheaper hour)
 //   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
 //   node benchmarks/agent-study/summarize.mjs --route claude-code --ask first   # only first asks (a question's first run in its batch); `repeat` for the rest
 //   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
@@ -34,6 +35,7 @@ const STUDY = argv.includes('--study');
 const VS_PLACEBO = argv.includes('--vs-placebo');
 const BY_REPO = argv.includes('--by-repo');
 const VERSUS = val('--versus', null);
+const ADJUSTED = argv.includes('--adjusted'); // with --versus: compare each series' change against its OWN baseline, so a cheaper or dearer hour cancels
 const ASK = val('--ask', null); // first | repeat: Claude Code rows only (see to-runs.mjs)
 if (ASK && ASK !== 'first' && ASK !== 'repeat') { console.error('--ask is first or repeat'); process.exit(2); }
 
@@ -121,13 +123,16 @@ if (VERSUS) {
   for (const [, g] of groups) {
     if (!g[va] || !g[vb]) continue;
     const head = g[va].head; const lab = `${head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${head.model} · ${head.set}`;
-    const common = g[va].keys.filter((x) => g[vb].m.has(`${x}|with`));
-    const pairs = common.map((x) => ({ arm: g[va].m.get(`${x}|with`), base: g[vb].m.get(`${x}|with`) }));
-    const gg = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => ({ without: fn(p.base), with: fn(p.arm) })))]));
+    const common = g[va].keys.filter((x) => g[vb].m.has(`${x}|with`) && (!ADJUSTED || (g[va].m.has(`${x}|without`) && g[vb].m.has(`${x}|without`))));
+    const pairs = common.map((x) => ({ key: x, arm: g[va].m.get(`${x}|with`), base: g[vb].m.get(`${x}|with`), armBase: g[va].m.get(`${x}|without`), baseBase: g[vb].m.get(`${x}|without`) }));
+    // Adjusted: the value compared is each pair's with/without ratio in its own series, so the question is "did `a` change the cost more than `b` did".
+    const ratio = (w, wo, fn) => { const a = fn(w), b = fn(wo); return Number.isFinite(a) && Number.isFinite(b) && b > 0 ? a / b : null; };
+    const val2 = (p, fn) => (ADJUSTED ? { without: ratio(p.base, p.baseBase, fn), with: ratio(p.arm, p.armBase, fn) } : { without: fn(p.base), with: fn(p.arm) });
+    const gg = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => val2(p, fn)))]));
     const reps = [...new Set(pairs.map((p) => p.arm.run))].sort((x, y) => x - y);
-    const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => ({ without: p.base.usd, with: p.arm.usd }))).change)).join(' / ');
+    const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => val2(p, metrics.cost))).change)).join(' / ');
     const hit = (xs) => xs.filter((r) => r.pass).length;
-    console.log(`| ${lab} | **\`${va}\` against \`${vb}\`** | ${pairs.length} | **${cell(gg.cost)}** | ${byRep} | ${cell(gg.tokens)} | ${cell(gg.calls)} | ${cell(gg.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
+    console.log(`| ${lab} | **\`${va}\` against \`${vb}\`${ADJUSTED ? ' (each against its own baseline)' : ''}** | ${pairs.length} | **${cell(gg.cost)}** | ${byRep} | ${cell(gg.tokens)} | ${cell(gg.calls)} | ${cell(gg.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
   }
   process.exit(0);
 }

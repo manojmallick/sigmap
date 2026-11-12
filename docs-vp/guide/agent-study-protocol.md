@@ -395,6 +395,27 @@ repositories, the shipped hook run alongside as the reference, the same rule. On
 and screening alone changes nothing in the product or its documentation. If none passes, the shipped delivery stays and the numbers are
 reported.
 
+**Stage B1 screening, what happened.** 1,044 runs, none failed, every hook fired once in the SigMap arm and never in a baseline. Against the
+shipped hook, SigMap arm to SigMap arm, real cost: `hook-plain` −3% [−6, 0] (file found 3.4 points below its own baseline: fails criterion 2),
+`hook-brief` −3% [−6, +1] (interval includes zero: fails criterion 1), `hook-firm` −3% [−7, 0], both repetitions below zero (−2%, −5%), found
+163 against a baseline of 161, no repository costing more: **passes all three, by the letter**. All three are +2% to +3% against the prompt
+text, intervals including zero.
+
+Then the baselines were looked at. The five series' baseline arms cost between $0.00325 and $0.00346 a run, and the `hook-firm` series' was 4%
+below the shipped hook's, which is as large as the effect. The comparison above sets one series' SigMap arm against another's, so a cheaper hour
+counts as a saving. Comparing each pair's change against its own baseline (`summarize.mjs --versus a:b --adjusted`, added after seeing this, not
+planned): `hook-firm` against the shipped hook **0% [−5, +5]**, `hook-plain` −2% [−7, +3], `hook-brief` −3% [−8, +3]; and against the prompt text
++9% [+4, +14], +8% [+2, +13], +7% [+1, +12]. On that view none of the three differs from the shipped hook, and all stay above the prompt text. The
+traces: the firm header sent the agent to a ranked file sooner (1.0 calls before the first ranked read against 1.6) and read the top-ranked file in
+17% of runs against 13%, but the calls per run fell only from 2.6 to 2.3.
+
+**Confirmation of `hook-firm`, as the rule requires, with one change declared before it runs.** The shipped hook, `hook-firm` and the prompt
+text run back to back for each repository (the order of `run-hook-study.sh`), two fresh repetitions of all 87 questions each: 1,044 runs. The
+rule is the one above, except that criterion 1 is judged on the baseline-adjusted comparison: the real cost of `hook-firm` against the shipped
+hook, each against its own baseline, has a 95% interval entirely below zero in the pooled runs and a point estimate below zero in both
+repetitions. The unadjusted figure is reported beside it. If `hook-firm` does not pass, the shipped delivery stays, and the result is "no
+delivery tried closes the gap".
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
