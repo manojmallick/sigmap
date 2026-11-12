@@ -13,7 +13,10 @@ set -u
 cd "$(dirname "$0")/../.." || exit 1
 : "${HELDOUT_ROOT:?set HELDOUT_ROOT}"; : "${HELDOUT2_ROOT:?set HELDOUT2_ROOT}"
 VARIANTS=${VARIANTS:-"prefetch-hook prefetch"}; OUT=${OUT:-./hook-runs}
-case "${SHARD:-all}" in
+# JOBS="HELDOUT:<repo> HELDOUT2:<repo> ..." runs exactly those repositories (HELDOUT2 and HELDOUT say which data root holds the questions) and
+# ignores SHARD: the way to run repositories other than the eight.
+case "${JOBS:+explicit}${JOBS:-}${SHARD:-all}" in
+  explicit*) ;;
   0) JOBS="HELDOUT:ionos-cloud__cluster-api-provider-proxmox HELDOUT:flamingock__flamingock-java" ;;
   1) JOBS="HELDOUT2:conda__constructor HELDOUT2:GDQuest__GDScript-formatter" ;;
   2) JOBS="HELDOUT2:intaro__pinboard HELDOUT:statelyai__agent" ;;

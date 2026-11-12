@@ -501,6 +501,26 @@ at about the level of the bare-question hook of the fourth round (−4% [−7, �
 +10], 2 of 8 repositories saving and 3 costing more in each, which is what eight repositories and a small effect look like. This is one model, one
 prompt wrapper, and the same eight repositories chosen after the earlier results.
 
+### Stage E: repositories outside the eight
+
+Stage D, like every hook run before it, used eight repositories chosen after the earlier results. This stage runs the same hook on the other twelve of
+the twenty-repository set: `timescaledb-toolkit`, `TeleBox`, `upjet`, `mica-mqtt`, `fastify-static`, `sip`, `postgresql-for-doctrine`,
+`openscad-playground`, `irb`, `textbringer`, `keycloak-restrict-client-auth` and `Salesforce-Inspector-reloaded`. They are all that is left of the
+set, so nothing about them was picked by how any setup did, and no agent had yet run the hook on them. One limit: their questions were used in the
+offline evaluation of the query focusing (`timescaledb-toolkit`'s while the rule was designed, the other eleven's while it was tested), so the
+repositories are new to the agent runs but not to the rule.
+
+**Setup.** As Stage D: the benchmark's wrapped prompt with a per-run reference (`--prompt-style wrapped`), the shipped hook with focusing on and
+with focusing off (`prefetch-hook` and `prefetch-hook:nofocus`), Claude Code on the logged-in session, Haiku 5.5, four repetitions, a baseline of
+its own for each series. 135 questions, 2,160 runs, 540 pairs per series; the adjusted interval is about ±3 points wide.
+
+**Decision rule.** The focused hook's saving *holds outside the eight* if, against its own baseline, the typical-task real cost has a 95% interval
+entirely below zero, the estimate pooled by repository (resampling repositories) has a point estimate below zero, and the file is found in no fewer
+than its baseline's runs less 2 percentage points. Otherwise the result is "not shown outside the eight", with the numbers. The focusing itself
+holds outside the eight if the Stage D rule is met again: focused against unfocused, each against its own baseline, entirely below zero and
+negative in at least three of four repetitions. Reported without a rule: the twenty repositories together (these twelve and the eight of Stage D,
+the same prompt and hook), by repository.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
