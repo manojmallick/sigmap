@@ -876,7 +876,6 @@ Everything below runs offline, with no key and no model call.
 |---|---|
 | `node test/integration/prefetch-hook.test.js` (22) | the hook: `hooks install/remove/status --prefetch` (idempotent, merges with someone else's hook); which prompts are ranked and which are not; the printed block, its byte cap and the session de-duplication; silence, never an error, on a missing index, `SIGMAP_PREFETCH=0` or a failing `ask`; the real command on a real payload; focusing, the readability guard and their off switches |
 | `node test/integration/bare-files.test.js` (32) | Stage H: the PHP forms with their plain siblings; the path-only rule (languages, tests, mocks, length); the `bare` field's round trip; `generate` records the file and leaves the context file alone; `buildSigIndex` with and without `bare`; the ranker finds the file on its path and not for an unrelated question; body words are unchanged by a path-only entry; `ask`, `explain` and `explain_file` |
-| `node test/run.js php` | the PHP fixture and its expected output (`test/fixtures/php.php`) |
 | `node test/integration/agent-ab.test.js` (103), `agent-ab-change.test.js` (5) | the harness: arm hygiene, the per-run reference token (every run a first ask), prompts, hooks, scoring, the statistics |
 | `node test/integration/mcp/tool-profile.test.js` (44) | the `locate` profile |
 | `node test/integration/vendored-dirs.test.js` (4), `prototype-key-dirs.test.js` (3) | a virtualenv below the source root is never walked; a directory called `constructor` no longer breaks generation |

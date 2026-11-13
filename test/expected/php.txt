@@ -5,12 +5,4 @@ class UserService  :5-28
 interface Repository  :30-34
   function findById(string $id) → mixed  :32-32
   function save(mixed $entity) → mixed  :33-33
-class Ledger  :41-47
-  function total() → int  :43-43
-class Money  :49-57
-  function add(Money $other) → Money  :53-53
-enum Suit  :59-67
-  function label() → string  :63-63
-interface Account  :69-72
-  function balance() → int  :71-71
 function hashPassword(string $password) → string  :36-39
