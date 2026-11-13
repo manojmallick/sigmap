@@ -76,7 +76,7 @@ The release pipeline automatically publishes to JetBrains Marketplace when you c
 
 **Required GitHub Secrets:**
 - `JETBRAINS_PUBLISH_TOKEN` — from Step 1 above
-- `NPM_TOKEN` — for npm publishing
+- npm publishing needs no secret: it uses npm Trusted Publishing
 - `VSCE_PAT` — for VS Code Marketplace
 - `OPEN_VSX_TOKEN` — for Open VSX Registry
 

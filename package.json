@@ -45,6 +45,7 @@
     "mcp": "node gen-context.js --mcp",
     "check:bundle": "node scripts/check-bundle.mjs",
     "check:workflows": "node scripts/check-workflow-pins.mjs",
+    "check:runtime-change": "node scripts/check-runtime-change.mjs",
     "check:version-meta": "node scripts/check-version-meta.mjs",
     "build:bundle": "node scripts/build-bundle.mjs",
     "check:bundle:repro": "node scripts/build-bundle.mjs --check",
