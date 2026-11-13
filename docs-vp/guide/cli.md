@@ -2336,6 +2336,16 @@ A path with nothing at it is **not** an exclusion, and says so:
 
 `--json` emits the same as one object, with a machine-readable `status` (`included`, `excluded`, `not-found`) and `reason` (`.contextignore`, `not in srcDirs`, `no signatures`, or `file does not exist on disk`).
 
+A file the extractor reads nothing from is *excluded from the context* and still *findable*: if it is a programming-language file of at least five non-blank lines (and not a test, mock, generated, minified or declaration file), `generate` records it in the retrieval index by its path alone, so `sigmap ask` can return it for a question that names it (it has no signatures to show). `explain` says so with an `Index:` line, and `--json` carries `"pathOnly": true`:
+
+```
+[sigmap] src/plugin/agent.ts — EXCLUDED
+  Reason: no extractable signatures (extractor: typescript) — 1 export line, none of a shape it reads
+  Saw:    export default new AgentPlugin();
+  Index:  ranked by its path only: it lists no signatures, so `sigmap ask` can return it for a question that names it but shows nothing of its contents
+  Fix:    no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path
+```
+
 ::: warning Exit code change in v8.54.1 (#772)
 `sigmap explain <missing-file>` now exits **1**. Before v8.54.1 a path that did not exist fell through to the extractor check and was reported as `EXCLUDED — no extractable signatures`, advising the reader to *"check that the file contains function/class definitions"* — for a file that was not there — at **exit 0**. Scripts that relied on `explain` always succeeding for an arbitrary path will now see a failure. Every other status still exits 0: an exclusion is an answer, not an error.
 :::

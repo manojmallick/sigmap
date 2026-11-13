@@ -9011,7 +9011,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
     // that saw only the token-BUDGETED view, ignored the other adapters, the
     // hot-cold/per-module strategy splits, and the complete retrieval index. The
     // corpus therefore scored a smaller index than `sigmap ask` actually uses.
-    return __require('./src/retrieval/ranker').buildSigIndex(cwd);
+    return __require('./src/retrieval/ranker').buildSigIndex(cwd, { bare: true });
   }
 
   // ---------------------------------------------------------------------------
@@ -14396,14 +14396,17 @@ __factories["./src/extractors/php"] = function(module, exports) {
       return [line, line];
     };
 
-    // Classes and interfaces
-    const typeRe = /^(?:abstract\s+)?(?:class|interface|trait)\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w, ]+)?\s*\{/gm;
+    // Classes, interfaces, traits and enums. A modifier (`abstract`, `final`, `readonly`, in any order and any number)
+    // may lead the declaration; a parent or an interface may be namespaced (`\Foo\Bar`), an interface may extend
+    // several, a class implement several across lines, and an enum carry a backing type (`enum Suit: string`).
+    // The previous pattern took `abstract` alone and `\w+` for a parent, so `final class X extends \Foo\Y` and every
+    // `readonly` class or `enum` listed nothing, and a file made of them was not in the index at all.
+    const typeRe = /^(?:(?:abstract|final|readonly)\s+)*(class|interface|trait|enum)\s+(\w+)(?:\s*:\s*\w+)?(?:\s+extends\s+[\w\\]+(?:\s*,\s*[\w\\]+)*)?(?:\s+implements\s+[\w\\,\s]+?)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
-      const kind = m[0].trimStart().startsWith('interface') ? 'interface' :
-        m[0].trimStart().startsWith('trait') ? 'trait' : 'class';
+      const kind = m[1];
       const bodyStart = m.index + m[0].length;
       const block = extractBlock(stripped, bodyStart);
-      sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      sigs.push(withAnchor(`${kind} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block, masked.slice(bodyStart, bodyStart + block.length))) {
         // The disclosure marker carries no offsets; anchor it at the class body.
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
@@ -28694,7 +28697,11 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (sigs && sigs.length > 0) {
         lines.push(...sigs);
       } else {
-        lines.push(_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_');
+        let pathOnly = false;
+        try { pathOnly = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd).bare.includes(targetRel); } catch (_) { /* no index */ }
+        lines.push(pathOnly
+          ? '_No signatures to list: the extractor reads nothing from this file, so it is ranked by its path only (query_context can return it)._'
+          : (_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_'));
       }
       indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
     } catch (_) {
@@ -28814,7 +28821,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     try {
       const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
       const { buildRankingGraph } = __require('./src/graph/builder');
-      const index = buildSigIndex(cwd);
+      const index = buildSigIndex(cwd, { bare: true }); // a file with no signatures can still be ranked on its path
       if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
       const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
@@ -31198,6 +31205,78 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
   
 };
 
+// ── ./src/retrieval/bare-files ──
+__factories["./src/retrieval/bare-files"] = function(module, exports) {
+  
+  /**
+   * Path-only entries for source files the extractors read nothing from.
+   *
+   * The retrieval index lists what a file declares and exports. A file whose extractor finds
+   * nothing (`export default new Plugin()`, a script with no exports, a Rust binary with no `pub`
+   * item, a module of constants) has no line in it, so the ranker cannot return it at all, not even
+   * for a question that names it: the path, which the ranker weighs three times as much as a word
+   * in a signature, never gets a chance. In the 222 held-out questions of the agent study, 18 had
+   * an expected file that was in this state (docs-vp/guide/agent-study-protocol.md, Stage H).
+   *
+   * `generate` records such a file under `bare` in `.context/sig-index.json` (src/retrieval/
+   * sig-index-store.js), and `buildSigIndex(cwd, { bare: true })` returns it as an entry with no
+   * signatures. Only the callers that rank ask for it. The context file handed to an agent is not
+   * changed by it, and neither is any tool that lists or counts what the index holds.
+   *
+   * What counts is decided here and nowhere else, and is fixed, not tuned:
+   *   - a programming language (not data or markup: no YAML, TOML, XML, HTML, CSS, Markdown, SQL);
+   *   - not a test, a mock, generated, minified or a declaration file (these are ranked down or
+   *     kept out of the context already);
+   *   - at least MIN_LINES non-blank lines, so an empty `__init__.py` or a one-line shim is not an entry.
+   *
+   * Zero dependencies. Pure: the same path and text give the same answer.
+   */
+
+  const { langFor } = __require('./src/extractors/dispatch');
+  const { isTestFile, isMockFile, isGeneratedFile } = __require('./src/util/file-class');
+
+  const MIN_LINES = 5;
+
+  /** The extractor names of EXTRACTORS/EXT_MAP (src/extractors/dispatch.js) that are programming languages. */
+  const PROGRAMMING = new Set([
+    'typescript', 'typescript_react', 'javascript', 'python', 'java', 'kotlin', 'go', 'rust', 'csharp', 'cpp',
+    'objc', 'ruby', 'php', 'swift', 'dart', 'scala', 'elixir', 'lua', 'gdscript', 'r', 'astro', 'vue_sfc', 'svelte',
+    'shell', 'powershell',
+  ]);
+
+  const DECLARATION_OR_MINIFIED = /\.d\.[cm]?ts$|\.min\.[cm]?js$/;
+
+  /**
+   * Whether a path could be a path-only entry. Cheap and free of I/O, so a caller can test it before
+   * reading the file.
+   * @param {string} rel path relative to the project root
+   * @returns {boolean}
+   */
+  function isBareLanguage(rel) {
+    const p = String(rel || '').replace(/\\/g, '/');
+    if (!PROGRAMMING.has(langFor(p))) return false;
+    if (DECLARATION_OR_MINIFIED.test(p)) return false;
+    return !(isTestFile(p) || isMockFile(p) || isGeneratedFile(p));
+  }
+
+  /**
+   * @param {string} rel path relative to the project root
+   * @param {string} content the file's text
+   * @returns {boolean} true when the file should be recorded as a path-only entry
+   */
+  function isBareCandidate(rel, content) {
+    if (typeof content !== 'string' || !isBareLanguage(rel)) return false;
+    let lines = 0;
+    for (const line of content.split('\n')) {
+      if (/\S/.test(line) && ++lines >= MIN_LINES) return true;
+    }
+    return false;
+  }
+
+  module.exports = { isBareCandidate, isBareLanguage, MIN_LINES, PROGRAMMING };
+  
+};
+
 // ── ./src/retrieval/bm25 ──
 __factories["./src/retrieval/bm25"] = function(module, exports) {
   
@@ -31718,7 +31797,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     const df = new Map();
     let files = 0;
     const readable = [];
-    for (const file of index.keys()) {
+    for (const [file, sigs] of index) {
+      // A path-only entry (src/retrieval/bare-files.js) has no signatures and no words of its own: leaving it out of
+      // the count as well keeps every other file's words what they were, whoever built the cache.
+      if (Array.isArray(sigs) && sigs.length === 0) continue;
       let source = null;
       try { source = readSource(file); } catch (_) { source = null; }
       if (typeof source !== 'string') continue;
@@ -33045,6 +33127,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       }
     } catch (_) { /* absent → budgeted view is still served */ }
 
+    // Source files the extractors read nothing from (src/retrieval/bare-files.js): an entry with no
+    // signatures, so the ranker can match them on their path. Only for a caller that ranks and asks;
+    // before the overlay, so a file that was deleted or has been edited since is handled like any other.
+    if (opts && opts.bare && full && full.bare && full.bare.length > 0) {
+      for (const rel of full.bare) if (!merged.has(rel)) merged.set(rel, []);
+    }
+
     const live = _applyLiveOverlay(cwd, merged, baseMs, more);
     if (!more || more.size === 0) return live;
     const out = new Map();
@@ -33097,7 +33186,8 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * the tools that list a file's signatures read the default, which is what they always read.
    *
    * @param {string} cwd
-   * @param {{ contextPath?: string, full?: boolean }} [opts]
+   * @param {{ contextPath?: string, full?: boolean, bare?: boolean }} [opts] `bare`: also return the
+   *        source files that have no signatures, as entries with an empty list, for a caller that ranks
    * @returns {Map<string, string[]>}
    */
   function buildSigIndex(cwd, opts) {
@@ -33501,7 +33591,9 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * @param {string} cwd
    * @param {Array<{filePath: string, sigs: string[]}>} fileEntries - every
    *        extracted entry, BEFORE applyTokenBudget has dropped or collapsed any.
-   * @param {{ version?: string }} [opts]
+   * @param {{ version?: string, bare?: string[] }} [opts] `bare`: project-relative paths of
+   *        source files the extractors read nothing from (src/retrieval/bare-files.js). They are
+   *        kept in a field of their own, so `files` stays exactly what it was.
    * @returns {{ path: string, files: number }}
    */
   function writeFullIndex(cwd, fileEntries, opts = {}) {
@@ -33519,6 +33611,8 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       count++;
     }
 
+    const bare = [...new Set((Array.isArray(opts.bare) ? opts.bare : []).filter((rel) => typeof rel === 'string' && rel && !rel.startsWith('..') && !(rel in files)))].sort();
+
     const out = indexPath(cwd);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     // Write-then-rename so a concurrent `ask` never observes a half-written index.
@@ -33533,6 +33627,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
       files,
       ...(Object.keys(more).length > 0 ? { more } : {}),
+      ...(bare.length > 0 ? { bare } : {}),
     }), 'utf8');
     fs.renameSync(tmp, out);
     return { path: out, files: count };
@@ -33565,15 +33660,19 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * that point (#982). `index` alone is what the ranker, `ask` and the listing tools read.
    *
    * @param {string} cwd
-   * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]> }}
+   * `bare` lists the source files the extractors read nothing from (src/retrieval/bare-files.js):
+   * not in `index`, and added to it only by a caller that ranks and asks for them.
+   *
+   * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]>, bare: string[] }}
    */
   function readFullIndexMeta(cwd) {
     const index = new Map();
     const more = new Map();
+    const bare = [];
     let baseMs = null;
     try {
       const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more };
+      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more, bare };
       for (const [rel, sigs] of Object.entries(data.files)) {
         if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
       }
@@ -33582,10 +33681,13 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
           if (Array.isArray(sigs) && sigs.length > 0 && index.has(rel)) more.set(rel, sigs);
         }
       }
+      if (Array.isArray(data.bare)) {
+        for (const rel of data.bare) if (typeof rel === 'string' && rel && !index.has(rel)) bare.push(rel);
+      }
       if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
       else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
     } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-    return { index, baseMs, more };
+    return { index, baseMs, more, bare };
   }
 
   /**
@@ -46252,6 +46354,20 @@ function noteUnreadExporter(list, filePath, content, cwd) {
 }
 
 /**
+ * Remember a source file that yielded no signature, so the retrieval index can rank it on its path (Stage H of the agent
+ * study; the rule is src/retrieval/bare-files.js). The index records it in a `bare` list and the context file is not touched.
+ */
+function noteBareSource(list, filePath, content, cwd) {
+  const bare = requireSourceOrBundled('./src/retrieval/bare-files');
+  const rel = path.relative(cwd, filePath).split(path.sep).join('/');
+  if (!bare.isBareLanguage(rel)) return;
+  let text = content;
+  // A file served from the extraction cache is not read; this one produced nothing, so read it now.
+  if (!text) { try { text = fs.readFileSync(filePath, 'utf8'); } catch (_) { return; } }
+  if (bare.isBareCandidate(rel, text)) list.push(rel);
+}
+
+/**
  * The same file as the retrieval index stores it: a leading module-doc line and,
  * with `terse`, the compact encoding (src/cache/entry.js).
  *
@@ -46370,6 +46486,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
   let inputTokenTotal = 0;
   let fileEntries = [];
   const unreadExporters = []; // files that declare exports and yielded no signature (#996)
+  const bareSources = []; // source files that yielded no signature, indexed by path alone (agent-study Stage H)
   let testIndex = null;
   if (config.testCoverage) {
     try {
@@ -46484,7 +46601,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     } else {
       sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
-    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); continue; }
+    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); noteBareSource(bareSources, filePath, content, cwd); continue; }
 
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
@@ -46622,7 +46739,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       try {
         __entries = __entries.concat(collectPipelineEntries(cwd, config, __entries));
       } catch (_) { /* best-effort */ }
-      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0 });
+      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0, bare: bareSources });
       __indexWritten = __w.files > 0;
       if (__indexWritten) {
         // The same test writeFullIndex applies to an entry, over the source files only.
@@ -47637,7 +47754,7 @@ function main() {
     let intent = detectIntent(query);
     let intentWeights = getIntentWeights(intent);
 
-    const sigIndex = buildSigIndex(cwd);
+    const sigIndex = buildSigIndex(cwd, { bare: true });
     if (sigIndex.size === 0) {
       console.error('[sigmap] no context file found. Run: sigmap  (to generate first)');
       process.exit(1);
@@ -48931,7 +49048,7 @@ function main() {
       if (q && !q.startsWith('--')) {
         try {
           const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-          const valIndex = buildSigIndex(cwd);
+          const valIndex = buildSigIndex(cwd, { bare: true });
           // the words `ask` ranks with, so `validate` and `ask` cannot disagree about a query
           const valWords = requireSourceOrBundled('./src/retrieval/body-words').forRepo(cwd, valIndex, config);
           const ranked = rank(q, valIndex, { topK: 5, cwd, bodyWords: valWords });
@@ -50807,24 +50924,32 @@ function main() {
       // A file that declares exports and still extracts as nothing is an extractor gap, not a
       // configuration problem: say what was there instead of advice that cannot apply (#996).
       let seen = [];
-      try { seen = exportLinesOf(fs.readFileSync(absPath, 'utf8')); } catch (_) { /* unreadable: the generic answer */ }
+      let pathOnly = false; // the retrieval index ranks such a file on its path (src/retrieval/bare-files.js)
+      try {
+        const text = fs.readFileSync(absPath, 'utf8');
+        seen = exportLinesOf(text);
+        pathOnly = requireSourceOrBundled('./src/retrieval/bare-files').isBareCandidate(rel, text);
+      } catch (_) { /* unreadable: the generic answer */ }
+      const pathNote = 'ranked by its path only: it lists no signatures, so `sigmap ask` can return it for a question that names it but shows nothing of its contents';
       if (seen.length > 0) {
         const fix = 'no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path';
         if (jsonOut) {
-          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), fix }) + '\n');
+          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), pathOnly, fix }) + '\n');
         } else {
           console.log(`[sigmap] ${rel} — EXCLUDED`);
           console.log(`  Reason: no extractable signatures (extractor: ${extractorName}) — ${seen.length} export line${seen.length === 1 ? '' : 's'}, none of a shape it reads`);
           for (const l of seen.slice(0, 3)) console.log(`  Saw:    ${l.length > 110 ? l.slice(0, 107) + '...' : l}`);
+          if (pathOnly) console.log(`  Index:  ${pathNote}`);
           console.log(`  Fix:    ${fix}`);
         }
         process.exit(0);
       }
       if (jsonOut) {
-        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, pathOnly, fix: 'check that the file contains function/class definitions' }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — EXCLUDED`);
         console.log(`  Reason: no extractable signatures (extractor: ${extractorName})`);
+        if (pathOnly) console.log(`  Index:  ${pathNote}`);
         console.log(`  Fix:    check that the file contains function/class definitions`);
       }
       process.exit(0);
@@ -51209,7 +51334,7 @@ function main() {
         }
       }
 
-      const index = buildSigIndex(cwd, queryOpts);
+      const index = buildSigIndex(cwd, Object.assign({ bare: true }, queryOpts));
       if (index.size === 0) {
         console.error('[sigmap] no context file found. Run: node gen-context.js');
         if (adpIdx >= 0) {
