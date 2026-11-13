@@ -101,7 +101,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `query-focus-eval.mjs` | offline, no model call: 222 held-out questions inside thirteen kinds of wrapper, ranked by the real `sigmap ask` raw and after the hook's query focusing; the result of record is `data/query-focus-eval.txt` |
 | `guard-eval.mjs` | offline, no model call: how well four signals predict that the hook's ranking is wrong, the leave-one-repository-out threshold selection, and the shipped readability guard's counterfactual on the agent runs; the result of record is `data/guard-eval.txt` |
 | `trace-analysis.mjs` | what the agent does first, from the ordered tool calls the harness records: first call, whether it read a ranked file, calls before that |
-| `hooks/prototype-hook.cjs` | the three prototype deliveries of the prefetch hook (plain stdout, a firmer header, a shorter block); not shipped |
+| `hooks/prototype-hook.cjs` | the prototype deliveries of the prefetch hook (plain stdout, a firmer header, a shorter block) and the doubtful header of Stage G; none shipped |
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
@@ -110,6 +110,10 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 
 The harness itself is `scripts/run-agent-ab.mjs` with `scripts/lib/agent-ab*.mjs`.
+
+Tests, offline with no key: `test/integration/agent-ab.test.js`, `agent-ab-change.test.js` (the harness), `prefetch-hook.test.js` (the shipped hook) and
+`bare-files.test.js` (path-only index entries and the PHP extractor). The list, what each covers and the gates that decided Stage H are in the
+[protocol](../../docs-vp/guide/agent-study-protocol.md#tests).
 
 ## Your own runs
 

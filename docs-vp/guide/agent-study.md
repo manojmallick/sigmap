@@ -418,8 +418,10 @@ tested offline against `sigmap ask` before any other: the PHP extractor now read
 entries; the context file is byte-identical, and no tool other than the ones that rank sees them). On the 222 questions the expected file is in the top five for **166
 (74.8%) against 159 (71.6%)**, for none fewer in any repository, +6 of 167 on the confirm split registered as the decider, MRR 0.565 to 0.575; `TeleBox` goes from 3 to 8
 of 12. What it does not do: three questions lose the first place and two gain it, the size bound registered for the index failed for one seven-file repository (+6.7%,
-212 bytes), and 56 of the 222 questions are still missed: 12 are not found at all (their words meet nothing in the file or its path), 44 are ranked sixth or lower, 13 of those in Chinese against English code, whose words cannot meet. The
-[protocol](/guide/agent-study-protocol#fifth-round-retrieval-on-the-weak-repositories) has the plan, written before either change was measured, and what failed.
+212 bytes), and 56 of the 222 questions are still missed: 12 are not found at all (their words meet nothing in the file or its path), 44 are ranked sixth or lower, 13 of those in Chinese against English code, whose words cannot meet. **The gain is not shown on repositories chosen without looking at the problem:** the 208-task cross-repository gate passes with no task won or lost, and only 6 of its
+tasks have an expected file that a path-only entry makes reachable (18 of the 222). It helps where real code sits in files that export nothing the extractor reads.
+The
+[protocol](/guide/agent-study-protocol#fifth-round-retrieval-on-the-weak-repositories) has the plan, written before either change was measured, what failed, and the tests that guard it.
 
 ### Change tasks
 

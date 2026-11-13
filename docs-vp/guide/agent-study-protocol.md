@@ -766,7 +766,14 @@ The bound was 5% and was written without a repository of seven files in mind; it
 hit, **won 0, lost 0, no task changed its hit status**, pass. `run-retrieval-gate.mjs` with the JVM corpus cloned (61 more tasks), the code before and after on the
 same files: hard 68.9% and 68.9%, mined 65.0% and 65.0%, easy 90.0% and 90.0%, jvm 41.0% and 41.0%; no task changes hit status; mean reciprocal rank moves
 0.506 and 0.506, 0.476 to 0.465, 0.817 and 0.817, 0.248 to 0.254. The mined task `m053` (5th to 6th, corpus growth) is the one that makes the gate fail on this branch
-whether or not these changes are in it; see the next paragraph.
+whether or not these changes are in it; see the later paragraph on the stored baseline.
+
+*What the gates do not show: an independent gain.* The mechanism was chosen by reading the misses on the 222 questions, so the +6 on the confirm split is not a blind
+test of it (the rule's parameters, 5 lines and the language list, were fixed and not tuned, but the choice to build it was not blind). The cross-repository gate is
+independent of that reading. Counting its 208 tasks: **6 have an expected file that is reachable only as a path-only entry** (`libuv`, `newtonsoft-json`, `akka`,
+three in `rust-analyzer`), against 18 of the 222; none of the six entered the top five (won 0), and 1,767 of the 23,770 indexed files (7.4%) are path-only entries.
+So the change is safe on repositories chosen without looking at it, and **it is not shown to help on them**: it helps where a repository keeps real code in files that
+export nothing the extractor reads (a plugin framework such as `TeleBox`), and the gain there depends on the question sharing a word with the file's path.
 
 *What the questions that still miss look like.* 56 of 222. 12 are not found at all: the file is in the index and shares no word with the question, or (the Python
 constants module, the webpack script) it is a path-only entry whose question shares no word with its path. 44 are ranked sixth or lower, 13 of them Chinese-language
@@ -860,3 +867,25 @@ GO=1 AGENT=api MAX_TOTAL_USD=25 bash benchmarks/agent-study/run-token-saving.sh
 `AGENT=claude` (the default) runs the same plan through Claude Code under `--bare`; it needs a key Claude Code may bill. On a fresh
 machine `npm run fetch:xrepo` fetches the eight pinned repositories first. Both routes check the key with one tiny call before
 spending anything.
+
+### Tests
+
+Everything below runs offline, with no key and no model call.
+
+| Test | Covers |
+|---|---|
+| `node test/integration/prefetch-hook.test.js` (22) | the hook: `hooks install/remove/status --prefetch` (idempotent, merges with someone else's hook); which prompts are ranked and which are not; the printed block, its byte cap and the session de-duplication; silence, never an error, on a missing index, `SIGMAP_PREFETCH=0` or a failing `ask`; the real command on a real payload; focusing, the readability guard and their off switches |
+| `node test/integration/bare-files.test.js` (32) | Stage H: the PHP forms with their plain siblings; the path-only rule (languages, tests, mocks, length); the `bare` field's round trip; `generate` records the file and leaves the context file alone; `buildSigIndex` with and without `bare`; the ranker finds the file on its path and not for an unrelated question; body words are unchanged by a path-only entry; `ask`, `explain` and `explain_file` |
+| `node test/run.js php` | the PHP fixture and its expected output (`test/fixtures/php.php`) |
+| `node test/integration/agent-ab.test.js` (103), `agent-ab-change.test.js` (5) | the harness: arm hygiene, the per-run reference token (every run a first ask), prompts, hooks, scoring, the statistics |
+| `node test/integration/mcp/tool-profile.test.js` (44) | the `locate` profile |
+| `node test/integration/vendored-dirs.test.js` (4), `prototype-key-dirs.test.js` (3) | a virtualenv below the source root is never walked; a directory called `constructor` no longer breaks generation |
+
+Two scripts are checks of a claim rather than unit tests, and need the held-out data roots (`HELDOUT_ROOT`, `HELDOUT2_ROOT`, see `run-hook-study.sh`):
+`benchmarks/agent-study/query-focus-eval.mjs` (does focusing rank a wrapped question as well as the bare one) and `benchmarks/agent-study/guard-eval.mjs` (what the
+guard skips). The gates that decided Stage H are `node scripts/run-retrieval-gate.mjs --gate --no-regress` and `node scripts/run-xrepo-gate.mjs --gate --no-regress`
+(`npm run fetch:xrepo` first for all 35 repositories).
+
+One integration test fails in this environment, before and after these changes: `ts-native-exactness` ("flag on with no typescript in the repo falls back
+byte-identical"), because a `typescript@6.0.2` is resolvable from the temporary directory it uses.
+
