@@ -40,7 +40,7 @@ node benchmarks/agent-study/to-runs.mjs token-saving-runs --model claude-haiku-5
 
 | variable | default | |
 |---|---|---|
-| `AGENT` | `claude` | `api` talks to the Messages API directly (use it when Claude Code requests are refused for the key) |
+| `AGENT` | `claude` | `api` talks to the Messages API directly (use it when Claude Code requests are refused for the key); its Grep and Glob tools run ripgrep, so `rg` must be installed |
 | `SETS` | `unfamiliar famous` | which question sets |
 | `VARIANTS` | `index prefetch` | which SigMap setups |
 | `MODEL`, `RUNS` | `claude-haiku-5-5`, `4` | |

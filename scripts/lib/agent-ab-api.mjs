@@ -28,7 +28,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { spawn, execFile } from 'child_process';
+import { spawn, spawnSync, execFile } from 'child_process';
 import { BASH_ALLOW, SIGMAP_CLI, SIGMAP_SERVER } from './agent-ab.mjs';
 import { CHANGE_SYSTEM_PROMPT, CHANGE_TOOL_DEFS, CHANGE_MAX_TURNS, runChangeTool, gradeChange } from './agent-ab-change.mjs';
 
@@ -109,9 +109,18 @@ function inside(root, p) {
   return abs;
 }
 
+// `missing` is a program that is not on PATH (ENOENT). It is not an exit code: ripgrep exits 1 for "no match", so a machine
+// without it must never be read as an empty search result — the agent would be told nothing matches, in both arms, silently.
 const run = (file, args, opts) => new Promise((resolve) => {
-  execFile(file, args, { maxBuffer: 8 * 1024 * 1024, timeout: 30000, encoding: 'utf8', ...opts }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout: stdout || '', stderr: stderr || '', err }));
+  execFile(file, args, { maxBuffer: 8 * 1024 * 1024, timeout: 30000, encoding: 'utf8', ...opts }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, missing: !!(err && err.code === 'ENOENT'), stdout: stdout || '', stderr: stderr || '', err }));
 });
+
+export const RIPGREP_MISSING = 'ripgrep (rg) is not installed on this machine, and the Grep and Glob tools run it (install it: brew install ripgrep, apt-get install ripgrep)';
+
+/** Whether `rg` runs here. The API agent's Grep and Glob are ripgrep, so `--agent api` checks this before it spends anything. */
+export function hasRipgrep() {
+  return spawnSync('rg', ['--version'], { stdio: 'ignore', timeout: 10000 }).status === 0;
+}
 
 /** Run one built-in tool in `cwd`. Returns { text, isError }. */
 export async function runBuiltin(name, input, { cwd, withSigmap = false, binDir = null }) {
@@ -137,6 +146,7 @@ export async function runBuiltin(name, input, { cwd, withSigmap = false, binDir 
       if (typeof i.glob === 'string' && i.glob) args.push('--glob', i.glob);
       args.push('-e', i.pattern, '--', target);
       const r = await run('rg', args, { cwd });
+      if (r.missing) return { text: RIPGREP_MISSING, isError: true };
       if (r.code === 1 && !r.stdout) return { text: 'No matches found', isError: false };
       if (r.code > 1) return { text: cap(r.stderr || 'grep failed'), isError: true };
       return { text: cap(r.stdout.split('\n').slice(0, 250).join('\n')), isError: false };
@@ -144,6 +154,7 @@ export async function runBuiltin(name, input, { cwd, withSigmap = false, binDir 
     if (name === 'Glob') {
       if (typeof i.pattern !== 'string' || !i.pattern) return { text: 'pattern is required', isError: true };
       const r = await run('rg', ['--files', '--glob', i.pattern, '--color', 'never'], { cwd });
+      if (r.missing) return { text: RIPGREP_MISSING, isError: true };
       if (r.code > 1) return { text: cap(r.stderr || 'glob failed'), isError: true };
       const files = r.stdout.split('\n').filter(Boolean).sort();
       return { text: files.length ? cap(files.slice(0, 250).join('\n') + (files.length > 250 ? `\n… ${files.length - 250} more` : '')) : 'No files matched', isError: false };
@@ -161,6 +172,7 @@ export async function runBuiltin(name, input, { cwd, withSigmap = false, binDir 
       const env = Object.assign({}, process.env); delete env.ANTHROPIC_API_KEY; delete env.BENCH_ANTHROPIC_KEY;
       if (binDir) env.PATH = binDir + path.delimiter + (env.PATH || '');
       const r = await run(words[0], words.slice(1), { cwd, env, timeout: 20000 });
+      if (r.missing) return { text: `${words[0]}: command not found on this machine`, isError: true };
       return { text: cap((r.stdout + (r.stderr ? `\n${r.stderr}` : '')).trim() || `(exit ${r.code}, no output)`), isError: r.code !== 0 };
     }
     return { text: `unknown tool: ${name}`, isError: true };

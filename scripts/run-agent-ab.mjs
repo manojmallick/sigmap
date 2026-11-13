@@ -54,7 +54,7 @@ import {
   selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt, wrappedPrompt, isHookVariant,
 } from './lib/agent-ab.mjs';
 import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
-import { makeApiRunner, priceFor } from './lib/agent-ab-api.mjs';
+import { makeApiRunner, priceFor, hasRipgrep, RIPGREP_MISSING } from './lib/agent-ab-api.mjs';
 import { changePrompt } from './lib/agent-ab-change.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
@@ -198,6 +198,8 @@ async function main() {
   }
 
   if (process.platform === 'win32') fail('the harness is POSIX only: the SigMap arm\'s `sigmap` is a sh shim', 2);
+  // Grep and Glob are ripgrep. Without it every search would come back empty in BOTH arms and the run would still "succeed".
+  if (API_AGENT && !hasRipgrep()) fail(`--agent api: ${RIPGREP_MISSING}`, 2);
 
   say(printPlan(plan));
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-agent-ab-'));

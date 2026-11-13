@@ -33,6 +33,17 @@ async function test(name, fn) {
 const tmpDirs = [];
 const mktmp = (p) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), p)); tmpDirs.push(d); return d; };
 
+// The API agent's Grep and Glob are ripgrep, and `--agent api` refuses to start without it. CI installs it, so a runner that
+// lacks it fails here rather than pass without checking a search; on a machine that lacks it the assertions that need it are
+// skipped, and say so.
+const HAVE_RG = spawnSync('rg', ['--version'], { stdio: 'ignore' }).status === 0;
+function needRg(what) {
+  if (HAVE_RG) return true;
+  if (process.env.CI) throw new Error(`ripgrep (rg) is not on PATH and CI must install it: ${what}`);
+  console.log(`  SKIP  ${what} (ripgrep is not installed)`);
+  return false;
+}
+
 function git(dir, args) {
   return execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-C', dir, ...args], { encoding: 'utf8' }).trim();
 }
@@ -1597,15 +1608,42 @@ const treeHash = (dir) => {
     assert.match((await api.runBuiltin('Read', { file_path: 'src/alpha.js', offset: 2, limit: 1 }, ctx)).text, /^\s+2\t/);
     assert.ok((await api.runBuiltin('Read', { file_path: '../../etc/passwd' }, ctx)).isError, 'outside the repository');
     assert.ok((await api.runBuiltin('Read', { file_path: '/etc/passwd' }, ctx)).isError);
-    assert.match((await api.runBuiltin('Grep', { pattern: 'betaThing' }, ctx)).text, /src\/beta\.js:1:/);
-    assert.strictEqual((await api.runBuiltin('Grep', { pattern: 'no_such_thing_anywhere' }, ctx)).text, 'No matches found');
-    assert.ok(!/\.context\//.test((await api.runBuiltin('Grep', { pattern: 'alphaThing' }, ctx)).text), 'the index directory is gitignored and stays out of a search');
-    assert.match((await api.runBuiltin('Glob', { pattern: '**/*.js' }, ctx)).text, /src\/alpha\.js/);
+    if (needRg('Grep and Glob through ripgrep')) {
+      assert.match((await api.runBuiltin('Grep', { pattern: 'betaThing' }, ctx)).text, /src\/beta\.js:1:/);
+      assert.strictEqual((await api.runBuiltin('Grep', { pattern: 'no_such_thing_anywhere' }, ctx)).text, 'No matches found');
+      assert.ok(!/\.context\//.test((await api.runBuiltin('Grep', { pattern: 'alphaThing' }, ctx)).text), 'the index directory is gitignored and stays out of a search');
+      assert.match((await api.runBuiltin('Glob', { pattern: '**/*.js' }, ctx)).text, /src\/alpha\.js/);
+    }
     assert.match((await api.runBuiltin('Bash', { command: 'grep -n alphaThing src/alpha.js' }, ctx)).text, /alphaThing/);
     for (const cmd of ['rm -rf src', 'ls | wc', 'cat /etc/passwd', 'cat ../x', 'curl http://x', 'node -e 1']) assert.ok((await api.runBuiltin('Bash', { command: cmd }, ctx)).isError, cmd);
     assert.ok(!(await api.runBuiltin('Bash', { command: 'sigmap ask where is alpha' }, ctx)).text.startsWith('refused'), 'the SigMap arm may run the sigmap CLI');
     assert.match((await api.runBuiltin('Bash', { command: 'sigmap ask x' }, { cwd: a.cwd, withSigmap: false })).text, /refused: "sigmap" is not allowed/, 'the baseline may not');
     assert.ok((await api.runBuiltin('Edit', {}, ctx)).isError, 'no write tool exists');
+  });
+
+  await test('a machine without ripgrep gets an error from Grep and Glob, never "No matches found", and --agent api refuses to start', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: mktmp('ab-api-'), codeRoot: ROOT, variant: 'index' });
+    const empty = mktmp('ab-nopath-');
+    const saved = process.env.PATH;
+    try {
+      process.env.PATH = empty;
+      assert.strictEqual(api.hasRipgrep(), false, 'nothing on PATH');
+      for (const [tool, input] of [['Grep', { pattern: 'alphaThing' }], ['Glob', { pattern: '**/*.js' }]]) {
+        const r = await api.runBuiltin(tool, input, { cwd: a.cwd });
+        assert.strictEqual(r.isError, true, tool);
+        assert.ok(r.text === api.RIPGREP_MISSING && /not installed/.test(r.text) && !/No matches|No files/.test(r.text), `${tool}: ${r.text}`);
+      }
+      const bash = await api.runBuiltin('Bash', { command: 'grep -n alphaThing src/alpha.js' }, { cwd: a.cwd });
+      assert.ok(bash.isError && /command not found/.test(bash.text), bash.text);
+    } finally { process.env.PATH = saved; }
+
+    // The CLI still needs git to find the pinned checkouts, so the PATH it gets holds git and nothing else.
+    fs.symlinkSync(execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim(), path.join(empty, 'git'));
+    const f = fixture();
+    const r = runCli(['--agent', 'api', '--runs', '1', '--allow-unpublishable', '--repos', 'r1'], { PATH: empty, ANTHROPIC_API_KEY: 'sk-test', SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(r.status, 2, r.stderr + r.stdout);
+    assert.match(r.stderr, /--agent api: ripgrep \(rg\) is not installed/);
   });
 
   await test('cost is computed from usage and a price table, exactly, and a model without a price has no cost', () => {
@@ -1651,7 +1689,8 @@ const treeHash = (dir) => {
       const second = fake.seen[1].body;
       const marks = JSON.stringify(second.messages).split('cache_control').length - 1;
       assert.strictEqual(marks, 1, 'one breakpoint on the newest message, none left on older ones');
-      assert.ok(second.messages[2].content[0].type === 'tool_result' && /src\/alpha\.js/.test(second.messages[2].content[0].content));
+      assert.ok(second.messages[2].content[0].type === 'tool_result');
+      if (needRg('the Grep result reached the model')) assert.ok(/src\/alpha\.js/.test(second.messages[2].content[0].content));
 
       const withRec = await runner({ ...job, arm: 'with' });
       assert.strictEqual(withRec.ok, true, withRec.error);
@@ -1747,6 +1786,7 @@ const treeHash = (dir) => {
     assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill', '--session-auth'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent api uses ANTHROPIC_API_KEY/);
     assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill'], { SIGMAP_XREPO_DATA: f.root }).stderr, /Claude Code skills, which the direct API agent does not have/);
 
+    if (!needRg('the live --agent api run')) return;
     const fake = await fakeApi((body, n) => {
       const withMcp = body.tools.some((t) => /^mcp__sigmap__/.test(t.name));
       if (body.messages.length === 1) return withMcp ? toolTurn('mcp__sigmap__query_context', { query: 'alpha' }, U(300, 30, 0, 800)) : toolTurn('Grep', { pattern: 'alpha' }, U(200, 30, 0, 400));
@@ -1769,6 +1809,7 @@ const treeHash = (dir) => {
   });
 
   await test('--change gives every run its own checkout, lets both arms edit, grades the patch with the hidden tests and records the grade', async () => {
+    if (!needRg('the live --agent api --change run')) return;
     const d = makeDataRoot([
       { name: 'r1', tasks: [{ id: 'c01', query: 'FIX-ALPHA alphaThing returns its argument unchanged', expected: ['src/alpha.js'] }] },
       { name: 'r2', tasks: [{ id: 'c02', query: 'FIX-BETA betaThing returns its argument unchanged', expected: ['src/beta.js'] }] },
