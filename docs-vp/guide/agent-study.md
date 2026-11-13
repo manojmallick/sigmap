@@ -408,6 +408,19 @@ ranking, where the header only throws away the saving (−8.7% became +1.0%). Th
 Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and
 `node benchmarks/agent-study/trace-analysis.mjs`. The hook rounds ran on a logged-in session, not API credit (about $13 by Claude Code's own count).
 
+### Retrieval on the weak repositories (offline)
+
+The hook can only be as good as the list it injects, and on four of the twenty held-out repositories the expected file was in SigMap's top five for half the questions
+or fewer. **Eighteen of the 222 questions had an expected file that was not in the index at all**, because the index lists what a file declares and exports and the
+extractor read nothing from it (`export default new Plugin()`, a Rust binary with no `pub` item, a module of constants, and every PHP `final class`). Two changes, each
+tested offline against `sigmap ask` before any other: the PHP extractor now reads `final`, `readonly`, namespaced parents and enums (a bug fix: it added 398 files, 38% of
+`postgresql-for-doctrine`, to its index, and moved no expected file into the top five), and a source file that still lists nothing is indexed **by its path** (path-only
+entries; the context file is byte-identical, and no tool other than the ones that rank sees them). On the 222 questions the expected file is in the top five for **166
+(74.8%) against 159 (71.6%)**, for none fewer in any repository, +6 of 167 on the confirm split registered as the decider, MRR 0.565 to 0.575; `TeleBox` goes from 3 to 8
+of 12. What it does not do: three questions lose the first place and two gain it, the size bound registered for the index failed for one seven-file repository (+6.7%,
+212 bytes), and 56 of the 222 questions are still missed: 12 are not found at all (their words meet nothing in the file or its path), 44 are ranked sixth or lower, 13 of those in Chinese against English code, whose words cannot meet. The
+[protocol](/guide/agent-study-protocol#fifth-round-retrieval-on-the-weak-repositories) has the plan, written before either change was measured, and what failed.
+
 ### Change tasks
 
 Stage 2 of the protocol moves from "name the file" to the article's task: the agent gets a bug report and the code as it was before a
