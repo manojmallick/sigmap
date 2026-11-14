@@ -36,7 +36,10 @@ function test(name, fn) {
     .catch((e) => { console.log(`  FAIL  ${name}\n        ${e.message}`); fail++; });
 }
 
-/** The single-line `run:` commands of one CI job, in order. */
+/**
+ * The single-line `run:` commands of one CI job, in order. A multi-line `run: |` block is provisioning (installing a tool the
+ * checks need), not a check, so it is not part of `npm run test:ci`.
+ */
 function runLines(workflow, job) {
   const lines = workflow.split('\n');
   const start = lines.findIndex((l) => l === `  ${job}:`);

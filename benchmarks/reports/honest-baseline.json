@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-28T23:07:26.581Z",
+  "generated": "2026-11-14T08:01:08.510Z",
   "methodology": {
     "corpus": "benchmarks/tasks/*.jsonl",
     "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
@@ -15,11 +15,11 @@
       "mrr": 0.776
     },
     "grepBaseline": {
-      "hitAt5": 0.4,
-      "mrr": 0.186
+      "hitAt5": 0.392,
+      "mrr": 0.184
     },
-    "lift": 2.32,
-    "deltaPts": 52.8,
+    "lift": 2.37,
+    "deltaPts": 53.6,
     "splits": {
       "easy": {
         "tasks": 110,
@@ -28,8 +28,8 @@
           "mrr": 0.788
         },
         "grepBaseline": {
-          "hitAt5": 0.382,
-          "mrr": 0.18
+          "hitAt5": 0.373,
+          "mrr": 0.177
         }
       },
       "hard": {
@@ -64,7 +64,7 @@
         },
         "grepBaseline": {
           "hitAt5": 0.442,
-          "mrr": 0.23
+          "mrr": 0.229
         }
       },
       "large": {
@@ -74,8 +74,8 @@
           "mrr": 0.769
         },
         "grepBaseline": {
-          "hitAt5": 0.317,
-          "mrr": 0.128
+          "hitAt5": 0.3,
+          "mrr": 0.125
         }
       }
     }
@@ -164,7 +164,7 @@
       "bucket": "large",
       "selfRepo": true,
       "sigmapHitAt5": 0.9,
-      "grepHitAt5": 0.1
+      "grepHitAt5": 0.05
     },
     {
       "repo": "riverpod",
@@ -238,5 +238,5 @@
       "reason": "repo not cloned"
     }
   ],
-  "version": "8.85.1"
+  "version": "8.86.0"
 }

@@ -15,6 +15,12 @@
  *                          (which may well say "use sigmap") cannot reach the
  *                          no-SigMap arm. It authenticates with
  *                          ANTHROPIC_API_KEY only — that is the provider gate.
+ *                          `--session-auth` (opt-in, for someone with no API key) drops --bare and
+ *                          uses the logged-in session instead; isolation is then rebuilt from
+ *                          `--setting-sources project` (no user-level settings or hooks) and
+ *                          `--disable-slash-commands`, from a clean directory, and the SigMap arm's
+ *                          generated CLAUDE.md is removed so the appended section is the only
+ *                          SigMap text. The prompt prefix is then about 40k tokens heavier, cached.
  *   --strict-mcp-config    MCP servers come from this call and nowhere else.
  *   --tools / --allowedTools / --permission-mode dontAsk
  *                          the read-only allowlist is the same in both arms
@@ -55,24 +61,42 @@ const MAX_CONTEXT_BYTES = 120 * 1024;
  * @param {{ arm: 'without'|'with', model: string, budgetUsd: number, sigmapContext?: string, mcpConfig?: string }} p
  * @returns {string[]}
  */
-export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig }) {
+export function buildArgs({ arm, model, budgetUsd, sigmapContext, mcpConfig, bare = true, skills = false, prefetch = false, hook = false, framing = null }) {
+  if (hook && bare) throw new Error('the prefetch hook run needs --session-auth: --bare skips hooks');
+  if (skills && bare) throw new Error('a skill run needs --session-auth: --bare turns skills off');
+  // A skill run keeps the Skill tool in BOTH arms and passes no --disable-slash-commands in either, so the
+  // arms still differ only by what SigMap adds (the CLI, and the skill file in the SigMap arm's checkout).
+  const tools = skills ? [...BUILTIN_TOOLS, 'Skill'] : [...BUILTIN_TOOLS];
   const allowed = [
-    ...BUILTIN_TOOLS.filter((t) => t !== 'Bash'),
+    ...tools.filter((t) => t !== 'Bash'),
     ...BASH_ALLOW.map((c) => `Bash(${c}:*)`),
   ];
-  if (arm === 'with') allowed.push(`Bash(${SIGMAP_CLI}:*)`, `mcp__${SIGMAP_SERVER}`);
+  // The hook variant adds nothing to the command line: the hook lives in the checkout's settings, and the arms' arguments are identical.
+  if (arm === 'with' && !hook) allowed.push(`Bash(${SIGMAP_CLI}:*)`, ...(skills || prefetch ? [] : [`mcp__${SIGMAP_SERVER}`]));
   const args = [
-    '-p', '--bare',
+    '-p', ...(bare ? ['--bare'] : ['--setting-sources', 'project', ...(skills ? [] : ['--disable-slash-commands'])]),
     '--output-format', 'stream-json', '--verbose',
     '--no-session-persistence',
     '--model', model,
-    '--tools', BUILTIN_TOOLS.join(','),
+    '--tools', tools.join(','),
     '--allowedTools', allowed.join(','),
     '--permission-mode', 'dontAsk',
     '--max-budget-usd', String(budgetUsd),
     '--strict-mcp-config',
   ];
-  if (arm === 'with') {
+  // The question-style prompt keeps the answer-format instructions here, in both arms alike (see ANSWER_FRAMING). A SigMap arm that also
+  // appends its generated context would need a second --append-system-prompt, so the two are not combined.
+  if (framing) {
+    if (arm === 'with' && !hook && !prefetch) throw new Error('--prompt-style question needs a variant that adds nothing to the system prompt (prefetch or a hook)');
+    args.push('--append-system-prompt', framing);
+  }
+  if (hook) {
+    // nothing: see above
+  } else if (arm === 'with' && prefetch) {
+    // Nothing on the command line: the pre-ranked files for this question ride in the USER turn (see makeRunner), where a
+    // prompt hook puts them. Appending them to the system prompt instead changed it for every question, so each first
+    // run rewrote the whole cached prefix (cost +14% in repetition 1 and -11% in repetition 2 of the same questions).
+  } else if (arm === 'with' && !skills) {
     if (!sigmapContext || !mcpConfig) throw new Error('the SigMap arm needs its generated context and its MCP config');
     if (Buffer.byteLength(sigmapContext) > MAX_CONTEXT_BYTES) {
       throw new Error(`the generated context is ${Buffer.byteLength(sigmapContext)} bytes; one argument may not exceed ${MAX_CONTEXT_BYTES} (Linux caps it at 128 KiB)`);
@@ -97,6 +121,29 @@ export function childEnv(base = process.env) {
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
 const str = (v) => (typeof v === 'string' && v ? v.slice(0, 200) : null);
 
+const SEQUENCE_MAX = 80;
+
+/** One tool call as a short string: the tool, and what it was pointed at (a path, a pattern, or the first words of a command). */
+export function callKey(block) {
+  const i = block.input && typeof block.input === 'object' ? block.input : {};
+  const arg = typeof i.file_path === 'string' ? i.file_path
+    : typeof i.pattern === 'string' ? i.pattern
+    : typeof i.path === 'string' ? i.path
+    : typeof i.command === 'string' ? i.command.trim().replace(/\s+/g, ' ')
+    : '';
+  return arg ? `${block.name}:${arg.slice(0, 120)}` : block.name;
+}
+
+/** The file paths of a ranking block: `1  path/to/file.js   8.290  299 tok` (what `sigmap ask` prints). */
+export function rankedFilesOf(text) {
+  const out = [];
+  for (const line of String(text).split('\n')) {
+    const m = /^\s*\d+\s+(\S+)\s+-?[\d.]+\s+\d+\s*tok\b/.exec(line);
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+
 /**
  * Read one run's `stream-json` output.
  *
@@ -111,11 +158,12 @@ const str = (v) => (typeof v === 'string' && v ? v.slice(0, 200) : null);
 export function parseStream(text) {
   const out = {
     init: null,
-    toolCalls: { total: 0, byTool: {}, byCommand: {} },
+    toolCalls: { total: 0, byTool: {}, byCommand: {}, sequence: [] },
     usage: null, usageSource: 'unavailable', cacheGaps: 0,
     costUsd: null, turns: null,
     result: false, isError: false, subtype: null, answer: null,
     parseErrors: 0,
+    hooks: [],
   };
   const seenTool = new Set();
   const seenMessage = new Set();
@@ -131,12 +179,25 @@ export function parseStream(text) {
     try { o = JSON.parse(t); } catch (_) { out.parseErrors++; continue; }
     if (!o || typeof o !== 'object') continue;
 
-    if (o.type === 'system' && o.subtype === 'init') {
+    if (o.type === 'system' && o.subtype === 'hook_response') {
+      // A hook that ran, with what it said: its event, whether it succeeded and how much context it added.
+      let bytes = 0;
+      let ctx = null;
+      const raw = typeof o.stdout === 'string' ? o.stdout : '';
+      try {
+        const j = JSON.parse(raw);
+        const c = j && j.hookSpecificOutput && j.hookSpecificOutput.additionalContext;
+        if (typeof c === 'string') ctx = c;
+      } catch (_) { if (raw.trim()) ctx = raw.trim(); } // not JSON: plain stdout, which Claude Code also adds as context
+      if (ctx !== null) bytes = Buffer.byteLength(ctx);
+      out.hooks.push({ event: str(o.hook_event), outcome: str(o.outcome), exitCode: typeof o.exit_code === 'number' ? o.exit_code : null, bytes, files: ctx === null ? [] : rankedFilesOf(ctx) });
+    } else if (o.type === 'system' && o.subtype === 'init') {
       out.init = {
         tools: Array.isArray(o.tools) ? o.tools.map(String) : null,
         mcpServers: Array.isArray(o.mcp_servers)
           ? o.mcp_servers.filter((s) => s && typeof s === 'object').map((s) => ({ name: String(s.name), status: str(s.status) }))
           : [],
+        skills: Array.isArray(o.skills) ? o.skills.map(String) : null,
         model: str(o.model),
         apiKeySource: str(o.apiKeySource),
       };
@@ -155,6 +216,7 @@ export function parseStream(text) {
         const cmd = b.name === 'Bash' && b.input && typeof b.input.command === 'string'
           ? b.input.command.trim().split(/\s+/)[0].slice(0, 40) : null;
         if (cmd) out.toolCalls.byCommand[cmd] = (out.toolCalls.byCommand[cmd] || 0) + 1;
+        if (out.toolCalls.sequence.length < SEQUENCE_MAX) out.toolCalls.sequence.push(callKey(b));
       }
       const u = o.message.usage;
       const id = typeof o.message.id === 'string' ? o.message.id : null;
@@ -212,6 +274,13 @@ export function parseStream(text) {
   return out;
 }
 
+/** The checkout's own directory is a temporary path: take it out of the call sequence so runs can be compared. */
+function relativeCalls(calls, cwds) {
+  const roots = (cwds || []).filter((c) => typeof c === 'string' && c).map((c) => (c.endsWith('/') ? c : `${c}/`));
+  if (!calls.sequence || roots.length === 0) return calls;
+  return { ...calls, sequence: calls.sequence.map((k) => roots.reduce((acc, r) => acc.split(r).join(''), k)) };
+}
+
 /**
  * Turn a parsed stream plus process facts into the record the harness consumes.
  * A run is `ok` only when a successful `result` event carried an answer.
@@ -237,7 +306,8 @@ export function toRecord(parsed, { wallMs, cwds, model, timedOut, code }) {
     answer: ok ? parsed.answer : '',
     cwds: cwds || [],
     init: parsed.init,
-    toolCalls: parsed.result || parsed.toolCalls.total ? parsed.toolCalls : null,
+    hooks: parsed.hooks,
+    toolCalls: parsed.result || parsed.toolCalls.total ? relativeCalls(parsed.toolCalls, cwds) : null,
     usage: parsed.usage,
     usageSource: parsed.usageSource,
     cacheGaps: parsed.cacheGaps,
@@ -316,16 +386,22 @@ export function agentVersion(bin, env) {
  * @param {object} [p.env]
  * @param {(repo:string, arm:string) => {cwd:string, cwds:string[], sigmapContext?:string, mcpConfig?:string, binDir?:string}} p.arms
  */
-export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms }) {
+export function makeRunner({ bin, model, budgetUsd, timeoutMs, env, arms, bare = true, skills = false, prefetch = null, hook = false, framing = null }) {
   const runEnv = env || childEnv();
   return async (job) => {
     const arm = arms(job.task.repo, job.arm);
-    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig });
+    // `prefetch(job, arm)` returns the pre-ranked files for this question: computed per run, before the model is called.
+    const pre = prefetch && job.arm === 'with' ? prefetch(job, arm) : null;
+    if (prefetch && job.arm === 'with' && !pre) throw new Error('the prefetch arm needs the pre-ranked files for its question');
+    const args = buildArgs({ arm: job.arm, model, budgetUsd, sigmapContext: arm.sigmapContext, mcpConfig: arm.mcpConfig, bare, skills, prefetch: !!prefetch, hook, framing });
     // The SigMap arm alone gets `sigmap` on PATH, and it is THIS checkout's.
     const env2 = arm.binDir ? Object.assign({}, runEnv, { PATH: arm.binDir + path.delimiter + (runEnv.PATH || '') }) : runEnv;
-    const r = await runClaude({ bin, args, prompt: job.prompt, cwd: arm.cwd, env: env2, timeoutMs });
+    // The block goes AFTER the question, as hook context does: the system prompt and the tools stay byte-identical in both arms.
+    const prompt = pre ? `${job.prompt}\n\n${pre}` : job.prompt;
+    const r = await runClaude({ bin, args, prompt, cwd: arm.cwd, env: env2, timeoutMs });
     if (r.spawnError) throw new Error(`cannot start "${bin}": ${r.spawnError}`);
     const record = toRecord(parseStream(r.stdout), { wallMs: r.wallMs, cwds: arm.cwds, model, timedOut: r.timedOut, code: r.code });
+    if (pre) record.ranked = rankedFilesOf(pre);
     if (!record.ok && r.overflow) record.error = 'output too large';
     if (!record.ok && !record.init && r.stderr) record.stderr = r.stderr.trim().split('\n').slice(-3).join(' | ').slice(0, 300);
     return record;

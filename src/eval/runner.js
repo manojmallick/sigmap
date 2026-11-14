@@ -43,7 +43,7 @@ function buildSigIndex(cwd) {
   // that saw only the token-BUDGETED view, ignored the other adapters, the
   // hot-cold/per-module strategy splits, and the complete retrieval index. The
   // corpus therefore scored a smaller index than `sigmap ask` actually uses.
-  return require('../retrieval/ranker').buildSigIndex(cwd);
+  return require('../retrieval/ranker').buildSigIndex(cwd, { bare: true });
 }
 
 // ---------------------------------------------------------------------------

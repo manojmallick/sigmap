@@ -45,14 +45,17 @@
 
 import fs from 'fs';
 import os from 'os';
+import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadManifest, checkoutState, readTasks, TASKS_REL } from './lib/xrepo.mjs';
 import {
-  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError,
-  selectTasks, runPlan, buildReport, renderMarkdown,
+  ARMS, MIN_RUNS, DEFAULT_TASKS_PER_REPO, IntegrityError, SIGMAP_VARIANTS, SKILL_VARIANTS,
+  selectTasks, runPlan, buildReport, renderMarkdown, ANSWER_FRAMING, questionPrompt, wrappedPrompt, isHookVariant,
 } from './lib/agent-ab.mjs';
-import { prepareArm, probeMcp } from './lib/agent-ab-arms.mjs';
+import { prepareArm, probeHook, probeMcp, probeCli, prefetchContext, assertArmHygiene } from './lib/agent-ab-arms.mjs';
+import { makeApiRunner, priceFor, hasRipgrep, RIPGREP_MISSING } from './lib/agent-ab-api.mjs';
+import { changePrompt } from './lib/agent-ab-change.mjs';
 import {
   DEFAULT_MODEL, DEFAULT_BUDGET_USD, DEFAULT_TIMEOUT_MS, makeRunner, agentVersion, childEnv,
 } from './lib/agent-ab-claude.mjs';
@@ -65,7 +68,7 @@ const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XRE
 const argv = process.argv.slice(2);
 const KNOWN = new Set([
   '--repos', '--tasks-per-repo', '--runs', '--model', '--max-budget-usd', '--timeout-ms', '--claude',
-  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures',
+  '--dry-run', '--save', '--allow-unpublishable', '--json', '--raw-out', '--out-dir', '--max-consecutive-failures', '--sigmap-variant', '--task-ids', '--session-auth', '--agent', '--change', '--prompt-style',
 ]);
 const say = (s) => process.stderr.write(`${s}\n`);
 const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
@@ -110,6 +113,28 @@ const ONLY = val('--repos', null);
 const OUT_DIR = val('--out-dir', path.join(CODE_ROOT, 'benchmarks', 'reports'));
 const RAW_OUT = val('--raw-out', null);
 const MAX_FAILS = intArg('--max-consecutive-failures', 3);
+const TASK_IDS = val('--task-ids', null) ? val('--task-ids', null).split(',').map((x) => x.trim()).filter(Boolean) : null;
+const SESSION_AUTH = has('--session-auth');
+const VARIANT = val('--sigmap-variant', 'current');
+if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, VARIANT)) {
+  fail(`--sigmap-variant must be one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')} (got "${VARIANT}")`, 2);
+}
+const AGENT = val('--agent', 'claude');
+if (AGENT !== 'claude' && AGENT !== 'api') fail('--agent must be claude (Claude Code, the default) or api (the Messages API directly), got "' + AGENT + '"', 2);
+const API_AGENT = AGENT === 'api';
+// --change: the tasks are merged bug fixes (scripts/build-change-tasks.mjs); the agent edits a checkout and its patch is graded by hidden tests.
+const CHANGE = has('--change');
+const PROMPT_STYLE = val('--prompt-style', 'template');
+if (!['template', 'question', 'wrapped'].includes(PROMPT_STYLE)) fail('--prompt-style is "template" (the default: question plus answer-format instructions), "question" (the bare question, every run a first ask) or "wrapped" (the template with a reference on the question line, every run a first ask)', 2);
+if (PROMPT_STYLE !== 'template' && (API_AGENT || CHANGE)) fail(`--prompt-style ${PROMPT_STYLE} is for the Claude Code agent and the where-is-it questions (not --agent api, not --change)`, 2);
+if (CHANGE && !API_AGENT) fail('--change needs --agent api: the change tools (Edit, Write, RunTest) are the direct API agent\'s', 2);
+if (API_AGENT && SESSION_AUTH) fail('--agent api uses ANTHROPIC_API_KEY; --session-auth is the Claude Code login', 2);
+const HOOK_RUN = isHookVariant(VARIANT);
+if (HOOK_RUN && (API_AGENT || !SESSION_AUTH)) fail(`--sigmap-variant ${VARIANT} runs a UserPromptSubmit hook inside Claude Code, which needs --agent claude and --session-auth (--bare skips hooks)`, 2);
+if (VARIANT === 'placebo' && !API_AGENT) fail('--sigmap-variant placebo puts its text in the system prompt, which only --agent api controls', 2);
+const SKILL_RUN = Object.prototype.hasOwnProperty.call(SKILL_VARIANTS, VARIANT);
+if (API_AGENT && SKILL_RUN) fail('--sigmap-variant ' + VARIANT + ' hands SigMap over as Claude Code skills, which the direct API agent does not have', 2);
+if (SKILL_RUN && !SESSION_AUTH) fail(`--sigmap-variant ${VARIANT} hands SigMap over as skills, and --bare turns skills off: add --session-auth`, 2);
 
 function selectRepos(manifest, tasks) {
   const wanted = ONLY ? ONLY.split(',').map((s) => s.trim()).filter(Boolean) : null;
@@ -131,12 +156,15 @@ function printPlan(plan) {
   const lines = [
     `SigMap agent-level A/B (#812)${DRY ? ' — dry run' : ''}`,
     '',
-    `  agent     claude (--bare), model ${MODEL}`,
+    API_AGENT
+      ? '  agent     the Messages API directly (scripts/lib/agent-ab-api.mjs, not Claude Code), model ' + MODEL + '; cost computed from usage x ' + (priceFor(MODEL) ? 'the ' + priceFor(MODEL).source + ' ($' + priceFor(MODEL).in + ' in / $' + priceFor(MODEL).out + ' out per Mtok)' : 'a price this model does not have: cost will be n/a')
+      : `  agent     claude (${SESSION_AUTH ? 'the logged-in session, no API key; ~40k tokens of cached prefix' : '--bare'}), model ${MODEL}`,
     `  repos     ${plan.repos.length}${plan.skipped.length ? ` (${plan.skipped.length} skipped: ${plan.skipped.map((s) => `${s.name} ${s.why}`).join(', ')})` : ''}`,
-    `  tasks     ${plan.tasks} (first ${PER_REPO} per repo, by id)`,
+    ...(CHANGE ? ['  mode      change tasks: the agent edits a checkout of the code before a merged fix; the patch is graded by the fix\'s own tests, which it never sees'] : []),
+    `  tasks     ${plan.tasks} (${TASK_IDS ? `task id(s) ${TASK_IDS.join(', ')}` : `first ${PER_REPO} per repo, by id`})`,
     `  runs      ${RUNS} per arm × ${ARMS.length} arms = ${plan.agentRuns} agent runs${RUNS < MIN_RUNS ? `  (below the ${MIN_RUNS} a result needs: NOT PUBLISHABLE)` : ''}`,
     `  budget    <= $${BUDGET} per run -> <= $${(plan.agentRuns * BUDGET).toFixed(2)} worst case; timeout ${Math.round(TIMEOUT / 1000)} s per run`,
-    '  arms      without = no SigMap · with = generated CLAUDE.md section + sigmap CLI + MCP server; identical prompt, model, read-only tools',
+    `  arms      without = no SigMap · with = ${VARIANT === 'current' ? 'generated CLAUDE.md section + sigmap CLI + MCP server' : SIGMAP_VARIANTS[VARIANT]} (variant: ${VARIANT}); identical prompt, model, ${CHANGE ? 'tools (the change tools included)' : 'read-only tools'}`,
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -145,16 +173,22 @@ async function main() {
   const manifest = loadManifest(DATA);
   const corpus = readTasks(path.join(DATA, TASKS_REL));
   const { present, skipped } = selectRepos(manifest, corpus);
-  const tasks = selectTasks(corpus, present.map((r) => r.name), { perRepo: PER_REPO });
-  if (!tasks.length) fail('no task to run: no pinned checkout is present (npm run fetch:xrepo)', 2);
+  if (TASK_IDS) {
+    const known = new Set(corpus.map((t) => t.id));
+    for (const id of TASK_IDS) if (!known.has(id)) fail(`--task-ids: "${id}" is not a task id in benchmarks/tasks/retrieval-xrepo.jsonl`, 2);
+  }
+  const tasks = selectTasks(corpus, present.map((r) => r.name), { perRepo: PER_REPO, ids: TASK_IDS });
+  if (!tasks.length) fail(TASK_IDS ? `no task to run: none of ${TASK_IDS.join(', ')} is in a repo with a pinned checkout (npm run fetch:xrepo)` : 'no task to run: no pinned checkout is present (npm run fetch:xrepo)', 2);
 
-  const plan = { repos: present, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
+  // Only the repositories a selected task is in are copied and checked; a run of one task does not prepare the others.
+  const used = present.filter((r) => tasks.some((t) => t.repo === r.name));
+  const plan = { repos: used, skipped, tasks: tasks.length, agentRuns: tasks.length * RUNS * ARMS.length };
   if (DRY) { writeAll(1, printPlan(plan)); return; }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!SESSION_AUTH && !process.env.ANTHROPIC_API_KEY) {
     writeAll(1, `${printPlan(plan)}\n  ⚠ ANTHROPIC_API_KEY is not set — skipping the live run.\n`
       + '  Claude Code runs with --bare so the operator\'s own instructions cannot reach the no-SigMap arm, and --bare\n'
-      + '  authenticates with the API key only.\n\n'
+      + '  authenticates with the API key only. With no key, `--session-auth` runs the same plan on the logged-in\n  session (it counts against that account\'s plan).\n\n'
       + '  Preview without spending:  npm run benchmark:agent-ab -- --dry-run\n'
       + '  Run live:                  ANTHROPIC_API_KEY=sk-... npm run benchmark:agent-ab -- --save\n');
     return;
@@ -164,6 +198,8 @@ async function main() {
   }
 
   if (process.platform === 'win32') fail('the harness is POSIX only: the SigMap arm\'s `sigmap` is a sh shim', 2);
+  // Grep and Glob are ripgrep. Without it every search would come back empty in BOTH arms and the run would still "succeed".
+  if (API_AGENT && !hasRipgrep()) fail(`--agent api: ${RIPGREP_MISSING}`, 2);
 
   say(printPlan(plan));
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-agent-ab-'));
@@ -172,42 +208,82 @@ async function main() {
   for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
 
   const prepared = {};
-  for (const repo of present) {
+  for (const repo of used) {
     prepared[repo.name] = {};
     for (const arm of ARMS) {
       say(`  preparing ${repo.name} (${arm})`);
-      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT });
+      prepared[repo.name][arm] = prepareArm({ root: DATA, repo, arm, tmpRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: SESSION_AUTH });
     }
-    const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
-    if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
+    try { assertArmHygiene({ without: prepared[repo.name].without.cwd, with: prepared[repo.name].with.cwd, label: repo.name }); } catch (e) { fail(e.message); }
+    if (VARIANT === 'placebo') {
+      // nothing of SigMap's to probe: the arm is a checkout and a block of text
+    } else if (HOOK_RUN) {
+      const probe = probeHook({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
+      if (!probe.ok) fail(`${repo.name}: the prefetch hook does not answer in the SigMap arm's checkout (${probe.error})`);
+    } else if (SKILL_RUN || VARIANT === 'prefetch') {
+      const probe = probeCli({ cwd: prepared[repo.name].with.cwd, binDir: prepared[repo.name].with.binDir });
+      if (!probe.ok) fail(`${repo.name}: the SigMap arm's sigmap CLI does not answer (${probe.error})`);
+    } else {
+      const probe = probeMcp({ cwd: prepared[repo.name].with.cwd, codeRoot: CODE_ROOT });
+      if (!probe.ok) fail(`${repo.name}: the SigMap arm's MCP server does not answer (${probe.error})`);
+    }
+    // A change run gets a checkout of its own per run (below); these were prepared to prove the arms are sound.
+    if (CHANGE) for (const arm of ARMS) fs.rmSync(prepared[repo.name][arm].cwd, { recursive: true, force: true });
   }
+  const armFor = CHANGE ? (repoName, armName) => {
+    const repo = used.find((r) => r.name === repoName);
+    const jobRoot = fs.mkdtempSync(path.join(tmpRoot, 'job-'));
+    const a = prepareArm({ root: DATA, repo, arm: armName, tmpRoot: jobRoot, codeRoot: CODE_ROOT, variant: VARIANT, sessionAuth: false });
+    return Object.assign(a, { dispose: () => fs.rmSync(jobRoot, { recursive: true, force: true }) });
+  } : (repoName, armName) => prepared[repoName][armName];
 
   const env = childEnv();
-  const version = agentVersion(BIN, env);
-  const runner = makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm] });
+  const prefetched = new Map();
+  const version = API_AGENT ? 'direct Messages API' : agentVersion(BIN, env);
+  // One `sigmap ask` per question, cached: both repetitions of a question get the same pre-ranked text.
+  const prefetchFor = VARIANT === 'prefetch' ? (job, arm) => {
+    // The question-style prompt is what a hook would be handed, so it is what gets ranked, one ranking per run (the reference differs).
+    const q = PROMPT_STYLE === 'question' ? job.prompt : job.task.query;
+    const k = PROMPT_STYLE === 'question' ? `${job.task.repo}/${job.task.id}/${job.run}/${job.arm}` : `${job.task.repo}/${job.task.id}`;
+    if (!prefetched.has(k)) prefetched.set(k, prefetchContext({ cwd: arm.cwd, binDir: arm.binDir, query: q }));
+    return prefetched.get(k);
+  } : null;
+  const runner = API_AGENT
+    ? makeApiRunner({ apiKey: process.env.ANTHROPIC_API_KEY, baseUrl: process.env.ANTHROPIC_BASE_URL || undefined, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, arms: armFor, prefetch: prefetchFor, change: CHANGE })
+    : makeRunner({ bin: BIN, model: MODEL, budgetUsd: BUDGET, timeoutMs: TIMEOUT, env, arms: (repo, arm) => prepared[repo][arm], bare: !SESSION_AUTH, skills: SKILL_RUN, prefetch: prefetchFor, hook: HOOK_RUN, framing: PROMPT_STYLE === 'question' ? ANSWER_FRAMING : null });
 
   let n = 0;
   const entries = await runPlan({
-    tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS,
+    tasks, runs: RUNS, runner, maxConsecutiveFailures: MAX_FAILS, variant: VARIANT,
+    // The hook's own verdict on a prompt: the guard keeps it silent for a prompt the ranker cannot read, and the integrity check expects exactly that.
+    ...(HOOK_RUN ? { silentFor: (prompt) => !createRequire(import.meta.url)(path.join(CODE_ROOT, 'src', 'session', 'prefetch.js')).screen(prompt, { focus: String(process.env.SIGMAP_PREFETCH_FOCUS).trim() !== '0', guard: String(process.env.SIGMAP_PREFETCH_GUARD).trim() !== '0' }).ok } : {}),
+    ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}),
+    ...(PROMPT_STYLE === 'wrapped' ? { promptFor: (task) => wrappedPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
+    ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),
     onRun: ({ task, arm, run, record }) => {
       n++;
       const c = record.cost && record.cost.usd !== null ? `${record.cost.source === 'table' ? '≥' : ''}$${record.cost.usd.toFixed(4)}` : 'cost n/a';
       say(`  [${n}/${plan.agentRuns}] ${task.repo}/${task.id} run ${run} ${arm.padEnd(7)} `
-        + `${record.ok ? (record.score.pass ? 'pass' : 'miss') : `FAIL ${record.error}`}`
+        + `${record.ok ? (record.score.pass ? 'pass' : `miss${record.score.why ? ` (${record.score.why})` : ''}`) : `FAIL ${record.error}`}`
         + `${record.toolCalls ? `  ${record.toolCalls.total} tool calls` : ''}  ${c}  ${(record.durationMs / 1000).toFixed(1)} s`);
     },
   });
 
   const method = {
-    agent: 'claude-code',
+    agent: API_AGENT ? 'anthropic-messages-api' : 'claude-code',
     agentVersion: version,
     model: MODEL,
     runs: RUNS,
+    variant: VARIANT,
+    auth: SESSION_AUTH ? 'session' : 'api-key',
+    runner: AGENT,
+    taskIds: TASK_IDS,
+    ...(CHANGE ? { corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl of a change-task data root (scripts/build-change-tasks.mjs)', passDefinition: 'the fix\'s hidden tests pass on the agent\'s patch' } : {}),
     tasksPerRepo: PER_REPO,
     budgetUsd: BUDGET,
     timeoutMs: TIMEOUT,
     date: new Date().toISOString().slice(0, 10),
-    repos: present.map((r) => ({ name: r.name, commit: r.commit })),
+    repos: used.map((r) => ({ name: r.name, commit: r.commit })),
     skippedRepos: skipped,
   };
   const report = stamp(buildReport({ entries, tasks, method }), CODE_ROOT);
@@ -216,7 +292,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost,
+      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE !== 'template', limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);

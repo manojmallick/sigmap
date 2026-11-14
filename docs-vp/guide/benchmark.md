@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.85.1 benchmark snapshot. 95.2% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
+description: Official v8.86.0 benchmark snapshot. 95.2% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.85.1 snapshot with R language"
+      content: "SigMap benchmark overview — v8.86.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.85.1 benchmark run (2026-10-28) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.86.0 benchmark run (2026-11-14) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,15 +15,15 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.85.1 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.85-main &nbsp;·&nbsp; **Date:** 2026-10-27
+::: info Official v8.86.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.86-main &nbsp;·&nbsp; **Date:** 2026-11-14
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 40.0% single-shot grep — **2.32× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
 | Token reduction (21 repos) | **95.2%** |
-| Honest lift (vs grep agent) | **2.32×** |
+| Honest lift (vs grep agent) | **2.37×** |
 | Prompt reduction | **44.4%** (2.84 → 1.58) |
 | Task success proxy | **61.9%** |
 | Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
@@ -39,9 +39,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.85.1 snapshot (with R language support)
+## Official v8.86.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-28 (v8.85.1)**
+Latest saved benchmark run: **2026-11-14 (v8.86.0)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
 
@@ -83,7 +83,7 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 | Average token reduction (all 21) | **95.2%** |
 | Retrieval hit@5 (18 core) | **80.4%** |
 | Graph-boosted hit@5 | **80.4%** |
-| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 40.0% — **2.32× honest lift** |
+| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 39.2% — **2.37× honest lift** |
 | Random baseline hit@5 (data only, no longer quoted) | 13.6% |
 | Prompt reduction | **44.4%** (2.84 → 1.58 prompts) |
 | GPT-4o overflow repos without SigMap | **14 / 21** |
@@ -108,8 +108,8 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 
 - SigMap hit@5 (honest corpus, 125 tasks): **92.8%**
 - SigMap hit@5 (retrieval corpus, 105 tasks): **80.4%** — graph-boosted **80.4%** (+0.0pp)
-- Grep-agent baseline: **40.0%** (single-shot, `npm run benchmark:honest`)
-- Honest lift: **2.32x** (+52.8pt vs grep; random baseline 13.6% kept as data only)
+- Grep-agent baseline: **39.2%** (single-shot, `npm run benchmark:honest`)
+- Honest lift: **2.37x** (+53.6pt vs grep; random baseline 13.6% kept as data only)
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
@@ -163,6 +163,9 @@ This is the best benchmark when the question is: *"When an AI answer cites a fil
 - It costs real money and is never part of the default suite or CI: `npm run benchmark:agent-ab -- --dry-run` prints the plan and the spend if every run reaches its cap (`runs × --max-budget-usd`) and starts nothing; without `ANTHROPIC_API_KEY` it explains and exits 0
 - A clone under `benchmarks/repos` may be a symlink (a worktree that borrows the shared clones): it is resolved before anything is copied, so the shared clone is never reset, cleaned or written and the two arms are two directories; an arm whose `.git` is a symlink or a gitfile is refused before git can write through it. A flag that takes a value and is given none (`--runs --save`) is an error, not the default
 - Reproduce: `ANTHROPIC_API_KEY=… npm run benchmark:agent-ab -- --save` (writes `benchmarks/reports/agent-ab.json` and `.md`)
+- **"Did it save?" is answered per repetition and two ways.** For every metric the report gives the *workload total* (Σ with ÷ Σ without − 1) and the *typical task* (the geometric mean of the per-task ratios, with a seeded 95% bootstrap interval), and calls it a saving only when it points the same way in every repetition. The method follows [stet.sh's study of six token-saving modes](https://www.stet.sh/blog/gpt-56-token-saving-modes).
+- **Variants and routes:** `--sigmap-variant index` is the documented setup (`strategy: "index"` plus the `core` MCP profile), `prefetch` puts the ranking in the prompt, `lean`/`skill*` are probes; `--agent api` talks to the Messages API directly, for a key Claude Code requests are refused for; `--session-auth` uses the logged-in Claude Code session; `--change` replaces the locate questions with merged bug fixes graded by hidden tests. The harness refuses a plan whose two arms differ in any file the agent can search.
+- **The study built on it:** [Agent study: results](/guide/agent-study) and [protocol](/guide/agent-study-protocol) (pre-registered). Data and tools: `benchmarks/agent-study/`.
 
 No figure from it is published yet — the harness ships ready, the numbers come from a live run. Until then every tool-call, token-cost and task-success claim elsewhere on this page remains what it says it is: modelled.
 

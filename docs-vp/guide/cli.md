@@ -109,7 +109,7 @@ If you are new to the product, start with the workflow pages first:
 | `session log --ci` | Append an `agent: "ci"` record for this pipeline run (usage unavailable) |
 | `session summary` | Deterministic warm-start summary of the last session, ≤400 tokens, no LLM (`--json`) |
 | `session compact` | Fold sessions older than `session.retention.days` into monthly rollups (`--json`) |
-| `hooks install claude` | Wire session capture into Claude Code — `SessionStart` + `SessionEnd`, in `.claude/settings.local.json` (`--stop` adds the per-turn hook, `--shared` writes the committed file) |
+| `hooks install claude` | Wire session capture into Claude Code — `SessionStart` + `SessionEnd`, in `.claude/settings.local.json` (`--stop` adds the per-turn hook, `--prefetch` adds the ranking-before-each-prompt hook, `--shared` writes the committed file) |
 | `hooks status` / `hooks remove claude` | Show which session hooks are wired (and whether the script they run still exists), or remove SigMap's hooks and nothing else |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
 | `doctor` | Diagnose config, index, freshness, coverage, the model profile, MCP wiring, the MCP tool profile, and the git post-commit hook — with a fix per issue (`--json`; exits 1 on hard failure) |
@@ -1585,9 +1585,28 @@ Wire session capture into Claude Code. Three hooks run `sigmap session hook <eve
 sigmap hooks install claude          # SessionStart + SessionEnd, in .claude/settings.local.json
 sigmap hooks install claude --stop   # also the per-turn Stop hook
 sigmap hooks install claude --shared # write the committed .claude/settings.json instead
-sigmap hooks status                  # what is wired; flags a hook whose script has moved
+sigmap hooks install claude --prefetch # also the prefetch hook (below)
+sigmap hooks status                  # what is wired, prefetch included; flags a hook whose script has moved
 sigmap hooks remove claude           # remove SigMap's hooks, leave everything else
+sigmap hooks remove claude --prefetch # remove only the prefetch hook
 ```
+
+### The prefetch hook
+
+`--prefetch` adds a `UserPromptSubmit` hook that, before Claude Code sends a prompt, ranks the repository's files against it and hands the model the top five — the same ranking, signatures and `:start-end` anchors `sigmap ask` prints, about 1.4k tokens — as additional context. The model starts the turn holding a list of leads instead of asking for one. It runs `sigmap ask`, so there is one ranking implementation and `.context/query-context.md` is rewritten as it would be by hand.
+
+It is **opt-in**, and its saving is **small**. On a clean comparison in the [agent study](/guide/agent-study#the-real-hook-and-the-same-text-in-the-prompt) (Claude Code, Haiku 5.5, eight repositories, 348 first-ask pairs) it took real cost **−4% [−7%, −1%]**, tool calls −41%, time −11% and total tokens −23%, and the file was found in 321 runs against 326 without it. By repository only 2 of 8 saved clearly and none cost more. The same ranking placed in the prompt itself took cost −12%, but a hook cannot do that: Claude Code adds its output as a separate reminder after your prompt, and the agent re-checks that list more than it re-checks text in its own prompt. Three changes to what the hook prints (plain stdout, a firmer header, a shorter block) did not close the gap, so none is shipped. Two things to know: a long prompt is focused before it is ranked (below), which recovers about half of what a wrapped prompt loses but not all of it, and these are single-question sessions with one cheap model, so try it on your repository with a few real questions before trusting any of the numbers.
+
+What keeps it cheap and quiet:
+
+- **Not every prompt.** A slash command, a `!` shell escape, a `#` note, or a prompt under four words (`yes`, `continue`, `run the tests`) gets nothing, and so does a project with no index — the hook never generates one.
+- **Focused.** A prompt of two dozen words or fewer is ranked exactly as written. A longer one is reduced to the sentences that say something before it is ranked: fenced code blocks, pasted tool output (a shell prompt, a traceback frame, a dated log line, a test runner's `PASS`/`FAIL`) and sentences made only of greetings, politeness and instructions about the answer are left out, and a `label: question` or `Task: ...` lead-in stays with its sentence. The reason is that a ranking over a whole prompt is only as good as the prompt is focused: over 222 held-out questions put inside thirteen kinds of wrapper, the expected file was in the top five for 59% of the raw wrapped prompts, 66% after focusing and 72% for the bare question (first in 28%, 36% and 45%). It does not tell a list of constraints written in ordinary software words ("keep the public API unchanged", "add tests") from a question, and a pasted traceback loses its frames. In Claude Code runs with the benchmark's own wrapped prompt, focusing took the hook from +3% [0%, +6%] to −3% [−6%, 0%] of real cost on eight repositories and from 0% [−3%, +2%] to −7% [−10%, −5%] on twelve others, each against its own baseline; on those twelve the file was found in 483 runs of 540 against 497 without the hook, mostly on one repository whose ranking is poor however the query is built; the guard below addresses that case, and not the case of an English prompt whose ranking is simply wrong. `SIGMAP_PREFETCH_FOCUS=0` ranks the whole prompt instead.
+- **Only where it can read.** If less than 90% of the letters of what it would rank are ASCII (a prompt in Chinese, Russian or Greek with a few identifiers in it), nothing is injected and the agent works as it would without the hook: the ranker's tokenizer reads only A-Z, a-z and 0-9, so the list is built from those few identifiers and was wrong for 18 of the 22 such questions measured. On twelve repositories with the benchmark's wrapped prompt the guarded hook took real cost −8% [−10%, −5%] and found the file in 485 runs of 540 against 492 without it; the same hook without the guard found 483 against 497. It does not catch an English prompt whose ranking is wrong (no signal tried predicts that), and a prompt with a few accented letters (German, French) is still ranked. `SIGMAP_PREFETCH_GUARD=0` ranks it anyway.
+- **Not twice.** If the ranking for a prompt names the same files as the last block injected in that session, nothing is added: the earlier block is already in the conversation.
+- **Bounded.** The block is capped at 8 KiB (whole file sections, best-ranked first, with a note), under the 10,000 characters Claude Code accepts from a hook; the work at 8 seconds, inside the hook's 10-second timeout; and a failure is silence — it exits `0` and prints nothing, and the prompt goes ahead as it would have. The text stays in the conversation (and its transcript) for later turns, which is why a repeat is skipped.
+- **Off switches.** `SIGMAP_PREFETCH=0` in the environment turns the hook off without editing the settings file; `SIGMAP_PREFETCH_FOCUS=0` keeps it but ranks the whole prompt; `SIGMAP_PREFETCH_GUARD=0` keeps it but ranks a prompt the ranker mostly cannot read.
+
+Every prompt starts a short Node process (about 0.2 s when it ranks, less when it skips). The first ranking after the index is rebuilt also builds the body-word cache, about 1.4 s on a 1,500-file repository.
 
 The hook commands embed an **absolute path** to this SigMap install, so they go in `.claude/settings.local.json` — Claude Code's personal, uncommitted settings — by default; one machine's path in the committed file would break every teammate's session. Install merges into the file: every other key and hook is left as found, a second install changes nothing, and a file that is not valid JSON is refused rather than overwritten. Run it from a global or project install, not from `npx` (its cache path is temporary; the command warns).
 
@@ -2217,7 +2236,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 40.0%   (2.32× lift)
+ hit@5         92.8% vs 39.2%   (2.37× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.2% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2244,7 +2263,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.2% fewer tokens · 78% retrieval accuracy (this repo) · 2.32× vs a grep agent (published)
+95.2% fewer tokens · 78% retrieval accuracy (this repo) · 2.37× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2254,7 +2273,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.32× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.37× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2316,6 +2335,16 @@ A path with nothing at it is **not** an exclusion, and says so:
 ```
 
 `--json` emits the same as one object, with a machine-readable `status` (`included`, `excluded`, `not-found`) and `reason` (`.contextignore`, `not in srcDirs`, `no signatures`, or `file does not exist on disk`).
+
+A file the extractor reads nothing from is *excluded from the context* and still *findable*: if it is a programming-language file of at least five non-blank lines (and not a test, mock, generated, minified or declaration file), `generate` records it in the retrieval index by its path alone, so `sigmap ask` can return it for a question that names it (it has no signatures to show). `explain` says so with an `Index:` line, and `--json` carries `"pathOnly": true`:
+
+```
+[sigmap] src/plugin/agent.ts — EXCLUDED
+  Reason: no extractable signatures (extractor: typescript) — 1 export line, none of a shape it reads
+  Saw:    export default new AgentPlugin();
+  Index:  ranked by its path only: it lists no signatures, so `sigmap ask` can return it for a question that names it but shows nothing of its contents
+  Fix:    no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path
+```
 
 ::: warning Exit code change in v8.54.1 (#772)
 `sigmap explain <missing-file>` now exits **1**. Before v8.54.1 a path that did not exist fell through to the extractor check and was reported as `EXCLUDED — no extractable signatures`, advising the reader to *"check that the file contains function/class definitions"* — for a file that was not there — at **exit 0**. Scripts that relied on `explain` always succeeding for an arbitrary path will now see a failure. Every other status still exits 0: an exclusion is an answer, not an error.
@@ -2534,7 +2563,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.85.1, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.86.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3237,7 +3266,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.85.1
+# 8.86.0
 ```
 
 ---
