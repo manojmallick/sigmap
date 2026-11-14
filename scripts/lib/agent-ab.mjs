@@ -20,7 +20,13 @@
  *
  *   - Provenance on every figure (`agent-reported`, `table (asOf)`, `measured`).
  *   - Nothing is summed across classes: each metric is its own series, so there
- *     is no grand total a renderer could print by accident.
+ *     is no grand total a renderer could print by accident. The one total,
+ *     `totalTokens`, is a series on purpose: it says "derived, unweighted" in its
+ *     label and its provenance, and it exists so the token view and the cost view
+ *     can be read side by side (they can differ in sign).
+ *   - "Did it save?" is answered per repetition and in two ways — the workload
+ *     total and the typical task (`agent-ab-stats.mjs`) — and a saving counts only
+ *     if it points the same way in every repetition.
  *   - Unknown is unknown. A run with no usage contributes to a metric's `n`
  *     shortfall, never as a zero; a timed-out run is a failed run with unknown
  *     usage.
@@ -34,6 +40,10 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import {
+  BOOTSTRAP_ITERATIONS, BOOTSTRAP_SEED, CI_LEVEL,
+  workloadChange, geometricChange, consistency,
+} from './agent-ab-stats.mjs';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -41,6 +51,104 @@ const models = require(path.join(ROOT, 'src/config/models.js'));
 
 /** `without` = no SigMap; `with` = SigMap's generated context plus its MCP server. */
 export const ARMS = Object.freeze(['without', 'with']);
+
+/**
+ * What the `with` arm is. `current` is what a first-time `sigmap --adapter claude` run hands an
+ * agent (the generated section plus the MCP server on its default 22-tool profile). `lean` keeps the
+ * same index and the same MCP server but hands the agent less on every turn: the 7-tool `core`
+ * profile and a three-line section instead of the generated one. `index` is the setup the strategies
+ * guide gives for an agent that reliably calls the lookup tools: `strategy: "index"` (an always-on map
+ * of about a third the size, every signature still in the index) with the `core` profile, and the
+ * section SigMap itself writes, nothing hand-written. A variant changes how much the agent is told,
+ * never what the index holds, so they stay comparable on the same questions.
+ */
+export const SIGMAP_VARIANTS = Object.freeze({
+  current: 'SigMap generated context + MCP server',
+  lean: 'SigMap lean: 7-tool core MCP profile + a three-line section',
+  index: 'SigMap index strategy + 7-tool core MCP profile (the docs\' setup for an agent that calls the tools)',
+  skill: 'SigMap as one on-demand skill (sigmap-locate) + the sigmap CLI: no MCP server, no always-on section',
+  'skill-always': 'SigMap as one skill (sigmap-locate) whose description tells the agent to call it first on every where-is-it question, + the sigmap CLI: no MCP server, no always-on section',
+  prefetch: 'SigMap ranked the question BEFORE the first turn (what a prompt hook would inject): the five likeliest files with their signatures and line anchors after the question in the user turn, + the sigmap CLI; no MCP server, no standing section, no extra tool call',
+  locate: 'SigMap index strategy + a two-tool MCP profile (query_context and get_lines only): the tools the agents used, without the five they did not',
+  'prefetch-hook': 'the real prefetch hook (`sigmap hooks install claude --prefetch`): Claude Code runs it on the prompt and adds SigMap\'s ranking as context; no MCP server, no standing section, nothing in the prompt we write (Claude Code with --session-auth only)',
+  'hook-plain': 'PROTOTYPE of the prefetch hook: the same block printed as plain stdout instead of JSON additionalContext (Claude Code labels it "hook success:"); everything else as prefetch-hook',
+  'hook-firm': 'PROTOTYPE of the prefetch hook: the same block under a header that says where to start ("start with them... search only if none fits") instead of "leads, not an answer"; everything else as prefetch-hook',
+  'hook-brief': 'PROTOTYPE of the prefetch hook: the same ranking with at most ~2.5 KB of signatures instead of ~8 KB; everything else as prefetch-hook',
+  'hook-doubt': 'PROTOTYPE of the prefetch hook: when the list is flat (the last shown score is more than 57% of the first), the same block under a header that says the ranking looks weak; otherwise the shipped block, unchanged',
+  placebo: 'NOT SigMap: a size-matched block of generic code-search guidance in the system prompt, no repository information, no tools added (the control for "is it SigMap or just prompt text?")',
+  'skill-shipped': 'SigMap as the three skills `sigmap skills install --client claude` writes + the sigmap CLI: no MCP server, no always-on section',
+});
+
+/** The variants that run a UserPromptSubmit hook inside Claude Code: the shipped one and the prototype deliveries of stage B1. */
+export const HOOK_VARIANTS = Object.freeze(['prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt']);
+export const isHookVariant = (v) => HOOK_VARIANTS.includes(v);
+
+/**
+ * The variants that hand SigMap over as Claude Code skills. A skill costs the agent its name and
+ * description on every turn and its body only when the agent calls it, so these arms carry no
+ * appended section and no MCP tool definitions at all. Both arms of such a run keep the Skill tool
+ * (and the agent's bundled skills), so they still differ only by what SigMap adds.
+ */
+export const SKILL_VARIANTS = Object.freeze({
+  skill: Object.freeze(['sigmap-locate']),
+  'skill-always': Object.freeze(['sigmap-locate']),
+  'skill-shipped': Object.freeze(['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer']),
+});
+
+/**
+ * What the `prefetch` arm is told above the pre-ranked files. Deliberately not an instruction to do anything extra: `lean` and
+ * `skill-always` showed that "ask SigMap first, then confirm" becomes a step ADDED to the agent's own search. This only says
+ * what the list is and how far to trust it.
+ */
+export const PREFETCH_HEADER = [
+  '## Files SigMap ranked for this question',
+  'Before you started, SigMap ranked this repository\'s files against the question from its offline index (no model call). These are leads, not an answer: the right file is often but not always among them. Each signature carries a `:start-end` line anchor you can Read directly. If none fits, search as you normally would.',
+].join('\n');
+
+/** The pre-ranked block is capped: it is re-read on every later turn, and a hook that injects 10k tokens is not a saving. */
+export const PREFETCH_MAX_BYTES = 8 * 1024;
+
+/**
+ * The `skill` variant's one SKILL.md. Written from what the earlier runs showed: an instruction to
+ * "always ask SigMap first" made a strong agent do SigMap's step AND its own search (`lean`), so this
+ * one says when NOT to use it, calls the ranking a lead to confirm, and tells the agent to stop once
+ * a file is confirmed. The CLI it names is the one the arm has on PATH.
+ */
+export const LOCATE_SKILL = [
+  '---',
+  'name: sigmap-locate',
+  'description: Find which files implement something in a large, unfamiliar repository using the offline SigMap index. Use when asked where code lives or which files handle a behaviour and no distinctive identifier is known. Skip it when the question names the file or symbol, or one Grep would answer.',
+  '---',
+  '',
+  '# Locate code with SigMap',
+  '',
+  '1. Run `sigmap ask "<the question, in the user\'s words>"` once. It prints the five most likely files, ranked.',
+  '2. Treat the ranking as leads, not an answer: the first file is often not the right one. Signatures with `:start-end` line anchors for the five files are in `.context/query-context.md`.',
+  '3. Confirm before you name a file: `sigmap lines <file> :<line> --context 10`, or Read that range.',
+  '4. If none of the five fits, Grep for a distinctive term from the question. Do not run `sigmap ask` more than twice.',
+  '5. Answer as soon as one file is confirmed. Do not also search the whole repository to be sure.',
+  '',
+].join('\n');
+
+/**
+ * The lean arm's whole system-prompt addition (about 70 tokens). It names the MCP tool the arm
+ * actually has, where the generated section names a terminal command the agent rarely ran, and it
+ * calls the ranking a lead to confirm: on the labelled corpus the first-ranked file is right about
+ * one time in three, so "answer from this" would be wrong about as often.
+ */
+export const LEAN_SECTION = [
+  '## SigMap',
+  'This repository is indexed by SigMap. Call the MCP tool `query_context` with the question first: it returns the most likely files with line anchors (`:start-end`).',
+  'Treat the ranking as a lead, not an answer: read an anchored range with `get_lines` to confirm before you name a file.',
+].join('\n');
+
+/**
+ * The `skill-always` variant's SKILL.md: the same procedure as LOCATE_SKILL under a description that asks to be called first.
+ * Haiku 5.5 never called the optional `skill` (0 of 180 runs), so this is the version that tests the skill itself: what the
+ * agent does, and what it costs, when it does follow it. The description is the only part that differs.
+ */
+export const LOCATE_SKILL_ALWAYS = LOCATE_SKILL.replace(/^description: .*$/m,
+  'description: Use this FIRST, before any Grep, Glob or Read, for every question about which files implement something or where code lives in this repository. It ranks the likely files from the offline SigMap index.');
 
 /** Fewer runs per arm than this is a smoke test, not a result. */
 export const MIN_RUNS = 4;
@@ -84,20 +192,22 @@ export class IntegrityError extends Error {}
  *
  * @param {Array<{id:string, repo:string, query:string, expected_files:string[]}>} tasks
  * @param {string[]} repoNames manifest order
- * @param {{ perRepo?: number, only?: string[]|null }} [opts]
+ * @param {{ perRepo?: number, only?: string[]|null, ids?: string[]|null }} [opts] `ids` picks exactly those task ids
+ *   (every repo's matches, in id order) and replaces the first-K rule; a targeted re-run, not a sample
  * @returns {Array<{id:string, repo:string, query:string, expected_files:string[]}>}
  */
 export function selectTasks(tasks, repoNames, opts = {}) {
   const perRepo = opts.perRepo === undefined ? DEFAULT_TASKS_PER_REPO : opts.perRepo;
   if (!Number.isInteger(perRepo) || perRepo < 1) throw new Error(`tasks per repo must be a positive integer, got ${perRepo}`);
   const only = opts.only && opts.only.length ? new Set(opts.only) : null;
+  const ids = opts.ids && opts.ids.length ? new Set(opts.ids) : null;
   const out = [];
   for (const repo of repoNames) {
     if (only && !only.has(repo)) continue;
-    const mine = tasks.filter((t) => t.repo === repo)
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-      .slice(0, perRepo);
-    for (const t of mine) out.push({ id: t.id, repo: t.repo, query: t.query, expected_files: [...t.expected_files] });
+    const sorted = tasks.filter((t) => t.repo === repo)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const mine = ids ? sorted.filter((t) => ids.has(t.id)) : sorted.slice(0, perRepo);
+    for (const t of mine) out.push({ id: t.id, repo: t.repo, query: t.query, expected_files: [...t.expected_files], ...(t.hidden ? { hidden: t.hidden, kind: 'change' } : {}) });
   }
   return out;
 }
@@ -115,6 +225,35 @@ export function buildPrompt(task) {
     `Name the repository-relative path of each file that implements this, most relevant first (at most ${TOP_K}), `
       + 'one per line, in backticks. Then give one sentence on why. Do not modify anything.',
   ].join('\n');
+}
+
+/**
+ * The question-style prompt (`--prompt-style question`): what a person types, the question and nothing else. The instructions that
+ * `buildPrompt` wraps around it ride in the system prompt instead (ANSWER_FRAMING, the same in both arms), so a hook that ranks the
+ * submitted prompt ranks the question, as the harness's `prefetch` does, and not fifty words of boilerplate with it.
+ *
+ * The question ends with a one-token reference no two runs share. On Claude Code a repeated opening prompt is read from the prompt
+ * cache, which flatters any arm that adds question-specific text (the study found `prefetch` at -8% on a question's first ask and
+ * -28% on its repeat); with the reference every run is a first ask, and the system prompt and tools stay shared, as in a real session.
+ * The token is a letter and hex digits, so it matches nothing in a ranking.
+ */
+export const ANSWER_FRAMING = [
+  'You are answering questions about the source code of an open-source project checked out in the current directory. Each message is one such question.',
+  `Name the repository-relative path of each file that implements what the question asks about, most relevant first (at most ${TOP_K}), `
+    + 'one per line, in backticks. Then give one sentence on why. Do not modify anything.',
+].join(' ');
+
+export function questionPrompt(task, nonce = `q${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`) {
+  return `${task.query} [${nonce}]`;
+}
+
+/**
+ * The wrapped-style prompt (`--prompt-style wrapped`): the original template prompt, instructions and all, with the same one-token reference
+ * as `questionPrompt` on the question line, so every run is a first ask. It is what a hook is handed when a person (or a harness) puts
+ * instructions around a question, which is the case the hook's query focusing exists for.
+ */
+export function wrappedPrompt(task, nonce = `q${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`) {
+  return buildPrompt({ ...task, query: `${task.query} [${nonce}]` });
 }
 
 // ── scoring ──────────────────────────────────────────────────────────────────
@@ -236,11 +375,34 @@ export function costFloor(inTokens, model) {
  * no-SigMap arm must hold no sigmap server or tool, the SigMap arm must hold the
  * server connected, and neither may hold a tool that breaks the comparison.
  *
- * @param {{ tools?: string[], mcpServers?: Array<{name:string,status?:string}> }|null} init
+ * A skill variant has no MCP server in either arm; instead the SigMap arm must list exactly its
+ * skills in the init event and the no-SigMap arm none of them, and both must hold the Skill tool.
+ *
+ * @param {{ tools?: string[], mcpServers?: Array<{name:string,status?:string}>, skills?: string[]|null }|null} init
  * @param {'without'|'with'} arm
+ * @param {{ variant?: string }} [opts]
  * @returns {{ ok: boolean, problems: string[], builtins: string[] }}
  */
-export function checkIntegrity(init, arm) {
+/**
+ * The `prefetch-hook` run is only a measurement of the hook if the hook ran in the SigMap arm, exactly once and successfully with
+ * something to say, and did not run at all in the baseline. Both are read from the hook events in the run's own stream.
+ */
+export function hookProblems(hooks, arm, opts = {}) {
+  if (!Array.isArray(hooks)) return ['the run reported no hook events, so it cannot be checked that the hook ran (or did not)'];
+  const mine = hooks.filter((h) => h && h.event === 'UserPromptSubmit');
+  if (arm === 'without') return hooks.length ? [`the no-SigMap arm ran a hook (${hooks.map((h) => h.event).join(', ')})`] : [];
+  if (mine.length !== 1) return [`the SigMap arm should run its UserPromptSubmit hook once; it ran it ${mine.length} times`];
+  const h = mine[0];
+  if (h.outcome !== 'success' || h.exitCode !== 0) return [`the prefetch hook did not succeed (outcome ${h.outcome}, exit ${h.exitCode})`];
+  // A prompt the confidence guard withholds is one the hook must run on and leave alone: silence is then the right answer, and context a defect.
+  if (opts.expectSilent) return h.bytes > 0 ? ['the confidence guard should have kept the hook silent for this prompt, and it added context'] : [];
+  if (!(h.bytes > 0)) return ['the prefetch hook ran and added nothing to the prompt'];
+  return [];
+}
+
+export function checkIntegrity(init, arm, opts = {}) {
+  // A change task lets the agent edit, so Edit and Write are expected in BOTH arms; every other forbidden tool stays forbidden.
+  const forbidden = opts.change ? FORBIDDEN_TOOLS.filter((t) => t !== 'Edit' && t !== 'Write') : FORBIDDEN_TOOLS;
   if (!init || !Array.isArray(init.tools)) {
     return { ok: false, builtins: [], problems: ['the run reported no init event with a tool list, so the arm cannot be verified'] };
   }
@@ -251,7 +413,7 @@ export function checkIntegrity(init, arm) {
   const prefix = `mcp__${SIGMAP_SERVER}__`;
   const servers = Array.isArray(init.mcpServers) ? init.mcpServers : [];
 
-  for (const t of builtins) if (FORBIDDEN_TOOLS.includes(t)) problems.push(`the forbidden tool "${t}" is enabled`);
+  for (const t of builtins) if (forbidden.includes(t)) problems.push(`the forbidden tool "${t}" is enabled`);
   const foreign = mcp.filter((t) => !t.startsWith(prefix));
   if (foreign.length) problems.push(`unexpected MCP tools: ${foreign.join(', ')}`);
   const otherServers = servers.filter((s) => s && s.name !== SIGMAP_SERVER).map((s) => s.name);
@@ -259,6 +421,27 @@ export function checkIntegrity(init, arm) {
 
   const sigmap = servers.find((s) => s && s.name === SIGMAP_SERVER);
   const sigmapTools = mcp.filter((t) => t.startsWith(prefix));
+  if (opts.variant === 'prefetch' || opts.variant === 'placebo' || isHookVariant(opts.variant)) {
+    // The ranking (or the placebo text) is already in the prompt; neither arm has an MCP server, so one in either arm is a contaminated run.
+    if (sigmap || sigmapTools.length) problems.push(`the ${opts.variant} variant holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
+    if (isHookVariant(opts.variant)) problems.push(...hookProblems(opts.hooks, arm, { expectSilent: !!opts.expectSilent }));
+    return { ok: problems.length === 0, problems, builtins };
+  }
+  const wanted = SKILL_VARIANTS[opts.variant];
+  if (wanted) {
+    if (sigmap || sigmapTools.length) problems.push(`a skill variant (${opts.variant}) holds the sigmap MCP server in the ${arm === 'with' ? 'SigMap' : 'no-SigMap'} arm`);
+    if (!builtins.includes('Skill')) problems.push('the Skill tool is not enabled, so the skill cannot be called');
+    const have = Array.isArray(init.skills) ? init.skills.map(String) : null;
+    if (!have) problems.push('the run reported no skill list, so the skill arm cannot be verified');
+    else if (arm === 'with') {
+      const missing = wanted.filter((n) => !have.includes(n));
+      if (missing.length) problems.push(`the SigMap arm does not list its skill(s): ${missing.join(', ')}`);
+    } else {
+      const leaked = wanted.filter((n) => have.includes(n));
+      if (leaked.length) problems.push(`the no-SigMap arm lists the SigMap skill(s): ${leaked.join(', ')}`);
+    }
+    return { ok: problems.length === 0, problems, builtins };
+  }
   if (arm === 'without') {
     if (sigmap || sigmapTools.length) problems.push('the no-SigMap arm has the sigmap MCP server');
   } else {
@@ -288,20 +471,25 @@ export function checkIntegrity(init, arm) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
+ * @param {(prompt:string) => boolean} [p.silentFor] for a hook variant: whether the product's hook is expected to say nothing for this prompt (the confidence guard)
+ * @param {(task:object, run:{run:number, arm:string}) => string} [p.promptFor] the prompt of a run (default: the locate prompt, the same for every run of a task)
+ * @param {(record:object, task:object) => Promise<{pass:boolean}>|{pass:boolean}} [p.scoreRun] scores a finished run (default: hit@5 on the files named)
+ * @param {boolean} [p.change] the tasks are change tasks: the agent may edit
+ * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
  * @returns {Promise<Array<{task:object, arm:string, run:number, record:object}>>}
  */
-export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3 }) {
+export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false, silentFor = null }) {
   const out = [];
   const builtinsByArm = {};
   let streak = 0;
   for (const task of tasks) {
-    const prompt = buildPrompt(task);
     for (let run = 1; run <= runs; run++) {
       const order = run % 2 === 1 ? ARMS : [...ARMS].reverse();
       for (const arm of order) {
+        const prompt = promptFor(task, { run, arm });
         const record = await runner({ task, arm, run, prompt });
         if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm);
+          const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks, expectSilent: !!(silentFor && silentFor(prompt)) });
           if (!chk.ok) {
             throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
           }
@@ -311,7 +499,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
             throw new IntegrityError(`the arms hold different built-in tools (without: [${builtinsByArm.without}], with: [${builtinsByArm.with}])`);
           }
         }
-        const score = record.ok ? scoreAnswer(record.answer, task.expected_files, { cwds: record.cwds })
+        const score = record.ok ? (scoreRun ? await scoreRun(record, task) : scoreAnswer(record.answer, task.expected_files, { cwds: record.cwds }))
           : { pass: false, rank: null, named: [] };
         const entry = { task, arm, run, record: Object.assign({}, record, { score }) };
         out.push(entry);
@@ -338,7 +526,19 @@ export const METRICS = Object.freeze([
   { key: 'out', label: 'Output tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.out },
   { key: 'cacheRead', label: 'Cache-read tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.cacheRead },
   { key: 'cacheWrite', label: 'Cache-write tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.cacheWrite },
-  { key: 'costUsd', label: 'Cost', unit: 'usd', provenance: 'agent-reported (the agent\'s own total_cost_usd)', pick: (r) => (r.cost && r.cost.source === 'agent-reported' ? r.cost.usd : null) },
+  {
+    key: 'totalTokens', label: 'Total tokens (derived)', unit: 'tokens',
+    provenance: 'derived: input + output + cache-read + cache-write, each agent-reported; unweighted, so a cache read counts like a fresh token — Cost is the priced view',
+    // Unknown stays unknown: one category the run did not report makes the sum
+    // unknown, never the sum of the categories that did report.
+    pick: (r) => {
+      const u = r.usage;
+      if (!u) return null;
+      const parts = [u.in, u.out, u.cacheRead, u.cacheWrite];
+      return parts.every((x) => Number.isFinite(x)) ? parts.reduce((a, b) => a + b, 0) : null;
+    },
+  },
+  { key: 'costUsd', label: 'Cost', unit: 'usd', provenance: 'agent-reported (the agent\'s own total_cost_usd), or computed from the API\'s usage and a price table when the run went through the Messages API directly', pick: (r) => (r.cost && (r.cost.source === 'agent-reported' || r.cost.source === 'computed') ? r.cost.usd : null) },
   { key: 'costFloorUsd', label: 'Cost floor', unit: 'usd', provenance: `table (as of ${PRICE_AS_OF}): uncached input only, a floor`, pick: (r) => (r.cost && r.cost.source === 'table' ? r.cost.usd : null) },
   { key: 'durationMs', label: 'Wall time', unit: 'ms', provenance: 'measured (wall clock of the agent process)', pick: (r) => r.durationMs },
 ]);
@@ -363,7 +563,7 @@ export function spendOf(records) {
     s.runs++;
     const c = r && r.cost;
     const usd = c && typeof c.usd === 'number' && Number.isFinite(c.usd) && c.usd >= 0 ? c.usd : null;
-    if (usd !== null && c.source === 'agent-reported') { s.agentReportedUsd = (s.agentReportedUsd || 0) + usd; s.agentReportedRuns++; }
+    if (usd !== null && (c.source === 'agent-reported' || c.source === 'computed')) { s.agentReportedUsd = (s.agentReportedUsd || 0) + usd; s.agentReportedRuns++; }
     else if (usd !== null && c.source === 'table') { s.floorUsd = (s.floorUsd || 0) + usd; s.floorRuns++; }
     else s.unknownRuns++;
   }
@@ -475,6 +675,88 @@ export function rollup(cells) {
 }
 
 /**
+ * "Did SigMap's arm use less?" answered per repetition and in two ways.
+ *
+ * A repetition is one pass over every task in both arms (run index r). Within it,
+ * a task is a PAIR only when both arms completed that run and reported the metric:
+ * a failed or silent run drops its pair, it is never a zero. Per metric and per
+ * repetition this returns the workload-total change and the typical-task change
+ * with its bootstrap interval (see `agent-ab-stats.mjs`), and across repetitions a
+ * verdict — fewer / more in every repetition, or mixed. A saving that appears in
+ * one repetition and reverses in the next is not a saving.
+ *
+ * The same tasks are repeated, so repetitions measure consistency, not
+ * generalisation to other tasks.
+ *
+ * For hit@5 it counts, per repetition, the pairs where the SigMap arm found the
+ * file and the other did not (better), the reverse (worse) and the rest (tie).
+ * Localisation only: this harness cannot grade an edit.
+ *
+ * @param {Array} entries output of runPlan
+ * @param {Array} tasks
+ */
+export function repetitionEstimates(entries, tasks) {
+  const done = new Map();
+  const runSet = new Set();
+  for (const e of entries) {
+    runSet.add(e.run);
+    if (e.record.ok) done.set(`${e.task.repo}/${e.task.id}|${e.arm}|${e.run}`, e.record);
+  }
+  const runs = [...runSet].sort((a, b) => a - b);
+  const keys = tasks.map((t) => `${t.repo}/${t.id}`);
+  const at = (key, arm, run) => done.get(`${key}|${arm}|${run}`);
+
+  const metrics = {};
+  for (const m of METRICS) {
+    const reps = runs.map((run) => {
+      const pairs = [];
+      for (const k of keys) {
+        const x = at(k, 'without', run);
+        const y = at(k, 'with', run);
+        if (!x || !y) continue;
+        const a = m.pick(x);
+        const b = m.pick(y);
+        if (Number.isFinite(a) && Number.isFinite(b)) pairs.push({ without: a, with: b });
+      }
+      return { run, workload: workloadChange(pairs), typical: geometricChange(pairs) };
+    });
+    // Nothing estimable in any repetition (not reported, or a zero baseline): no row.
+    if (reps.every((r) => r.workload.change === null && r.typical.change === null)) { metrics[m.key] = null; continue; }
+    const typical = consistency(reps.map((r) => r.typical.change));
+    const measured = reps.filter((r) => r.typical.change !== null);
+    // Outside the noise: a one-sided verdict AND, in every repetition, an interval
+    // that excludes zero on that same side. `null` when there is no such verdict —
+    // which already needs 2+ measurable repetitions, so none is checked again here.
+    const outsideNoise = typical === null || typical === 'mixed' || typical === 'unchanged' ? null
+      : measured.every((r) => r.typical.lo !== null
+        && (typical === 'fewer-every-repetition' ? r.typical.hi < 0 : r.typical.lo > 0));
+    metrics[m.key] = { reps, workload: consistency(reps.map((r) => r.workload.change)), typical, typicalOutsideNoise: outsideNoise };
+  }
+
+  const outcomeReps = runs.map((run) => {
+    let better = 0; let worse = 0; let ties = 0;
+    for (const k of keys) {
+      const x = at(k, 'without', run);
+      const y = at(k, 'with', run);
+      if (!x || !y) continue;
+      if (y.score.pass && !x.score.pass) better++;
+      else if (x.score.pass && !y.score.pass) worse++;
+      else ties++;
+    }
+    return { run, tasks: better + worse + ties, better, worse, ties };
+  });
+  const sum = (f) => outcomeReps.reduce((s, r) => s + r[f], 0);
+
+  return {
+    runs,
+    taskCount: tasks.length,
+    bootstrap: { iterations: BOOTSTRAP_ITERATIONS, seed: BOOTSTRAP_SEED, level: CI_LEVEL },
+    metrics,
+    outcome: { reps: outcomeReps, total: { tasks: sum('tasks'), better: sum('better'), worse: sum('worse'), ties: sum('ties') } },
+  };
+}
+
+/**
  * Why a report may or may not be published as a result. The minimum counts
  * COMPLETED runs: fewer than MIN_RUNS requested per arm is a smoke test, and so
  * is a plan that asked for enough but lost some — a cell whose median rests on
@@ -508,7 +790,20 @@ export const CAVEATS = Object.freeze([
   'The SigMap arm adds SigMap\'s generated section to the system prompt, so its input and cache figures include that cost.',
   'Cost is the agent\'s own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.',
   'The self repo is excluded: its tree holds its own answer key and its own generated context.',
+  'Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.',
+  'The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.',
+  'A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.',
+  'Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.',
 ]);
+
+/** Added to a report produced with `--agent api`. */
+export const API_AGENT_CAVEAT = 'Direct Messages API agent (scripts/lib/agent-ab-api.mjs), not Claude Code: a short neutral system prompt (about 150 tokens) and four read-only tools, so the prefix each turn re-reads is far smaller than Claude Code\'s and SigMap\'s per-turn addition is a larger share of a turn. Cost is computed from the usage the API reports and a price table (the Console\'s usage page is the authority), with 5-minute prompt caching. Not comparable cell by cell with Claude Code runs.';
+
+/** Added to a report whose SigMap arm is a skill variant. */
+export const SKILL_CAVEAT = 'Skill variant: both arms run with skills enabled (the Skill tool, and the agent\'s own bundled skills listed in the prompt, about 2k tokens), which the earlier no-skill runs did not have, so these figures are against this run\'s own baseline and not comparable cell by cell with the index, lean or current runs. The SigMap arm adds only its skill file(s) and the sigmap CLI: no MCP server and no appended section.';
+
+/** Added to a report produced with `--session-auth`. */
+export const SESSION_CAVEAT = 'Run on the logged-in session (--session-auth), not an API key and not under --bare: the agent carries a prompt prefix about 40k tokens larger in both arms (cached), the cost figures are real Anthropic prices with real caching, and the usage counts against that account\'s plan.';
 
 /**
  * Assemble the report object.
@@ -525,18 +820,20 @@ export function buildReport({ entries, tasks, method }) {
     schema: 1,
     kind: 'agent-ab',
     method: Object.assign({}, method, {
-      arms: { without: 'no SigMap', with: 'SigMap generated context + MCP server' },
+      variant: method.variant || 'current',
+      arms: { without: 'no SigMap', with: SIGMAP_VARIANTS[method.variant || 'current'] || SIGMAP_VARIANTS.current },
       tools: [...BUILTIN_TOOLS],
-      corpus: 'benchmarks/tasks/retrieval-xrepo.jsonl',
-      selection: `first ${method.tasksPerRepo} task(s) by id per repo`,
-      passDefinition: `hit@${TOP_K} on the repository-relative paths the answer names`,
+      corpus: method.corpus || 'benchmarks/tasks/retrieval-xrepo.jsonl',
+      selection: method.taskIds && method.taskIds.length ? `the task id(s) ${method.taskIds.join(', ')}` : `first ${method.tasksPerRepo} task(s) by id per repo`,
+      passDefinition: method.passDefinition || `hit@${TOP_K} on the repository-relative paths the answer names`,
       priceAsOf: PRICE_AS_OF,
       publishable: pub.publishable,
       notPublishableBecause: pub.reasons,
     }),
-    caveats: [...CAVEATS],
+    caveats: [...CAVEATS, ...(method.auth === 'session' ? [SESSION_CAVEAT] : []), ...(SKILL_VARIANTS[method.variant] ? [SKILL_CAVEAT] : []), ...(method.runner === 'api' ? [API_AGENT_CAVEAT] : [])],
     cells,
     ...rollup(cells),
+    repetitions: repetitionEstimates(entries, tasks),
   };
 }
 
@@ -563,6 +860,78 @@ const mdTable = (head, rows) => [
   ...rows.map((r) => `| ${r.join(' | ')} |`),
 ].join('\n');
 
+/** A fractional change as a signed whole percent: -0.254 → `−25%`; below half a percent → `0%`. */
+function fmtChange(c) {
+  if (c === null || c === undefined || Number.isNaN(c)) return NA;
+  const r = Math.round(Math.abs(c) * 100);
+  return r === 0 ? '0%' : `${c > 0 ? '+' : '−'}${r}%`;
+}
+
+const VERDICT = Object.freeze({
+  'fewer-every-repetition': 'fewer in every repetition',
+  'more-every-repetition': 'more in every repetition',
+  unchanged: 'unchanged',
+  mixed: 'mixed',
+});
+
+/** The repetition section: workload total, typical task, and the hit@5 outcome — one column per repetition. */
+function renderRepetitions(rp) {
+  const lines = [];
+  const runCols = rp.runs.map((r) => `R${r}`);
+  const shown = METRICS.filter((m) => rp.metrics[m.key]);
+  lines.push('## Repetitions — workload total vs typical task');
+  lines.push('');
+  lines.push(`Each repetition (${runCols.join(', ') || 'none'}) is one pass over every task in both arms. A task counts in a repetition only when both arms completed it and reported the metric; \`n=\` marks fewer than all ${rp.taskCount}. `
+    + 'A change is the SigMap arm against the no-SigMap arm: negative means SigMap used less. The repetitions reuse the same tasks, so they measure consistency, not generalisation.');
+  lines.push('');
+
+  if (shown.length) {
+    lines.push('### Workload total');
+    lines.push('');
+    lines.push('Σ with ÷ Σ without − 1 over the paired tasks: the closest view to the bill for this exact batch, and the largest tasks dominate it.');
+    lines.push('');
+    lines.push(mdTable(['metric', ...runCols, 'verdict'], shown.map((m) => {
+      const x = rp.metrics[m.key];
+      return [m.label, ...x.reps.map((r) => `${fmtChange(r.workload.change)}${r.workload.n < rp.taskCount && r.workload.n > 0 ? ` n=${r.workload.n}` : ''}`),
+        x.workload ? VERDICT[x.workload] : NA];
+    })));
+    lines.push('');
+
+    lines.push('### Typical task');
+    lines.push('');
+    lines.push(`The geometric mean of with ÷ without on each paired task, so every task has equal weight, with a ${Math.round(rp.bootstrap.level * 100)}% paired-bootstrap interval `
+      + `(${rp.bootstrap.iterations.toLocaleString('en-US')} resamples, seed ${rp.bootstrap.seed}). † = the interval includes zero: inside the noise. A pair with a 0 on either side has no ratio and is left out.`);
+    lines.push('');
+    lines.push(mdTable(['metric', ...runCols, 'verdict'], shown.map((m) => {
+      const x = rp.metrics[m.key];
+      const cell = (r) => {
+        const t = r.typical;
+        if (t.change === null) return NA;
+        const ci = t.lo === null ? '' : ` [${fmtChange(t.lo)}, ${fmtChange(t.hi)}]`;
+        const short = t.n < rp.taskCount ? ` n=${t.n}` : '';
+        return `${fmtChange(t.change)}${ci}${t.inNoise ? ' †' : ''}${short}`;
+      };
+      const noise = x.typicalOutsideNoise === true ? ', outside the noise' : x.typicalOutsideNoise === false ? ', within the noise' : '';
+      const verdict = x.typical ? `${VERDICT[x.typical]}${noise}` : NA;
+      return [m.label, ...x.reps.map(cell), verdict];
+    })));
+    lines.push('');
+  } else {
+    lines.push('No metric was reported by both arms in any repetition, so there is nothing to estimate.');
+    lines.push('');
+  }
+
+  lines.push('### Outcome (hit@5), by repetition');
+  lines.push('');
+  lines.push('Per paired task: **better** = the SigMap arm named the file and the other did not; **worse** = the reverse; **tie** = both found it or both missed. Localisation only.');
+  lines.push('');
+  const orow = (label, o) => [label, String(o.tasks), String(o.better), String(o.worse), String(o.ties)];
+  lines.push(mdTable(['repetition', 'paired tasks', 'better', 'worse', 'tie'],
+    [...rp.outcome.reps.map((r) => orow(`R${r.run}`, r)), orow('all', rp.outcome.total)]));
+  lines.push('');
+  return lines;
+}
+
 /** The report as Markdown. Pure: the same object always renders the same text. */
 export function renderMarkdown(report) {
   const m = report.method;
@@ -577,6 +946,7 @@ export function renderMarkdown(report) {
   lines.push(`- Both arms: the same prompt, model, tool allowlist (${m.tools.join(', ')}), per-run budget cap $${m.budgetUsd} and timeout ${Math.round(m.timeoutMs / 1000)} s; run in a clean copy of the commit pinned in \`benchmarks/xrepo-repos.json\`.`);
   lines.push(`- Questions: ${m.selection} of \`${m.corpus}\`. Pass = ${m.passDefinition}.`);
   lines.push('- Statistics: the median over runs per task per arm; the repo row is the median over tasks, with the paired per-task delta (with − without) and how many tasks the SigMap arm used fewer / the same / more.');
+  lines.push('- Repetitions: each run index is one repetition, reported on its own in two ways — the workload total and the typical task (paired geometric mean, with a bootstrap interval) — and a saving counts only if it points the same way in every repetition.');
   lines.push('');
   lines.push('## Caveats');
   lines.push('');
@@ -593,6 +963,8 @@ export function renderMarkdown(report) {
   lines.push(mdTable(['repo', 'tasks', 'pass without', 'pass with', 'failed runs (without / with)'],
     [...report.repos.map(passRow), passRow(report.total)]));
   lines.push('');
+
+  if (report.repetitions) lines.push(...renderRepetitions(report.repetitions));
 
   for (const metric of METRICS) {
     const rows = [...report.repos, Object.assign({ repo: 'all' }, report.total)].map((r) => {

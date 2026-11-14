@@ -50,6 +50,8 @@ npm run test:ci     # what CI's required test job runs
 
 `npm run test:ci` chains the workflow hygiene check, bundle integrity and reproducibility, the metrics consistency check, the unit, Python and integration tests, and the retrieval and grounding gates. A change is ready for review when it passes; a test in `test/integration/` fails if the script and the CI job drift apart. The third-party retrieval gate (`npm run validate:xrepo`) is a separate CI job because it needs the pinned clones; run it when you change extraction, ranking or source-root detection.
 
+`test/integration/agent-ab.test.js` exercises the agent A/B harness's search tools, which run [ripgrep](https://github.com/BurntSushi/ripgrep) (`brew install ripgrep`, `apt-get install ripgrep`). CI installs it. Without it on your machine those few assertions are skipped and say so; with `CI` set they fail.
+
 If the change affects parsing, ranking, context generation, or token output, please also run the relevant benchmark command documented in the benchmark guide.
 
 ## Releases

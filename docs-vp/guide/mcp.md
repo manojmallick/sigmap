@@ -179,7 +179,7 @@ One more tool exists, and it is **not** among the 22. It lets an agent SigMap ha
 
 Send the session's **running totals** at the end of a task; a later call for the same session replaces the earlier one. An omitted cache category is stored as unknown (`n/a`), not `0`. Missing or invalid `usage` is recorded as `unavailable` with the reason returned — never as zeros, and never over a usable earlier report. A measured transcript of the same session (Claude Code hooks) outranks a self-report.
 
-## Tool profiles: core or all
+## Tool profiles: core, locate or all
 
 Every tool definition is sent to your agent at the start of every MCP session — about 2.5k tokens for all 22 — whether or not it is ever called, and each one is another thing for the model to choose between. `mcp.tools` in `gen-context.config.json` decides how many the server advertises:
 
@@ -187,6 +187,7 @@ Every tool definition is sent to your agent at the start of every MCP session �
 |---|---|---|---|
 | `"all"` (the default; also what an absent key means) | all 22 | ~2.5k | you use the live-index notify tools, checkpoints, the knowledge map or the architecture views |
 | `"core"` | 7 — `query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion` (the five tools of the [live loop](#your-agent-s-live-loop) below, plus `read_context` and `get_impact`) | ~0.9k | the agent only needs the retrieval + grounding loop |
+| `"locate"` | 2 — `query_context`, `get_lines` | ~0.3k | the questions are *where is this implemented?* and nothing is edited or checked through the server (see below) |
 | `["get_lines", "verify_suggestion"]` | exactly the names listed | by list | you want a tighter or different set |
 
 Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap uses everywhere; `sigmap doctor` prints the exact figure for your project (counting `log_session_usage` when [`session.mcpCapture`](#opt-in-log-session-usage) is on), and what `core` would cost if you are on `all`.
@@ -195,11 +196,17 @@ Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap us
 { "mcp": { "tools": "core" } }
 ```
 
+**`"locate"` is for locate questions only.** In the [agent study](/guide/agent-study) agents given the seven `core` tools called two of them (`query_context` 0.46 times a run, `get_lines` 0.30), and a profile of just those two was cheaper than `core` on the same questions: −4% [−7%, −2%] for Haiku 5.5 over 887 paired runs and −10% [−16%, −4%] for Sonnet 5.5 over 110, with the file found as often. It drops the tools an edit or a check needs (`get_impact`, `get_method_impact`, `get_callee_signatures`, `verify_suggestion`, `read_context`), so choose it when you ask where code is and `core` when you also change and verify it. The study did not test the dropped tools, so it says nothing about their value. Token figures in the table are chars/4; on the API's own token counter the seven `core` definitions add 1,505 tokens to a request and `locate`'s two add 426.
+
+```json
+{ "mcp": { "tools": "locate" } }
+```
+
 - **`sigmap mcp install` does not choose a profile.** It registers the server in your client's config and writes nothing into your repository, so a plain `sigmap mcp install claude` advertises all 22 tools. `sigmap --init` is what writes `{ "mcp": { "autoRegister": true, "tools": "core" } }`; to get the 7-tool profile after an install, add the snippet above to `gen-context.config.json`. A project that already has a config keeps whatever it has.
 - **The profile applies to `tools/call` too.** A tool the server does not advertise is refused with a message that names the setting rather than answered anyway — otherwise the setting would be a suggestion, not a switch. A name that is not a tool at all still reads `Unknown tool`.
 - **`log_session_usage` is not part of any profile.** It exists only when [`session.mcpCapture`](#opt-in-log-session-usage) is on, whatever `mcp.tools` says.
 - **It is read once, and held for as long as it runs** — when the server first handles a `tools/list`, a `tools/call` or a `server/discover` (`initialize` does not read it), like the tool list your editor caches. Restart the server (or the editor) after changing it.
-- **A value SigMap cannot read never breaks the server.** A string that is not `all` or `core`, an empty list, a value of the wrong type, or an `mcp` that is not an object: the server falls back to `all`. Names in a list that are not tools are dropped and the rest are served. A key beside `tools` that SigMap does not read (`mcp.tool`, say) is ignored, so a typo in the key itself leaves `all`. `sigmap doctor` warns in every case and says what it did instead.
+- **A value SigMap cannot read never breaks the server.** A string that is not `all`, `core` or `locate`, an empty list, a value of the wrong type, or an `mcp` that is not an object: the server falls back to `all`. Names in a list that are not tools are dropped and the rest are served. A key beside `tools` that SigMap does not read (`mcp.tool`, say) is ignored, so a typo in the key itself leaves `all`. `sigmap doctor` warns in every case and says what it did instead.
 - **Existing configs keep every tool.** With no `mcp.tools` key you get the same 22 tools, with the same names, parameter names, types, enums and `required` lists as before. Their descriptions are shorter — all 22 tool descriptions and 15 of the 33 parameter descriptions — so a client that validates arguments sees no difference and one that shows or caches the description text sees different text. `sigmap --init` writes `"core"` into a **new** config, wherever it runs, and never rewrites one that exists; `--output`, `tune --apply` and `roots --fix` can also create a config, but write only the keys they set, so a config created by one of them keeps all 22.
 - **Some guidance below names tools `core` does not advertise.** The workflows under [Three common MCP workflows](#three-common-mcp-workflows) use `explain_file` and `list_modules`; on `core`, rank with `query_context` and read a module with `read_context(module=...)`. The agent skills and the wiki that mention MCP tools also give a CLI alternative (`sigmap note`, `sigmap budget`, `sigmap squeeze`), and the wiki lists only the tools your project advertises. A refused call says why and who can change it.
 

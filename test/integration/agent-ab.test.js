@@ -33,6 +33,17 @@ async function test(name, fn) {
 const tmpDirs = [];
 const mktmp = (p) => { const d = fs.mkdtempSync(path.join(os.tmpdir(), p)); tmpDirs.push(d); return d; };
 
+// The API agent's Grep and Glob are ripgrep, and `--agent api` refuses to start without it. CI installs it, so a runner that
+// lacks it fails here rather than pass without checking a search; on a machine that lacks it the assertions that need it are
+// skipped, and say so.
+const HAVE_RG = spawnSync('rg', ['--version'], { stdio: 'ignore' }).status === 0;
+function needRg(what) {
+  if (HAVE_RG) return true;
+  if (process.env.CI) throw new Error(`ripgrep (rg) is not on PATH and CI must install it: ${what}`);
+  console.log(`  SKIP  ${what} (ripgrep is not installed)`);
+  return false;
+}
+
 function git(dir, args) {
   return execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-C', dir, ...args], { encoding: 'utf8' }).trim();
 }
@@ -81,6 +92,14 @@ process.stdin.on('end', () => {
   if (mode === 'hang') { setInterval(() => {}, 1000); return; }
   const out = (o) => process.stdout.write(JSON.stringify(o) + '\\n');
   const leaked = mode === 'contaminated';
+  // A checkout with a project settings file has a hook registered: the host reports it before the session starts. 'hook-leak' makes
+  // the baseline report one too; 'hook-fail' makes it fail; 'hook-silent' makes it say nothing.
+  const hasHook = fs.existsSync(path.join(process.cwd(), '.claude', 'settings.json'));
+  if ((hasHook && mode !== 'hook-silent') || mode === 'hook-leak') {
+    const failing = mode === 'hook-fail';
+    out({ type: 'system', subtype: 'hook_response', hook_event: 'UserPromptSubmit', outcome: failing ? 'error' : 'success', exit_code: failing ? 1 : 0,
+      stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'Files SigMap ranked: src/alpha.js' } }) });
+  }
   const tools = ['Read', 'Grep', 'Glob', 'Bash'].concat(withSigmap || leaked ? ['mcp__sigmap__query_context'] : []);
   out({ type: 'system', subtype: 'init', tools, model: 'claude-sonnet-5-5',
     mcp_servers: withSigmap || leaked ? [{ name: 'sigmap', status: 'connected' }] : [] });
@@ -132,6 +151,7 @@ const treeHash = (dir) => {
   const ab = await import('../../scripts/lib/agent-ab.mjs');
   const claude = await import('../../scripts/lib/agent-ab-claude.mjs');
   const arms = await import('../../scripts/lib/agent-ab-arms.mjs');
+  const stats = await import('../../scripts/lib/agent-ab-stats.mjs');
 
   // ── questions ──────────────────────────────────────────────────────────────
 
@@ -144,6 +164,18 @@ const treeHash = (dir) => {
     assert.deepStrictEqual(ab.selectTasks(tasks, ['b', 'a'], { perRepo: 2 }).map((t) => t.id), ['x003', 'x004', 'x001', 'x002']);
     assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { only: ['b'] }).map((t) => t.id), ['x003']);
     assert.throws(() => ab.selectTasks(tasks, ['a'], { perRepo: 0 }), /positive integer/);
+  });
+
+  await test('selectTasks with ids picks exactly those ids in every repo and ignores the first-K rule', () => {
+    const tasks = [
+      { id: 'x003', repo: 'b', query: 'q', expected_files: ['b3'] }, { id: 'x001', repo: 'a', query: 'q', expected_files: ['a1'] },
+      { id: 'x002', repo: 'a', query: 'q', expected_files: ['a2'] }, { id: 'x004', repo: 'b', query: 'q', expected_files: ['b4'] },
+    ];
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002', 'x003'] }).map((t) => `${t.repo}/${t.id}`), ['a/x002', 'b/x003']);
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x004'], perRepo: 1 }).map((t) => t.id), ['x004'], 'a repo\'s first task is not added');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002', 'x001'] }).map((t) => t.id), ['x001', 'x002'], 'id order, whatever order they were asked in');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: [] }).map((t) => t.id), ['x001', 'x003'], 'an empty list is no filter');
+    assert.deepStrictEqual(ab.selectTasks(tasks, ['a', 'b'], { ids: ['x002'], only: ['b'] }), [], 'a repo filter still applies');
   });
 
   await test('the prompt carries the question and names neither the answer nor SigMap', () => {
@@ -482,7 +514,7 @@ const treeHash = (dir) => {
       asst('m3', [use('t3', 'Bash', { command: 'sigmap ask "x"' })], U(20, 5, 0, 0)),
       { type: 'result', subtype: 'success', is_error: false, num_turns: 4, result: 'ANSWER', total_cost_usd: 0.05, usage: U(500, 40, 2000, 100) },
     ]));
-    assert.deepStrictEqual(p.toolCalls, { total: 3, byTool: { Read: 1, Bash: 2 }, byCommand: { grep: 1, sigmap: 1 } });
+    assert.deepStrictEqual(p.toolCalls, { total: 3, byTool: { Read: 1, Bash: 2 }, byCommand: { grep: 1, sigmap: 1 }, sequence: ['Read', 'Bash:grep -rn x .', 'Bash:sigmap ask "x"'] });
     assert.deepStrictEqual(p.usage, { in: 500, out: 40, cacheRead: 2000, cacheWrite: 100 });
     assert.strictEqual(p.usageSource, 'result');
     assert.strictEqual(p.costUsd, 0.05);
@@ -777,6 +809,13 @@ const treeHash = (dir) => {
     assert.deepStrictEqual([rep.total.spend.without.failed.runs, rep.total.spend.with.failed.runs], [0, 0]);
     assert.ok(Math.abs(rep.total.spend.without.all.agentReportedUsd - 0.24) < 1e-9, 'the spend is the sum over every run');
     assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /## Spend/);
+    // The repetition view, end to end: 2 tasks × 4 repetitions, SigMap's arm cheaper by the same ratio every time.
+    assert.deepStrictEqual(rep.repetitions.runs, [1, 2, 3, 4]);
+    assert.deepStrictEqual(rep.repetitions.outcome.total, { tasks: 8, better: 0, worse: 0, ties: 8 });
+    assert.strictEqual(rep.repetitions.metrics.costUsd.workload, 'fewer-every-repetition');
+    assert.strictEqual(rep.repetitions.metrics.costUsd.typical, 'fewer-every-repetition');
+    assert.strictEqual(rep.repetitions.metrics.costUsd.typicalOutsideNoise, true);
+    assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /## Repetitions — workload total vs typical task/);
     const raw = JSON.parse(fs.readFileSync(path.join(f.out, 'raw.json'), 'utf8'));
     assert.ok(raw.every((r) => r.cacheGaps === 0 && r.usageSource === 'result'), 'the raw record carries the gap count and where usage came from');
     assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /claude-code 9\.9\.9 \(Fake Claude\) · claude-sonnet-5-5/);
@@ -826,10 +865,10 @@ const treeHash = (dir) => {
   // ── guards ─────────────────────────────────────────────────────────────────
 
   await test('the harness never spawns through a shell and stays out of the published package and CI', () => {
-    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs'];
+    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs', 'scripts/lib/agent-ab-api.mjs', 'scripts/lib/agent-ab-change.mjs', 'scripts/build-change-tasks.mjs'];
     for (const rel of files) {
       const src = fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l)).join('\n');
-      assert.ok(!/\bexecSync\b|shell:\s*true|\bexec\(/.test(src), `${rel} spawns through a shell`);
+      assert.ok(!/\bexecSync\b|shell:\s*true|(?<![.\w])exec\(/.test(src), `${rel} spawns through a shell`);
     }
     const pkg = require(path.join(ROOT, 'package.json'));
     assert.strictEqual(pkg.scripts['benchmark:agent-ab'], 'node scripts/run-agent-ab.mjs');
@@ -839,6 +878,1315 @@ const treeHash = (dir) => {
     for (const w of fs.existsSync(wf) ? fs.readdirSync(wf) : []) {
       assert.ok(!/agent-ab/.test(fs.readFileSync(path.join(wf, w), 'utf8')), `${w} runs the paid harness`);
     }
+  });
+
+  // ── the lean variant: the same index, told less on every turn ──────────────
+
+  await test('the lean variant keeps the index, narrows the MCP server to the 7-tool core profile, and swaps the section for three lines', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    // One directory per variant: an arm's copy is named for its repo and arm, so two variants must not share a tmpRoot.
+    const cur = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-cur-'), codeRoot: ROOT });
+    const lean = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-lean-'), codeRoot: ROOT, variant: 'lean' });
+
+    assert.match(cur.sigmapContext, /SigMap commands/, 'the default is the generated section');
+    assert.strictEqual(lean.sigmapContext, ab.LEAN_SECTION);
+    assert.ok(/query_context/.test(lean.sigmapContext) && /get_lines/.test(lean.sigmapContext), 'it names the MCP tools the arm has');
+    assert.ok(!/sigmap ask/.test(lean.sigmapContext), 'and not a terminal command the agent rarely ran');
+    assert.ok(/lead, not an answer/.test(lean.sigmapContext), 'the ranking is a lead to confirm: top-1 is right about one time in three');
+    assert.ok(lean.sigmapContext.length < 600, 'a few hundred characters');
+    assert.notStrictEqual(lean.sigmapContext, cur.sigmapContext);
+
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(lean.cwd, 'gen-context.config.json'), 'utf8')), { mcp: { tools: 'core' } });
+    assert.ok(fs.existsSync(path.join(lean.cwd, '.context')), 'the index is still generated: only what the agent is told changes');
+    assert.ok(!fs.existsSync(path.join(lean.cwd, 'CLAUDE.md')), 'and the generated file is not left where the agent can search it');
+    const tools = (cwd) => {
+      const init = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }];
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'gen-context.js'), '--mcp'], { cwd, input: `${init.map((m) => JSON.stringify(m)).join('\n')}\n`, encoding: 'utf8', timeout: 30000 });
+      for (const line of r.stdout.split('\n')) { try { const m = JSON.parse(line); if (m.id === 2) return m.result.tools.map((t) => t.name).sort(); } catch (_) { /* not a response */ } }
+      return [];
+    };
+    assert.deepStrictEqual(tools(lean.cwd), ['get_callee_signatures', 'get_impact', 'get_lines', 'get_method_impact', 'query_context', 'read_context', 'verify_suggestion']);
+    assert.strictEqual(tools(cur.cwd).length, 22, 'the current variant still advertises every tool');
+    assert.ok(arms.probeMcp({ cwd: lean.cwd, codeRoot: ROOT }).ok, 'the narrowed server still answers');
+  });
+
+  await test('the index variant is the docs\' setup: the index strategy and the core profile, with the section SigMap itself writes', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const idx = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-idx-'), codeRoot: ROOT, variant: 'index' });
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(idx.cwd, 'gen-context.config.json'), 'utf8')), { strategy: 'index', mcp: { tools: 'core' } });
+    assert.notStrictEqual(idx.sigmapContext, ab.LEAN_SECTION, 'nothing hand-written: the section is the one SigMap generated');
+    assert.match(idx.sigmapContext, /SigMap commands/);
+    assert.ok(fs.existsSync(path.join(idx.cwd, '.context')) || fs.existsSync(path.join(idx.cwd, 'CLAUDE.md')), 'the index is generated');
+    const init = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } } }, { jsonrpc: '2.0', id: 2, method: 'tools/list' }];
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'gen-context.js'), '--mcp'], { cwd: idx.cwd, input: `${init.map((m) => JSON.stringify(m)).join('\n')}\n`, encoding: 'utf8', timeout: 30000 });
+    let n = 0; for (const line of r.stdout.split('\n')) { try { const m = JSON.parse(line); if (m.id === 2) n = m.result.tools.length; } catch (_) { /* not a response */ } }
+    assert.strictEqual(n, 7, 'the narrowed server');
+    assert.ok(arms.probeMcp({ cwd: idx.cwd, codeRoot: ROOT }).ok);
+  });
+
+  await test('an unknown variant is refused by name, and the report says which variant it measured', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-bad-'), codeRoot: ROOT, variant: 'bogus' }), /unknown SigMap variant "bogus" \(one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, hook-doubt, placebo, skill-shipped\)/);
+    assert.deepStrictEqual(Object.keys(ab.SIGMAP_VARIANTS), ['current', 'lean', 'index', 'skill', 'skill-always', 'prefetch', 'locate', 'prefetch-hook', 'hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt', 'placebo', 'skill-shipped']);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
+    const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-09', variant } });
+    assert.deepStrictEqual([mk(undefined).method.variant, mk('current').method.variant, mk('lean').method.variant], ['current', 'current', 'lean']);
+    assert.strictEqual(mk('lean').method.arms.with, ab.SIGMAP_VARIANTS.lean);
+    assert.strictEqual(mk(undefined).method.arms.with, ab.SIGMAP_VARIANTS.current, 'an older caller without a variant is still the current arm');
+    assert.match(ab.renderMarkdown(mk('lean')), /\*\*with\*\* = SigMap lean: 7-tool core MCP profile/);
+  });
+
+  await test('--task-ids runs exactly those questions, says so in the plan and the report, and refuses an id that does not exist', () => {
+    const f = fixture();
+    const dry = runCli(['--dry-run', '--task-ids', 'x010'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /tasks\s+1 \(task id\(s\) x010\)/);
+    assert.match(dry.stdout, /4 per arm × 2 arms = 8 agent runs/, 'one task, the default 4 repetitions, both arms');
+    const two = runCli(['--dry-run', '--task-ids', 'x002,x010'], { SIGMAP_XREPO_DATA: f.root });
+    assert.match(two.stdout, /tasks\s+2 \(task id\(s\) x002, x010\)/);
+    const bad = runCli(['--dry-run', '--task-ids', 'x999'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bad.status, 2);
+    assert.match(bad.stderr, /--task-ids: "x999" is not a task id/);
+    const none = runCli(['--dry-run', '--task-ids', 'x010', '--repos', 'r1'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(none.status, 2);
+    assert.match(none.stderr, /no task to run: none of x010 is in a repo/);
+    const noVal = runCli(['--dry-run', '--task-ids'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(noVal.status, 2);
+    assert.match(noVal.stderr, /--task-ids needs a value/);
+
+    const live1 = runCli(['--claude', f.bin, '--runs', '2', '--task-ids', 'x010', '--save', '--allow-unpublishable', '--out-dir', f.out], live(f));
+    assert.strictEqual(live1.status, 0, live1.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 4, '1 task × 2 repetitions × 2 arms');
+    assert.ok(calls.every((c) => /r2-(with|without)$/.test(c.cwd)), 'only the repo that holds x010 ran');
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.deepStrictEqual(rep.method.taskIds, ['x010']);
+    assert.strictEqual(rep.method.selection, 'the task id(s) x010');
+    assert.deepStrictEqual(rep.cells.map((c) => c.task), ['x010', 'x010']);
+  });
+
+  await test('run-remaining.sh runs one batch per invocation, resumes by skipping what is saved, and stops on the first failure', () => {
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-remaining.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'test-key', SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', ORDER: 'r2:x010', VARIANTS: 'index', RUNS: '2', CLAUDE_BIN: f.bin }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
+
+    const dry = sh({ DRY: '1', OUT: path.join(f.out, 'dry') });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /run\s+index r2:x010/);
+    assert.match(dry.stdout, /tasks\s+1 \(task id\(s\) x010\)/);
+    assert.ok(!fs.existsSync(path.join(f.out, 'dry')) && !fs.existsSync(f.log), 'a dry run creates nothing and starts nothing');
+
+    const out = path.join(f.out, 'ok');
+    const first = sh({ OUT: out });
+    assert.strictEqual(first.status, 0, first.stderr);
+    assert.ok(fs.existsSync(path.join(out, 'index', 'r2-x010', 'raw.json')) && fs.existsSync(path.join(out, 'index', 'r2-x010', 'agent-ab.json')));
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').length;
+    assert.strictEqual(calls, 4, '1 question x 2 repetitions x 2 arms');
+    const rep = JSON.parse(fs.readFileSync(path.join(out, 'index', 'r2-x010', 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'index');
+    assert.deepStrictEqual(rep.method.taskIds, ['x010']);
+
+    const again = sh({ OUT: out });
+    assert.strictEqual(again.status, 0, again.stderr);
+    assert.match(again.stdout, /skip\s+index r2:x010 \(done:/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, calls, 'nothing was started the second time');
+
+    const bad = sh({ OUT: path.join(f.out, 'bad'), FAKE_MODE: 'error', ORDER: 'r2:x010 r1:x001' });
+    assert.strictEqual(bad.status, 1, 'the first failed question stops the run');
+    assert.match(bad.stderr, /STOPPED at index r2:x010/);
+    assert.match(bad.stderr, /Rerun the same command to resume/);
+    assert.ok(!fs.existsSync(path.join(f.out, 'bad', 'index', 'r2-x010', 'raw.json')), 'a failed question leaves no raw.json, so a rerun redoes it');
+    assert.ok(!fs.existsSync(path.join(f.out, 'bad', 'index', 'r1-x001')), 'and the next question was never started');
+    // A forced rerun over saved data that then fails must not leave the old raw.json behind: a later resume would skip the question as done.
+    const stale = path.join(f.out, 'stale', 'index', 'r2-x010');
+    fs.mkdirSync(stale, { recursive: true });
+    fs.writeFileSync(path.join(stale, 'raw.json'), '[]');
+    const forced = sh({ OUT: path.join(f.out, 'stale'), FORCE: '1', FAKE_MODE: 'error' });
+    assert.strictEqual(forced.status, 1);
+    assert.ok(!fs.existsSync(path.join(stale, 'raw.json')), 'the stale raw.json is removed when the forced rerun fails');
+    // SESSION_AUTH=1 reaches the harness without --bare and without a key.
+    const saPlan = sh({ OUT: path.join(f.out, 'sa-dry'), SESSION_AUTH: '1', DRY: '1', ORDER: 'gin:x001' });
+    assert.match(saPlan.stdout, /run\s+index gin:x001/);
+    const before = fs.readFileSync(f.log, 'utf8').trim().split('\n').length;
+    const sa = sh({ OUT: path.join(f.out, 'sa'), SESSION_AUTH: '1', ANTHROPIC_API_KEY: '' });
+    assert.strictEqual(sa.status, 0, sa.stderr);
+    const saCalls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).slice(before);
+    assert.strictEqual(saCalls.length, 4);
+    assert.ok(saCalls.every((c) => !c.argv.includes('--bare') && c.argv.includes('--disable-slash-commands')));
+    const unknown = sh({ VARIANTS: 'bogus', DRY: '1' });
+    assert.strictEqual(unknown.status, 2);
+    assert.match(unknown.stderr, /unknown variant: bogus/);
+  });
+
+  await test('--session-auth drops --bare for the settings-source isolation, needs no API key, removes the arm\'s own CLAUDE.md, and says so in the report', () => {
+    const base = { arm: 'with', model: 'm', budgetUsd: 1, sigmapContext: 'ctx', mcpConfig: '{}' };
+    const bare = claude.buildArgs(base);
+    assert.ok(bare.includes('--bare') && !bare.includes('--setting-sources'), 'the default is unchanged');
+    const sess = claude.buildArgs(Object.assign({ bare: false }, base));
+    assert.ok(!sess.includes('--bare'));
+    assert.strictEqual(sess[sess.indexOf('--setting-sources') + 1], 'project', 'no user-level settings or hooks');
+    assert.ok(sess.includes('--disable-slash-commands') && sess.includes('--strict-mcp-config'));
+    assert.deepStrictEqual(sess.filter((a, i) => sess[i - 1] === '--tools'), bare.filter((a, i) => bare[i - 1] === '--tools'), 'the same read-only tool list');
+    assert.strictEqual(sess[sess.indexOf('--append-system-prompt') + 1], 'ctx', 'the SigMap text still goes in the same way');
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-sa-'), codeRoot: ROOT, variant: 'index', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')), 'otherwise the agent would read the section twice');
+    assert.ok(a.sigmapContext.length > 0 && fs.existsSync(path.join(a.cwd, '.context')), 'the section is kept and the index is there');
+    const b = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-sb-'), codeRoot: ROOT, variant: 'index' });
+    assert.ok(!fs.existsSync(path.join(b.cwd, 'CLAUDE.md')), 'with or without the flag: the agent can never search a generated file');
+
+    const f = fixture();
+    const noKey = runCli(['--claude', f.bin, '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log });
+    assert.match(noKey.stdout, /ANTHROPIC_API_KEY is not set/);
+    assert.match(noKey.stdout, /--session-auth/, 'the no-key message names the way out');
+    assert.ok(!fs.existsSync(f.log), 'and starts nothing');
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--session-auth', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js', r2: 'src/beta.js' }) });
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.match(r.stderr, /agent\s+claude \(the logged-in session, no API key/);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 8);
+    assert.ok(calls.every((c) => !c.argv.includes('--bare') && c.argv.includes('--disable-slash-commands') && c.argv[c.argv.indexOf('--setting-sources') + 1] === 'project'));
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.auth, 'session');
+    assert.ok(rep.caveats.includes(ab.SESSION_CAVEAT));
+    const out2 = mktmp('ab-out2-');
+    const keyRun = runCli(['--claude', f.bin, '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', out2], live(f));
+    assert.strictEqual(keyRun.status, 0, keyRun.stderr);
+    const keyRep = JSON.parse(fs.readFileSync(path.join(out2, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(keyRep.method.auth, 'api-key', 'the default API-key run is unaffected');
+    assert.ok(!keyRep.caveats.includes(ab.SESSION_CAVEAT), 'and carries no session caveat');
+  });
+
+  await test('--sigmap-variant reaches the agent: the lean arm gets the three-line section, the other arm none, and the report records it', () => {
+    const f = fixture();
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'lean', '--save', '--allow-unpublishable', '--out-dir', f.out], live(f));
+    assert.strictEqual(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const withArm = calls.filter((c) => c.argv.includes('--mcp-config'));
+    const without = calls.filter((c) => !c.argv.includes('--mcp-config'));
+    assert.strictEqual(withArm.length, 4);
+    assert.ok(withArm.every((c) => c.argv[c.argv.indexOf('--append-system-prompt') + 1] === ab.LEAN_SECTION));
+    assert.ok(without.every((c) => !c.argv.includes('--append-system-prompt')), 'the baseline is told nothing');
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'lean');
+    assert.strictEqual(rep.method.arms.with, ab.SIGMAP_VARIANTS.lean);
+    assert.match(r.stderr, /variant: lean/, 'the plan says which variant is running');
+    const bad = runCli(['--dry-run', '--sigmap-variant', 'bogus'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bad.status, 2);
+    assert.match(bad.stderr, /--sigmap-variant must be one of: current, lean, index, skill, skill-always, prefetch, locate, prefetch-hook, hook-plain, hook-firm, hook-brief, hook-doubt, placebo, skill-shipped \(got "bogus"\)/);
+    const noVal = runCli(['--dry-run', '--sigmap-variant'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(noVal.status, 2);
+    assert.match(noVal.stderr, /--sigmap-variant needs a value/);
+  });
+
+  // ── "did it save?": workload total vs typical task, per repetition ─────────
+
+  const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
+
+  await test('workloadChange sums each arm; geometricChange weighs each task once — the two disagree in sign on the same pairs', () => {
+    const pairs = [{ without: 1000, with: 1200 }, { without: 10, with: 5 }];
+    const w = stats.workloadChange(pairs);
+    near(w.change, 1205 / 1010 - 1);
+    assert.deepStrictEqual([w.n, w.without, w.with], [2, 1010, 1205]);
+    const g = stats.geometricChange(pairs);
+    near(g.change, Math.sqrt(1.2 * 0.5) - 1);
+    assert.ok(w.change > 0 && g.change < 0, 'a few large tasks dominate the sum, not the typical task');
+  });
+
+  await test('unknown stays unknown: an unreported value is no pair, a zero has no ratio and is counted, not folded in', () => {
+    assert.deepStrictEqual(stats.workloadChange([]), { n: 0, without: null, with: null, change: null });
+    const w = stats.workloadChange([{ without: null, with: 5 }, { without: 4, with: NaN }, { without: 4, with: 2 }]);
+    assert.deepStrictEqual([w.n, w.change], [1, -0.5], 'only the pair with two known values counts');
+    assert.strictEqual(stats.workloadChange([{ without: 0, with: 3 }]).change, null, 'a zero baseline total has no ratio');
+    const g = stats.geometricChange([{ without: 100, with: 50 }, { without: 0, with: 10 }, { without: 10, with: 0 }, { without: 20, with: 10 }]);
+    assert.deepStrictEqual([g.n, g.dropped], [2, 2]);
+    near(g.change, -0.5);
+    assert.deepStrictEqual(stats.geometricChange([{ without: 0, with: 0 }]).change, null);
+  });
+
+  await test('the bootstrap interval: degenerate on equal ratios, exact on a two-pair sample, none for one pair', () => {
+    const same = stats.geometricChange([{ without: 10, with: 5 }, { without: 100, with: 50 }, { without: 7, with: 3.5 }]);
+    near(same.lo, -0.5); near(same.hi, -0.5); near(same.change, -0.5);
+    assert.strictEqual(same.inNoise, false, 'an interval that excludes zero is outside the noise');
+    // Two pairs, ratios 0.5 and 2: a resample's mean is ln0.5, 0 or ln2, so the 95% band is exactly [-50%, +100%].
+    const two = stats.geometricChange([{ without: 10, with: 5 }, { without: 10, with: 20 }]);
+    near(two.change, 0); near(two.lo, -0.5); near(two.hi, 1);
+    assert.strictEqual(two.inNoise, true);
+    const one = stats.geometricChange([{ without: 10, with: 5 }]);
+    assert.deepStrictEqual([one.n, one.lo, one.hi, one.inNoise], [1, null, null, null]);
+    near(one.change, -0.5);
+    assert.deepStrictEqual(stats.geometricChange([]), { n: 0, dropped: 0, change: null, lo: null, hi: null, inNoise: null });
+    // An interval that touches zero includes it: an unchanged pair of tasks is inside the noise, not outside.
+    const flat = stats.geometricChange([{ without: 10, with: 10 }, { without: 20, with: 20 }]);
+    assert.deepStrictEqual([flat.change, flat.lo, flat.hi, flat.inNoise], [0, 0, 0, true]);
+  });
+
+  await test('the bootstrap is deterministic and an estimate never depends on which one was computed first', () => {
+    const a = [{ without: 10, with: 7 }, { without: 20, with: 9 }, { without: 5, with: 6 }, { without: 8, with: 3 }, { without: 50, with: 20 }];
+    const b = [{ without: 3, with: 9 }, { without: 4, with: 5 }, { without: 100, with: 40 }];
+    const aFirst = [stats.geometricChange(a), stats.geometricChange(b)];
+    const bFirst = [stats.geometricChange(b), stats.geometricChange(a)].reverse();
+    assert.deepStrictEqual(aFirst, bFirst);
+    assert.deepStrictEqual(stats.geometricChange(a), stats.geometricChange(a.map((p) => Object.assign({}, p))));
+    assert.ok(aFirst[0].lo <= aFirst[0].change && aFirst[0].change <= aFirst[0].hi);
+    assert.deepStrictEqual([stats.BOOTSTRAP_ITERATIONS, stats.BOOTSTRAP_SEED, stats.CI_LEVEL], [10000, 1, 0.95]);
+    const r1 = stats.makeRng(1); const r1b = stats.makeRng(1); const r2 = stats.makeRng(2);
+    const seq = (r) => [r(), r(), r()];
+    assert.deepStrictEqual(seq(r1), seq(r1b));
+    assert.notDeepStrictEqual(seq(stats.makeRng(1)), seq(r2));
+    assert.ok(seq(stats.makeRng(7)).every((x) => x >= 0 && x < 1));
+  });
+
+  await test('consistency: a saving counts only if it points the same way in every repetition', () => {
+    assert.strictEqual(stats.consistency([-0.1, -0.2, -0.05]), 'fewer-every-repetition');
+    assert.strictEqual(stats.consistency([0.1, 0.2]), 'more-every-repetition');
+    assert.strictEqual(stats.consistency([-0.1, 0.2]), 'mixed');
+    assert.strictEqual(stats.consistency([0, 0]), 'unchanged');
+    assert.strictEqual(stats.consistency([-0.1, 0]), 'mixed', 'a 0 is no saving');
+    assert.strictEqual(stats.consistency([-0.1]), null, 'one repetition shows no consistency');
+    assert.strictEqual(stats.consistency([-0.1, null]), null, 'an unmeasurable repetition is not a vote');
+    assert.strictEqual(stats.consistency([]), null);
+  });
+
+  // Four tasks of very different size. `mult[run][task]` scales SigMap's arm against the baseline.
+  const SIZED = ['big', 'mid', 'small', 'tiny'].map((id) => ({ id, repo: 'r', query: 'q', expected_files: ['a.js'] }));
+  const BASE = { big: 1000000, mid: 200000, small: 50000, tiny: 10000 };
+  const METHOD = { agent: 'claude-code', agentVersion: '1', model: 'claude-sonnet-5-5', runs: 2, tasksPerRepo: 4, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-07' };
+  const sizedRunner = (mult, over = () => ({})) => async (job) => {
+    const n = Math.round(BASE[job.task.id] * (job.arm === 'with' ? mult[job.run][job.task.id] : 1));
+    return stub(Object.assign({
+      usage: { in: n, out: 10, cacheRead: 0, cacheWrite: 0 },
+      cost: { usd: n * 1e-6 * (job.arm === 'with' ? 0.5 : 1), source: 'agent-reported' },
+    }, over(job)))(job);
+  };
+  const sizedReport = async (mult, over, runs = 2) => {
+    const entries = await ab.runPlan({ tasks: SIZED, runs, runner: sizedRunner(mult, over) });
+    return ab.buildReport({ entries, tasks: SIZED, method: Object.assign({}, METHOD, { runs }) });
+  };
+  const every = (v) => ({ big: v, mid: v, small: v, tiny: v });
+
+  await test('the report gives each repetition both estimates: tokens up by total and down for the typical task, cost down', async () => {
+    const mult = { 1: { big: 1.3, mid: 0.6, small: 0.55, tiny: 0.5 }, 2: { big: 1.2, mid: 0.7, small: 0.6, tiny: 0.65 } };
+    const rp = (await sizedReport(mult)).repetitions;
+    assert.deepStrictEqual(rp.runs, [1, 2]);
+    const m = rp.metrics.in;
+    for (const run of [1, 2]) {
+      const rep = m.reps[run - 1];
+      const withTok = SIZED.map((t) => Math.round(BASE[t.id] * mult[run][t.id]));
+      const withoutTok = SIZED.map((t) => BASE[t.id]);
+      near(rep.workload.change, withTok.reduce((a, b) => a + b, 0) / withoutTok.reduce((a, b) => a + b, 0) - 1);
+      const logs = withTok.map((w, i) => Math.log(w / withoutTok[i]));
+      near(rep.typical.change, Math.exp(logs.reduce((a, b) => a + b, 0) / logs.length) - 1);
+      assert.ok(rep.workload.change > 0 && rep.typical.change < 0, `repetition ${run}: the two views disagree in sign`);
+      assert.strictEqual(rep.typical.inNoise, true, `repetition ${run}: the typical-task interval includes zero`);
+    }
+    assert.strictEqual(m.workload, 'more-every-repetition');
+    assert.strictEqual(m.typical, 'fewer-every-repetition');
+    assert.strictEqual(m.typicalOutsideNoise, false, 'fewer every time, but inside the noise');
+    assert.strictEqual(rp.metrics.costUsd.workload, 'fewer-every-repetition', 'the token view and the cost view can differ in sign');
+    assert.strictEqual(rp.metrics.costUsd.typicalOutsideNoise, true, 'a constant halving is outside the noise');
+    assert.strictEqual(rp.metrics.toolCalls.workload, 'fewer-every-repetition', 'the stub gives SigMap 2 calls to the baseline\'s 6');
+  });
+
+  await test('a saving that reverses between repetitions is mixed, and is not outside the noise', async () => {
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(2) })).repetitions;
+    for (const view of ['workload', 'typical']) assert.strictEqual(rp.metrics.in[view], 'mixed');
+    assert.strictEqual(rp.metrics.in.typicalOutsideNoise, null, 'no one-sided verdict, so nothing can be outside the noise');
+  });
+
+  await test('a saving of the same ratio in every repetition is outside the noise; an unchanged series is unchanged', async () => {
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(0.5) })).repetitions;
+    assert.strictEqual(rp.metrics.in.typical, 'fewer-every-repetition');
+    assert.strictEqual(rp.metrics.in.typicalOutsideNoise, true);
+    assert.strictEqual(rp.metrics.out.typical, 'unchanged', 'output tokens are 10 in both arms');
+    assert.strictEqual(rp.metrics.out.typicalOutsideNoise, null);
+  });
+
+  await test('one repetition cannot show consistency, so it gets no verdict', async () => {
+    const rp = (await sizedReport({ 1: every(0.5) }, undefined, 1)).repetitions;
+    assert.deepStrictEqual(rp.runs, [1]);
+    assert.strictEqual(rp.metrics.in.workload, null);
+    assert.strictEqual(rp.metrics.in.typical, null);
+    near(rp.metrics.in.reps[0].workload.change, -0.5);
+  });
+
+  await test('a failed run drops its pair from that repetition; it is never a zero', async () => {
+    const mult = { 1: every(0.5), 2: every(0.5) };
+    const entries = await ab.runPlan({
+      tasks: SIZED, runs: 2,
+      runner: async (job) => (job.run === 2 && job.arm === 'with' && job.task.id === 'big'
+        ? { ok: false, error: 'timeout', init: null, cwds: [], durationMs: 1 } : sizedRunner(mult)(job)),
+    });
+    const m = ab.buildReport({ entries, tasks: SIZED, method: METHOD }).repetitions.metrics.in;
+    assert.deepStrictEqual([m.reps[0].workload.n, m.reps[1].workload.n], [4, 3]);
+    assert.deepStrictEqual([m.reps[0].typical.n, m.reps[1].typical.n], [4, 3]);
+    near(m.reps[1].workload.change, -0.5, 1e-6);
+    assert.deepStrictEqual([m.reps[1].workload.without, m.reps[1].workload.with], [260000, 130000], 'the big task is in neither sum');
+  });
+
+  await test('a completed run that reported no usage drops its pair from the usage metrics; it is never a zero', async () => {
+    const mult = { 1: every(0.5), 2: every(0.5) };
+    const silent = (job) => (job.run === 2 && job.arm === 'with' && job.task.id === 'big'
+      ? { usage: null, usageSource: 'unavailable', cost: { usd: null, source: 'unavailable' } } : {});
+    const rp = (await sizedReport(mult, silent)).repetitions;
+    // Without the silent pair, repetition 2 is the three smaller tasks. Output is 10 tokens in both arms, so the total is not exactly half;
+    // and the stub already halves SigMap's price, so cost is a quarter.
+    const expected = { in: -0.5, costUsd: -0.75, totalTokens: 130030 / 260030 - 1 };
+    for (const key of Object.keys(expected)) {
+      assert.deepStrictEqual(rp.metrics[key].reps.map((r) => r.workload.n), [4, 3], `${key}: the silent run's pair is not counted`);
+      near(rp.metrics[key].reps[1].workload.change, expected[key]);
+    }
+    assert.deepStrictEqual(rp.metrics.toolCalls.reps.map((r) => r.workload.n), [4, 4], 'a metric it did report keeps its pair');
+  });
+
+  await test('total tokens is the sum of the four billing categories, and unknown if any one is unknown', () => {
+    const total = ab.METRICS.find((m) => m.key === 'totalTokens');
+    assert.ok(/derived/.test(total.label) && /unweighted/.test(total.provenance), 'it is labelled as derived and unweighted');
+    assert.strictEqual(total.pick({ usage: { in: 1, out: 2, cacheRead: 3, cacheWrite: 4 } }), 10);
+    assert.strictEqual(total.pick({ usage: { in: 1, out: 2, cacheRead: null, cacheWrite: 4 } }), null, 'not the sum of the three that reported');
+    assert.strictEqual(total.pick({ usage: null }), null);
+    assert.strictEqual(total.pick({}), null);
+  });
+
+  await test('hit@5 is counted per repetition as better / worse / tie, only over pairs both arms completed', async () => {
+    const miss = '`z.js`';
+    const over = (job) => {
+      if (job.run === 1 && job.task.id === 'big' && job.arm === 'with') return { answer: miss };
+      if (job.run === 2 && job.task.id === 'mid' && job.arm === 'without') return { answer: miss };
+      if (job.run === 2 && job.task.id === 'small' && job.arm === 'with') return { ok: false, error: 'timeout', init: null, cwds: [], durationMs: 1 };
+      return {};
+    };
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(0.5) }, over)).repetitions;
+    assert.deepStrictEqual(rp.outcome.reps, [
+      { run: 1, tasks: 4, better: 0, worse: 1, ties: 3 },
+      { run: 2, tasks: 3, better: 1, worse: 0, ties: 2 },
+    ]);
+    assert.deepStrictEqual(rp.outcome.total, { tasks: 7, better: 1, worse: 1, ties: 5 });
+  });
+
+  await test('the repetition section renders: tables, the noise mark, the derived total, no NaN, deterministic', async () => {
+    const mult = { 1: { big: 1.3, mid: 0.6, small: 0.55, tiny: 0.5 }, 2: { big: 1.2, mid: 0.7, small: 0.6, tiny: 0.65 } };
+    const report = await sizedReport(mult);
+    const md = ab.renderMarkdown(report);
+    assert.match(md, /## Repetitions — workload total vs typical task/);
+    assert.match(md, /### Workload total/);
+    assert.match(md, /### Typical task/);
+    assert.match(md, /### Outcome \(hit@5\), by repetition/);
+    assert.match(md, /\| Input tokens \(uncached\) \| \+15% \| \+9% \| more in every repetition \|/);
+    assert.match(md, /\| Input tokens \(uncached\) \| −32% \[−\d+%, \+\d+%\] † \| −24% \[−\d+%, \+\d+%\] † \| fewer in every repetition, within the noise \|/);
+    assert.match(md, /\| Cost \| −42% \| −45% \| fewer in every repetition \|/);
+    assert.match(md, /Total tokens \(derived\)/);
+    assert.match(md, /resamples, seed 1/);
+    assert.ok(report.caveats.some((c) => /neither is a correction/.test(c)) && md.includes('inside the noise'));
+    assert.ok(!/NaN|undefined|Infinity/.test(md), 'no unformatted number reaches the report');
+    assert.ok(!/\| Cache-read tokens \|/.test(md.slice(md.indexOf('## Repetitions'), md.indexOf('### Outcome'))), 'a row with nothing estimable is left out');
+    const again = ab.buildReport({ entries: await ab.runPlan({ tasks: SIZED, runs: 2, runner: sizedRunner(mult) }), tasks: SIZED, method: METHOD });
+    assert.strictEqual(ab.renderMarkdown(again), md, 'the same runs render the same text');
+    assert.deepStrictEqual(report.repetitions.bootstrap, { iterations: 10000, seed: 1, level: 0.95 });
+  });
+
+  await test('a report saved before the repetition section existed still renders', async () => {
+    const report = await sizedReport({ 1: every(0.5), 2: every(0.5) });
+    const old = JSON.parse(JSON.stringify(report));
+    delete old.repetitions;
+    const md = ab.renderMarkdown(old);
+    assert.ok(!md.includes('## Repetitions') && md.includes('## Outcome'));
+  });
+
+  await test('arm hygiene: nothing gen-context writes is left where the agent can search it, a tracked file it changed is restored, and a stray file fails the check', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-hyg-');
+    const base = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    for (const variant of ['current', 'lean', 'index', 'prefetch']) {
+      const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant });
+      const seen = arms.searchableFiles(w.cwd);
+      for (const generated of ['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.github/gemini-context.md']) assert.ok(!seen.has(generated), `${variant}: ${generated}`);
+      assert.ok(fs.existsSync(path.join(w.cwd, '.context')), `${variant}: the index itself is kept`);
+      assert.doesNotThrow(() => arms.assertArmHygiene({ without: base.cwd, with: w.cwd }), variant);
+    }
+    // a repository that TRACKS a file gen-context rewrites keeps its own version
+    const dir = path.join(root, 'benchmarks', 'repos', 'r1');
+    fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# the project\'s own notes\n');
+    execFileSync('git', ['-C', dir, 'add', '-A']);
+    execFileSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'track AGENTS.md']);
+    const repo2 = Object.assign({}, manifest.repos[0], { commit: execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() });
+    const tracked = arms.prepareArm({ root, repo: repo2, arm: 'with', tmpRoot: mktmp('ab-hyg2-'), codeRoot: ROOT, variant: 'index' });
+    assert.strictEqual(fs.readFileSync(path.join(tracked.cwd, 'AGENTS.md'), 'utf8'), '# the project\'s own notes\n', 'restored, not deleted');
+    // a file only one arm has is a second treatment
+    const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    fs.writeFileSync(path.join(w.cwd, 'NOTES.md'), 'signatures: alphaThing');
+    assert.throws(() => arms.assertArmHygiene({ without: base.cwd, with: w.cwd, label: 'r1' }), /r1: the arms differ in files the agent can search \(\+NOTES\.md\)/);
+  });
+
+  // ── skill variants: SigMap handed over as Claude Code skills ───────────────────────────────────────────────────
+
+  await test('a skill run keeps the Skill tool in BOTH arms, passes no --disable-slash-commands, adds no MCP and no appended section, and refuses --bare', () => {
+    const base = { model: 'm', budgetUsd: 1, bare: false, skills: true };
+    const without = claude.buildArgs({ arm: 'without', ...base });
+    const withSig = claude.buildArgs({ arm: 'with', ...base });
+    const flag = (a, f) => a[a.indexOf(f) + 1];
+    for (const a of [without, withSig]) {
+      assert.ok(flag(a, '--tools').split(',').includes('Skill'), 'the Skill tool is how a skill is called');
+      assert.ok(!a.includes('--disable-slash-commands'), 'that flag turns skills off');
+      assert.strictEqual(flag(a, '--setting-sources'), 'project');
+      assert.ok(a.includes('--strict-mcp-config') && !a.includes('--mcp-config') && !a.includes('--append-system-prompt'), 'no MCP server and no section in a skill run');
+    }
+    assert.strictEqual(flag(without, '--tools'), flag(withSig, '--tools'), 'the same tools in both arms');
+    const allow = (a) => flag(a, '--allowedTools').split(',');
+    assert.deepStrictEqual(allow(withSig).filter((t) => !allow(without).includes(t)), ['Bash(sigmap:*)'], 'the SigMap arm adds only the CLI');
+    assert.deepStrictEqual(allow(without).filter((t) => !allow(withSig).includes(t)), []);
+    assert.ok(allow(without).includes('Skill'));
+    assert.throws(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, skills: true }), /needs --session-auth/);
+    // a run that is not a skill run is unchanged
+    const plain = claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, bare: false, sigmapContext: 'c', mcpConfig: '{}' });
+    assert.ok(plain.includes('--disable-slash-commands') && !flag(plain, '--tools').includes('Skill'));
+  });
+
+  await test('checkIntegrity for a skill variant wants the skills in the SigMap arm only, the Skill tool in both, and no sigmap MCP server anywhere', () => {
+    const tools = ['Bash', 'Glob', 'Grep', 'Read', 'Skill'];
+    const ok = (init, arm, variant = 'skill') => ab.checkIntegrity(init, arm, { variant });
+    assert.ok(ok({ tools, mcpServers: [], skills: ['sigmap-locate', 'run'] }, 'with').ok);
+    assert.ok(ok({ tools, mcpServers: [], skills: ['run'] }, 'without').ok);
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['run'] }, 'with').ok, 'the skill is missing from its arm');
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['sigmap-locate'] }, 'without').ok, 'the skill leaked into the baseline');
+    assert.ok(!ok({ tools: ['Bash', 'Read'], mcpServers: [], skills: ['sigmap-locate'] }, 'with').ok, 'no Skill tool, so the skill cannot be called');
+    assert.ok(!ok({ tools, mcpServers: [] }, 'with').ok, 'no skill list reported: cannot verify');
+    const sig = { name: 'sigmap', status: 'connected' };
+    assert.ok(!ok({ tools: [...tools, 'mcp__sigmap__query_context'], mcpServers: [sig], skills: ['sigmap-locate'] }, 'with').ok, 'a skill variant carries no MCP server');
+    assert.ok(ok({ tools, mcpServers: [], skills: ['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer'] }, 'with', 'skill-shipped').ok);
+    assert.ok(!ok({ tools, mcpServers: [], skills: ['sigmap-usage-maximizer'] }, 'with', 'skill-shipped').ok, 'all three shipped skills');
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'mcp__sigmap__q'], mcpServers: [sig] }, 'with').ok, 'without a skill variant nothing changed');
+  });
+
+  await test('parseStream keeps the init event\'s skill list, and null when the agent reports none', () => {
+    const p = claude.parseStream(stream([
+      { type: 'system', subtype: 'init', tools: ['Read', 'Skill'], mcp_servers: [], skills: ['sigmap-locate', 'run'], model: 'm' },
+      { type: 'result', subtype: 'success', is_error: false, num_turns: 1, result: 'A', total_cost_usd: 0.01, usage: U(1, 1, 0, 0) },
+    ]));
+    assert.deepStrictEqual(p.init.skills, ['sigmap-locate', 'run']);
+    const q = claude.parseStream(stream([
+      { type: 'system', subtype: 'init', tools: ['Read'], mcp_servers: [], model: 'm' },
+      { type: 'result', subtype: 'success', is_error: false, num_turns: 1, result: 'A', total_cost_usd: 0.01, usage: U(1, 1, 0, 0) },
+    ]));
+    assert.strictEqual(q.init.skills, null);
+  });
+
+  await test('the skill variant writes one SKILL.md into the SigMap arm\'s checkout, removes the generated CLAUDE.md, and hands the agent the CLI and nothing else', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-skill-');
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'skill', sessionAuth: true });
+    const file = path.join(a.cwd, '.claude', 'skills', 'sigmap-locate', 'SKILL.md');
+    assert.strictEqual(fs.readFileSync(file, 'utf8'), ab.LOCATE_SKILL);
+    assert.deepStrictEqual(a.skills, ['sigmap-locate']);
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')), 'the agent would read it by itself');
+    assert.ok(fs.existsSync(path.join(a.cwd, '.context')), '`sigmap ask` answers from the index');
+    assert.strictEqual(a.sigmapContext, undefined);
+    assert.strictEqual(a.mcpConfig, undefined);
+    assert.ok(a.binDir && fs.existsSync(path.join(a.binDir, 'sigmap')), 'the arm\'s own sigmap on PATH');
+    assert.ok(arms.probeCli({ cwd: a.cwd, binDir: a.binDir }).ok, 'and it answers');
+    const w = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'skill', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(w.cwd, '.claude')), 'the baseline has no skill');
+    assert.ok(!w.binDir && !w.skills);
+    // the skill's own text: when NOT to use it, the ranking is a lead, and a stop rule
+    assert.match(ab.LOCATE_SKILL, /^---\nname: sigmap-locate\ndescription: .*Skip it when/);
+    assert.match(ab.LOCATE_SKILL, /often not the right one/);
+    assert.match(ab.LOCATE_SKILL, /Answer as soon as one file is confirmed/);
+  });
+
+  await test('skill-always is the same skill under a description that asks to be called first, and nothing else differs', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-always-'), codeRoot: ROOT, variant: 'skill-always', sessionAuth: true });
+    const text = fs.readFileSync(path.join(a.cwd, '.claude', 'skills', 'sigmap-locate', 'SKILL.md'), 'utf8');
+    assert.strictEqual(text, ab.LOCATE_SKILL_ALWAYS);
+    assert.match(text, /^description: Use this FIRST, before any Grep, Glob or Read/m);
+    const body = (t) => t.split('\n').filter((l) => !l.startsWith('description:'));
+    assert.deepStrictEqual(body(ab.LOCATE_SKILL_ALWAYS), body(ab.LOCATE_SKILL), 'only the description line differs');
+    assert.notStrictEqual(ab.LOCATE_SKILL_ALWAYS, ab.LOCATE_SKILL);
+    assert.deepStrictEqual(a.skills, ['sigmap-locate']);
+  });
+
+  await test('skill-shipped is exactly what `sigmap skills install --client claude` writes: the three shipped skills, and no section', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-shipped-'), codeRoot: ROOT, variant: 'skill-shipped', sessionAuth: true });
+    assert.deepStrictEqual(a.skills, ['sigmap-usage-maximizer', 'sigmap-task', 'sigmap-config-optimizer']);
+    for (const n of a.skills) assert.ok(fs.existsSync(path.join(a.cwd, '.claude', 'skills', n, 'SKILL.md')), n);
+    assert.strictEqual(a.sigmapContext, undefined);
+    assert.deepStrictEqual(Object.keys(ab.SKILL_VARIANTS), ['skill', 'skill-always', 'skill-shipped']);
+    assert.ok(Object.keys(ab.SKILL_VARIANTS).every((v) => ab.SIGMAP_VARIANTS[v]), 'each skill variant is a variant');
+  });
+
+  await test('a skill variant needs --session-auth, says what it measures in the plan, and the report carries the skill caveat', async () => {
+    const f = fixture();
+    const bare = runCli(['--dry-run', '--sigmap-variant', 'skill'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(bare.status, 2, bare.stderr);
+    assert.match(bare.stderr, /hands SigMap over as skills.*add --session-auth/);
+    const ok = runCli(['--dry-run', '--sigmap-variant', 'skill', '--session-auth'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    assert.match(ok.stdout, /one on-demand skill \(sigmap-locate\).*\(variant: skill\)/);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner: stub() });
+    const mk = (variant) => ab.buildReport({ entries, tasks: [TASKS[0]], method: { agent: 'claude-code', runs: 2, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-10', variant, auth: 'session' } });
+    assert.ok(mk('skill').caveats.some((c) => /Skill variant: both arms run with skills enabled/.test(c)));
+    assert.ok(!mk('index').caveats.some((c) => /Skill variant/.test(c)), 'only a skill run says it');
+    assert.strictEqual(mk('skill').method.arms.with, ab.SIGMAP_VARIANTS.skill);
+  });
+
+  // ── prefetch: the ranking is in the prompt before the first turn ───────────────────────────────────────────────
+
+  await test('a prefetch run changes nothing on the command line but the CLI allowance: no MCP server, no appended system prompt, the same tools', () => {
+    const base = { model: 'm', budgetUsd: 1, bare: false, prefetch: true };
+    const without = claude.buildArgs({ arm: 'without', ...base });
+    const withSig = claude.buildArgs({ arm: 'with', ...base, sigmapContext: 'RANKED' });
+    const flag = (a, f) => a[a.indexOf(f) + 1];
+    assert.ok(!withSig.includes('--append-system-prompt') && !withSig.includes('RANKED'), 'the block rides in the user turn, so the cached system prompt is the same in both arms');
+    assert.ok(!withSig.includes('--mcp-config') && !without.includes('--append-system-prompt'));
+    assert.strictEqual(flag(without, '--tools'), flag(withSig, '--tools'));
+    assert.ok(!flag(withSig, '--tools').includes('Skill') && withSig.includes('--disable-slash-commands'), 'not a skill run');
+    const allow = (a) => flag(a, '--allowedTools').split(',');
+    assert.deepStrictEqual(allow(withSig).filter((t) => !allow(without).includes(t)), ['Bash(sigmap:*)']);
+    assert.doesNotThrow(() => claude.buildArgs({ arm: 'with', model: 'm', budgetUsd: 1, prefetch: true }), 'it does not need --session-auth');
+    const sig = { name: 'sigmap', status: 'connected' };
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'Bash'], mcpServers: [] }, 'with', { variant: 'prefetch' }).ok, 'no MCP server is what the arm should hold');
+    assert.ok(!ab.checkIntegrity({ tools: ['Read', 'mcp__sigmap__q'], mcpServers: [sig] }, 'with', { variant: 'prefetch' }).ok);
+    assert.ok(ab.checkIntegrity({ tools: ['Read'], mcpServers: [] }, 'without', { variant: 'prefetch' }).ok);
+  });
+
+  await test('the prefetch arm keeps only the index, and its context is `sigmap ask` for the question: header, ranking, anchored signatures, capped', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-pre-'), codeRoot: ROOT, variant: 'prefetch' });
+    assert.ok(a.prefetch && a.binDir && !a.sigmapContext && !a.mcpConfig && !a.skills);
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')) && fs.existsSync(path.join(a.cwd, '.context')));
+    assert.ok(!fs.existsSync(path.join(a.cwd, '.claude')), 'no skill either');
+    const text = arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented' });
+    assert.ok(text.startsWith(ab.PREFETCH_HEADER));
+    assert.match(text, /src\/alpha\.js/, 'the ranking names the file');
+    assert.match(text, /alphaThing.*:\d+-\d+/, 'and its signature carries a line anchor');
+    assert.ok(!/^# SigMap Query Context|^Generated:/m.test(text), 'no timestamp: the same question gives the same text');
+    assert.strictEqual(text, arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented' }), 'deterministic');
+    const small = arms.prefetchContext({ cwd: a.cwd, binDir: a.binDir, query: 'where is the alpha thing implemented', maxBytes: Buffer.byteLength(ab.PREFETCH_HEADER) + 260 });
+    assert.ok(Buffer.byteLength(small) <= Buffer.byteLength(ab.PREFETCH_HEADER) + 260 && small.startsWith(ab.PREFETCH_HEADER), 'the cap holds and the header and ranking survive it');
+    assert.ok(!/ask SigMap|call .* first|confirm with/i.test(ab.PREFETCH_HEADER), 'the header adds no step: it says what the list is');
+    assert.ok(ab.PREFETCH_MAX_BYTES <= 16 * 1024);
+  });
+
+  await test('--sigmap-variant prefetch reaches the agent: the SigMap arm alone gets a per-question block after the question, the report records the variant', () => {
+    const f = fixture();
+    const r = runCli(['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch', '--session-auth', '--save', '--allow-unpublishable', '--out-dir', f.out], { SIGMAP_XREPO_DATA: f.root, FAKE_LOG: f.log, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js', r2: 'src/alpha.js' }) });
+    assert.strictEqual(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const withCalls = calls.filter((c) => c.stdin.includes(ab.PREFETCH_HEADER));
+    assert.ok(withCalls.length > 0 && withCalls.length === calls.length / 2, 'every SigMap run and no baseline run');
+    for (const c of withCalls) {
+      assert.ok(/-with$/.test(c.cwd), 'only the SigMap arm');
+      assert.ok(c.stdin.indexOf('Question: ') < c.stdin.indexOf(ab.PREFETCH_HEADER), 'after the question, where a hook puts it');
+      assert.ok(!c.argv.includes('--mcp-config') && !c.argv.includes('--append-system-prompt'));
+    }
+    const base = calls.filter((c) => !c.stdin.includes(ab.PREFETCH_HEADER));
+    const strip = (a) => a.filter((x) => !/^Bash\(sigmap/.test(x)).join(' ').replace(/,Bash\(sigmap:\*\)/, '');
+    assert.strictEqual(strip(withCalls[0].argv), strip(base[0].argv), 'the command lines differ only by the sigmap CLI allowance');
+    const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+    assert.strictEqual(rep.method.variant, 'prefetch');
+    assert.strictEqual(rep.method.arms.with, ab.SIGMAP_VARIANTS.prefetch);
+  });
+
+  // ── run-token-saving.sh: the script a user runs with their own API key ──────────────────────────────────────────
+
+  await test('run-token-saving.sh checks first and starts nothing without GO=1, never prints the key, and refuses to start with a problem', () => {
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'ts'), KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 240000, env: env(extra) });
+
+    const plan = sh({});
+    assert.strictEqual(plan.status, 0, plan.stderr);
+    assert.match(plan.stdout, /ANTHROPIC_API_KEY is set \(not shown\)/);
+    assert.ok(!(plan.stdout + plan.stderr).includes('SECRET-VALUE'), 'the key is never echoed');
+    assert.match(plan.stdout, /questions\s+30 per SigMap setup, 1 repetitions per arm → 60 agent runs in 4 batches/);
+    assert.match(plan.stdout, /Nothing started\. To run it:\s+GO=1 bash/);
+    assert.ok(!fs.existsSync(f.log) && !fs.existsSync(path.join(f.out, 'ts')), 'no agent was started and nothing was written');
+
+    const noKey = sh({ ANTHROPIC_API_KEY: '', GO: '1' });
+    assert.strictEqual(noKey.status, 1);
+    assert.match(noKey.stdout, /ANTHROPIC_API_KEY is not set/);
+    assert.match(noKey.stdout, /1 problem\(s\) above: nothing started/);
+    assert.ok(!fs.existsSync(f.log), 'GO=1 does not get past a failed check');
+
+    const badVariant = sh({ VARIANTS: 'skill' });
+    assert.strictEqual(badVariant.status, 1);
+    assert.match(badVariant.stdout, /skill variants need --session-auth/);
+    const badSet = sh({ SETS: 'everything' });
+    assert.match(badSet.stdout, /unknown set "everything"/);
+
+    // a cloud session gives the key under another name, so its own login is not switched to it
+    const viaBench = sh({ ANTHROPIC_API_KEY: '', BENCH_ANTHROPIC_KEY: 'sk-test-BENCH-VALUE' });
+    assert.strictEqual(viaBench.status, 0, viaBench.stdout);
+    assert.match(viaBench.stdout, /ANTHROPIC_API_KEY is set \(not shown\)/);
+    assert.ok(!(viaBench.stdout + viaBench.stderr).includes('BENCH-VALUE'));
+  });
+
+  await test('run-token-saving.sh makes one test call with the key before anything else, and stops on a refusal with what to do', () => {
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
+    const f = fixture();
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: path.join(f.out, 'kc'), BENCH_ANTHROPIC_KEY: '' }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: env(extra) });
+
+    const good = sh({});
+    assert.strictEqual(good.status, 0, good.stdout + good.stderr);
+    assert.match(good.stdout, /Claude Code accepts this key \(one test call to claude-haiku-5-5\)/);
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.strictEqual(calls.length, 1, 'exactly one call, and no batch');
+    assert.ok(calls[0].argv.includes('--bare') && calls[0].argv.includes('--max-budget-usd'));
+    assert.ok(!fs.existsSync(path.join(f.out, 'kc')), 'nothing else was started');
+
+    const refused = sh({ FAKE_MODE: 'error', GO: '1' });
+    assert.strictEqual(refused.status, 1);
+    assert.match(refused.stdout, /Claude Code was refused with this key: boom/);
+    assert.match(refused.stdout, /standard key in Console/);
+    assert.match(refused.stdout, /nothing started/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, 2, 'GO=1 did not get past the failed check');
+  });
+
+  await test('run-token-saving.sh with GO=1 runs batch by batch under the API key, stops at the spend limit, and resumes', () => {
+    const script = path.join(ROOT, 'benchmarks', 'agent-study', 'run-token-saving.sh');
+    const f = fixture();
+    const out = path.join(f.out, 'ts');
+    const env = (extra) => Object.assign({}, process.env, { ANTHROPIC_API_KEY: 'sk-test', FAKE_LOG: f.log, FAKE_MAP: '{}', CLAUDECODE: '', CLAUDE_BIN: f.bin, SETS: 'unfamiliar', VARIANTS: 'index', RUNS: '1', OUT: out, GO: '1', KEY_CHECK: '0', BENCH_ANTHROPIC_KEY: '' }, extra);
+    const sh = (extra) => spawnSync('bash', [script], { cwd: ROOT, encoding: 'utf8', timeout: 300000, env: env(extra) });
+
+    // The fake agent reports $0.03 without SigMap and $0.01 with it: the first batch (8 questions) records $0.32.
+    const first = sh({ MAX_TOTAL_USD: '0.05' });
+    assert.strictEqual(first.status, 3, first.stdout + first.stderr);
+    assert.match(first.stdout, /STOPPED: \$0\.3200 recorded over 16 runs, past MAX_TOTAL_USD=\$0\.05/);
+    const batches = () => fs.readdirSync(path.join(out, 'unfamiliar', 'index')).filter((d) => fs.existsSync(path.join(out, 'unfamiliar', 'index', d, 'raw.json')));
+    assert.strictEqual(batches().length, 1, 'one batch ran, then the limit was checked before the next');
+    assert.ok(fs.existsSync(path.join(out, 'unfamiliar-root', 'benchmarks', 'xrepo-repos.json')), 'the unfamiliar data root was built from this checkout');
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.length === 16 && calls.every((c) => c.argv.includes('--bare')), 'an API-key run is the isolated --bare run');
+    assert.ok(calls.every((c) => !c.argv.includes('--setting-sources')));
+
+    const second = sh({ MAX_TOTAL_USD: '0.40' });
+    assert.strictEqual(second.status, 3, second.stdout + second.stderr);
+    assert.match(second.stdout, /skip\s+index sigmap-src:h001/, 'the finished batch is not paid for twice');
+    assert.strictEqual(batches().length, 2, 'it carried on with the next batch, then stopped again');
+  });
+
+  // ── the direct Messages API runner (agent-ab-api.mjs) ───────────────────────────────────────────────────────────
+
+  const api = await import('../../scripts/lib/agent-ab-api.mjs');
+  const http = require('http');
+
+  /** A fake Messages API: `script(reqBody, n)` returns { status, body } for the n-th request; every request is kept. */
+  const fakeApi = (script) => new Promise((resolve) => {
+    const seen = [];
+    const server = http.createServer((req, res) => {
+      const chunks = [];
+      req.on('data', (d) => chunks.push(d));
+      req.on('end', () => {
+        let body = null; try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch (_) { /* leave null */ }
+        seen.push({ headers: req.headers, body, url: req.url });
+        const r = script(body, seen.length, req) || {};
+        res.writeHead(r.status || 200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(r.body));
+      });
+    });
+    server.listen(0, '127.0.0.1', () => resolve({ url: `http://127.0.0.1:${server.address().port}`, seen, close: () => server.close() }));
+  });
+  const toolTurn = (name, input, usage) => ({ body: { stop_reason: 'tool_use', content: [{ type: 'tool_use', id: `tu_${name}_${Math.random().toString(36).slice(2, 8)}`, name, input }], usage: usage || U(100, 20, 0, 50) } });
+  const textTurn = (text, usage) => ({ body: { stop_reason: 'end_turn', content: [{ type: 'text', text }], usage: usage || U(10, 5, 150, 0) } });
+
+  await test('splitCommand runs plain commands and refuses shell syntax; the tools stay inside the repository and read-only', async () => {
+    assert.deepStrictEqual(api.splitCommand('grep -rn "two words" src'), ['grep', '-rn', 'two words', 'src']);
+    assert.deepStrictEqual(api.splitCommand("ls -la 'a b'"), ['ls', '-la', 'a b']);
+    for (const bad of ['ls | wc -l', 'cat a > b', 'echo $(id)', 'ls *.js', 'cat `x`', 'ls; rm x', 'grep "open']) assert.strictEqual(api.splitCommand(bad), null, bad);
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: mktmp('ab-api-'), codeRoot: ROOT, variant: 'index' });
+    const ctx = { cwd: a.cwd, withSigmap: true, binDir: a.binDir };
+    const read = await api.runBuiltin('Read', { file_path: 'src/alpha.js' }, ctx);
+    assert.ok(!read.isError && /^\s+1\tfunction alphaThing/.test(read.text), read.text);
+    assert.match((await api.runBuiltin('Read', { file_path: 'src/alpha.js', offset: 2, limit: 1 }, ctx)).text, /^\s+2\t/);
+    assert.ok((await api.runBuiltin('Read', { file_path: '../../etc/passwd' }, ctx)).isError, 'outside the repository');
+    assert.ok((await api.runBuiltin('Read', { file_path: '/etc/passwd' }, ctx)).isError);
+    if (needRg('Grep and Glob through ripgrep')) {
+      assert.match((await api.runBuiltin('Grep', { pattern: 'betaThing' }, ctx)).text, /src\/beta\.js:1:/);
+      assert.strictEqual((await api.runBuiltin('Grep', { pattern: 'no_such_thing_anywhere' }, ctx)).text, 'No matches found');
+      assert.ok(!/\.context\//.test((await api.runBuiltin('Grep', { pattern: 'alphaThing' }, ctx)).text), 'the index directory is gitignored and stays out of a search');
+      assert.match((await api.runBuiltin('Glob', { pattern: '**/*.js' }, ctx)).text, /src\/alpha\.js/);
+    }
+    assert.match((await api.runBuiltin('Bash', { command: 'grep -n alphaThing src/alpha.js' }, ctx)).text, /alphaThing/);
+    for (const cmd of ['rm -rf src', 'ls | wc', 'cat /etc/passwd', 'cat ../x', 'curl http://x', 'node -e 1']) assert.ok((await api.runBuiltin('Bash', { command: cmd }, ctx)).isError, cmd);
+    assert.ok(!(await api.runBuiltin('Bash', { command: 'sigmap ask where is alpha' }, ctx)).text.startsWith('refused'), 'the SigMap arm may run the sigmap CLI');
+    assert.match((await api.runBuiltin('Bash', { command: 'sigmap ask x' }, { cwd: a.cwd, withSigmap: false })).text, /refused: "sigmap" is not allowed/, 'the baseline may not');
+    assert.ok((await api.runBuiltin('Edit', {}, ctx)).isError, 'no write tool exists');
+  });
+
+  await test('a machine without ripgrep gets an error from Grep and Glob, never "No matches found", and --agent api refuses to start', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: mktmp('ab-api-'), codeRoot: ROOT, variant: 'index' });
+    const empty = mktmp('ab-nopath-');
+    const saved = process.env.PATH;
+    try {
+      process.env.PATH = empty;
+      assert.strictEqual(api.hasRipgrep(), false, 'nothing on PATH');
+      for (const [tool, input] of [['Grep', { pattern: 'alphaThing' }], ['Glob', { pattern: '**/*.js' }]]) {
+        const r = await api.runBuiltin(tool, input, { cwd: a.cwd });
+        assert.strictEqual(r.isError, true, tool);
+        assert.ok(r.text === api.RIPGREP_MISSING && /not installed/.test(r.text) && !/No matches|No files/.test(r.text), `${tool}: ${r.text}`);
+      }
+      const bash = await api.runBuiltin('Bash', { command: 'grep -n alphaThing src/alpha.js' }, { cwd: a.cwd });
+      assert.ok(bash.isError && /command not found/.test(bash.text), bash.text);
+    } finally { process.env.PATH = saved; }
+
+    // The CLI still needs git to find the pinned checkouts, so the PATH it gets holds git and nothing else.
+    fs.symlinkSync(execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim(), path.join(empty, 'git'));
+    const f = fixture();
+    const r = runCli(['--agent', 'api', '--runs', '1', '--allow-unpublishable', '--repos', 'r1'], { PATH: empty, ANTHROPIC_API_KEY: 'sk-test', SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(r.status, 2, r.stderr + r.stdout);
+    assert.match(r.stderr, /--agent api: ripgrep \(rg\) is not installed/);
+  });
+
+  await test('cost is computed from usage and a price table, exactly, and a model without a price has no cost', () => {
+    const one = { in: 1e6, out: 1e6, cacheRead: 1e6, cacheWrite: 1e6 };
+    assert.ok(Math.abs(api.costOf(one, 'claude-haiku-5-5', {}) - (0.1 + 0.5 + 0.01 + 0.125)) < 1e-12);
+    assert.ok(Math.abs(api.costOf(one, 'claude-haiku-4-5', {}) - (1 + 5 + 0.1 + 1.25)) < 1e-12);
+    assert.strictEqual(api.costOf(one, 'some-future-model', {}), null);
+    assert.ok(Math.abs(api.costOf(one, 'some-future-model', { PRICE_IN_PER_MTOK: '3', PRICE_OUT_PER_MTOK: '15' }) - (3 + 15 + 0.3 + 3.75)) < 1e-12, 'an override prices any model');
+    assert.strictEqual(api.priceFor('claude-haiku-5.5', {}).in, 0.1, 'a dot in the version is read as a dash');
+  });
+
+  await test('the runner loops tool_use to an answer, sends the key and cache breakpoints, and records usage, tools and a computed cost', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-api-');
+    const armFor = {};
+    for (const arm of ['without', 'with']) armFor[arm] = arms.prepareArm({ root, repo: manifest.repos[0], arm, tmpRoot: tmp, codeRoot: ROOT, variant: 'index' });
+    const fake = await fakeApi((body, n) => {
+      const withMcp = body.tools.some((t) => /^mcp__sigmap__/.test(t.name));
+      if (n % 2 === 1) return withMcp ? toolTurn('mcp__sigmap__query_context', { query: 'alpha thing' }) : toolTurn('Grep', { pattern: 'alphaThing' });
+      return textTurn('It is in `src/alpha.js`.');
+    });
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'sk-test-KEY', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 60000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} });
+      const job = { task: { repo: 'r1', id: 'x001', query: 'where is the alpha thing' }, run: 1, prompt: ab.buildPrompt({ query: 'where is the alpha thing' }) };
+      const base = await runner({ ...job, arm: 'without' });
+      assert.strictEqual(base.ok, true, base.error);
+      assert.strictEqual(base.answer, 'It is in `src/alpha.js`.');
+      assert.deepStrictEqual(base.toolCalls, { total: 1, byTool: { Grep: 1 }, byCommand: {} });
+      assert.deepStrictEqual(base.usage, { in: 110, out: 25, cacheRead: 150, cacheWrite: 50 });
+      assert.strictEqual(base.turns, 2);
+      assert.strictEqual(base.cost.source, 'computed');
+      assert.ok(Math.abs(base.cost.usd - api.costOf(base.usage, 'claude-haiku-5-5', {})) < 1e-15);
+      assert.deepStrictEqual(base.init.mcpServers, []);
+      assert.ok(ab.checkIntegrity(base.init, 'without').ok);
+
+      const first = fake.seen[0];
+      assert.strictEqual(first.headers['x-api-key'], 'sk-test-KEY');
+      assert.strictEqual(first.headers['anthropic-version'], api.API_VERSION);
+      assert.strictEqual(first.body.model, 'claude-haiku-5-5');
+      assert.strictEqual(first.body.system[0].cache_control.type, 'ephemeral', 'the system prompt is a cache breakpoint');
+      assert.strictEqual(first.body.tools[first.body.tools.length - 1].cache_control.type, 'ephemeral', 'so is the end of the tool list');
+      assert.ok(!first.body.tools.some((t) => /^mcp__/.test(t.name)) && first.body.system[0].text === api.SYSTEM_PROMPT, 'the baseline has no SigMap tool and no SigMap text');
+      const second = fake.seen[1].body;
+      const marks = JSON.stringify(second.messages).split('cache_control').length - 1;
+      assert.strictEqual(marks, 1, 'one breakpoint on the newest message, none left on older ones');
+      assert.ok(second.messages[2].content[0].type === 'tool_result');
+      if (needRg('the Grep result reached the model')) assert.ok(/src\/alpha\.js/.test(second.messages[2].content[0].content));
+
+      const withRec = await runner({ ...job, arm: 'with' });
+      assert.strictEqual(withRec.ok, true, withRec.error);
+      assert.deepStrictEqual(Object.keys(withRec.toolCalls.byTool), ['mcp__sigmap__query_context'], 'the SigMap arm called the MCP tool and it answered');
+      const req = fake.seen[2].body;
+      assert.ok(req.tools.filter((t) => /^mcp__sigmap__/.test(t.name)).length === 7, 'the core profile: seven SigMap tools');
+      assert.ok(req.system[0].text.startsWith(api.SYSTEM_PROMPT) && req.system[0].text.length > api.SYSTEM_PROMPT.length, 'the generated section rides in the system prompt');
+      assert.ok(ab.checkIntegrity(withRec.init, 'with').ok, 'the arm reports a connected sigmap server');
+      assert.match(JSON.stringify(fake.seen[3].body.messages[2]), /src\/alpha\.js/, 'the MCP tool result reached the model');
+    } finally { fake.close(); }
+  });
+
+  await test('a prefetch run puts the ranking after the question for the SigMap arm only, and the run fails loudly on an API refusal, a budget or a turn limit', async () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'alpha', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-api-');
+    const armFor = {};
+    for (const arm of ['without', 'with']) armFor[arm] = arms.prepareArm({ root, repo: manifest.repos[0], arm, tmpRoot: tmp, codeRoot: ROOT, variant: 'prefetch' });
+    const job = (arm) => ({ arm, run: 1, task: { repo: 'r1', id: 'x001', query: 'alpha' }, prompt: 'Question: alpha' });
+
+    let fake = await fakeApi(() => textTurn('`src/alpha.js`'));
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {}, prefetch: () => 'RANKED-BLOCK' });
+      await runner(job('without')); await runner(job('with'));
+      assert.ok(!JSON.stringify(fake.seen[0].body).includes('RANKED-BLOCK'));
+      const sent = fake.seen[1].body;
+      assert.ok(sent.messages[0].content[0].text.endsWith('\n\nRANKED-BLOCK') && sent.messages[0].content[0].text.startsWith('Question: alpha'));
+      assert.strictEqual(sent.system[0].text, api.SYSTEM_PROMPT, 'the system prompt is the same in both arms');
+      assert.ok(!sent.tools.some((t) => /^mcp__/.test(t.name)), 'no MCP server in a prefetch run');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => ({ status: 400, body: { type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low' } } }));
+    try {
+      const runner = api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} });
+      const rec = await runner(job('without'));
+      assert.strictEqual(rec.ok, false);
+      assert.match(rec.error, /api 400: invalid_request_error: Your credit balance is too low/);
+      assert.strictEqual(fake.seen.length, 1, 'a 400 is not retried');
+      assert.ok(rec.init && ab.checkIntegrity(rec.init, 'without', { variant: 'prefetch' }).ok, 'a failed run still reports the arm it ran in, and that arm is the right one');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => toolTurn('Grep', { pattern: 'alphaThing' }, U(1e6, 1e5, 0, 0)));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 0.05, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} })(job('without'));
+      assert.strictEqual(rec.ok, true, 'a limit is an outcome of the agent, scored as a miss, not a broken run that drops its pair');
+      assert.match(rec.limit, /^budget: \$0\.1500 passed the per-run cap of \$0\.05/);
+      assert.strictEqual(rec.answer, '');
+      assert.strictEqual(fake.seen.length, 1);
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => toolTurn('Glob', { pattern: '*.js' }, U(1, 1, 0, 0)));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, maxTurns: 3, env: {} })(job('without'));
+      assert.strictEqual(rec.ok, true);
+      assert.match(rec.limit, /turn limit \(3\)/);
+      assert.strictEqual(rec.toolCalls.total, 3);
+      assert.strictEqual(rec.answer, '');
+      assert.strictEqual(ab.scoreAnswer(rec.answer, ['src/alpha.js'], {}).pass, false, 'and it scores as a miss');
+    } finally { fake.close(); }
+
+    fake = await fakeApi((_b, n) => (n === 1 ? { status: 429, body: { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } } } : textTurn('`src/alpha.js`')));
+    try {
+      const rec = await api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 60000, arms: (_r, arm) => armFor[arm], baseUrl: fake.url, env: {} })(job('without'));
+      assert.strictEqual(rec.ok, true, rec.error);
+      assert.strictEqual(fake.seen.length, 2, 'a 429 is retried');
+    } finally { fake.close(); }
+
+    fake = await fakeApi(() => textTurn('ok'));
+    try {
+      assert.deepStrictEqual(await api.pingKey({ apiKey: 'k', model: 'm', baseUrl: fake.url }), { ok: true });
+    } finally { fake.close(); }
+    fake = await fakeApi(() => ({ status: 401, body: { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } } }));
+    try {
+      const p = await api.pingKey({ apiKey: 'k', model: 'm', baseUrl: fake.url });
+      assert.strictEqual(p.ok, false); assert.match(p.error, /401 authentication_error: invalid x-api-key/);
+    } finally { fake.close(); }
+  });
+
+  const runCliAsync = (args, env) => new Promise((resolve) => {
+    const p = require('child_process').spawn(process.execPath, [CLI, ...args], { cwd: ROOT, env: Object.assign({}, process.env, { ANTHROPIC_API_KEY: '', SIGMAP_XREPO_DATA: '' }, env) });
+    let stdout = ''; let stderr = '';
+    p.stdout.on('data', (d) => { stdout += d; }); p.stderr.on('data', (d) => { stderr += d; });
+    const timer = setTimeout(() => p.kill('SIGKILL'), 120000);
+    p.on('close', (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); });
+  });
+
+  await test('--agent api runs the plan through the Messages API, labels the report, refuses the combinations it cannot honour, and never prints the key', async () => {
+    const f = fixture();
+    const dry = runCli(['--dry-run', '--agent', 'api', '--model', 'claude-haiku-5-5'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(dry.status, 0, dry.stderr);
+    assert.match(dry.stdout, /agent\s+the Messages API directly \(scripts\/lib\/agent-ab-api\.mjs, not Claude Code\), model claude-haiku-5-5; cost computed from usage x the built-in table \(\$0\.1 in \/ \$0\.5 out per Mtok\)/);
+    assert.match(runCli(['--dry-run', '--agent', 'nope'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent must be claude/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--session-auth'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent api uses ANTHROPIC_API_KEY/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill', '--session-auth'], { SIGMAP_XREPO_DATA: f.root }).stderr, /--agent api uses ANTHROPIC_API_KEY/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'skill'], { SIGMAP_XREPO_DATA: f.root }).stderr, /Claude Code skills, which the direct API agent does not have/);
+
+    if (!needRg('the live --agent api run')) return;
+    const fake = await fakeApi((body, n) => {
+      const withMcp = body.tools.some((t) => /^mcp__sigmap__/.test(t.name));
+      if (body.messages.length === 1) return withMcp ? toolTurn('mcp__sigmap__query_context', { query: 'alpha' }, U(300, 30, 0, 800)) : toolTurn('Grep', { pattern: 'alpha' }, U(200, 30, 0, 400));
+      return textTurn(`\`${body.messages[0].content[0].text.includes('beta') ? 'src/beta.js' : 'src/alpha.js'}\``);
+    });
+    try {
+      const r = await runCliAsync(['--agent', 'api', '--runs', '2', '--save', '--allow-unpublishable', '--out-dir', f.out, '--repos', 'r1'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'sk-test-SECRET-VALUE', ANTHROPIC_BASE_URL: fake.url });
+      assert.strictEqual(r.status, 0, r.stderr + r.stdout);
+      assert.ok(!(r.stdout + r.stderr).includes('SECRET-VALUE'), 'the key is never echoed');
+      const rep = JSON.parse(fs.readFileSync(path.join(f.out, 'agent-ab.json'), 'utf8'));
+      assert.strictEqual(rep.method.agent, 'anthropic-messages-api');
+      assert.strictEqual(rep.method.runner, 'api');
+      assert.ok(rep.caveats.some((c) => /Direct Messages API agent/.test(c)));
+      const md = fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8');
+      assert.ok(/\*\*anthropic-messages-api direct Messages API/.test(md));
+      const withCell = rep.cells.find((c) => c.arm === 'with');
+      assert.ok(withCell.spend.all.agentReportedUsd > 0 && withCell.spend.all.unknownRuns === 0, 'the computed cost is counted as a cost, not as unknown');
+      assert.ok(fake.seen.every((s) => s.headers['x-api-key'] === 'sk-test-SECRET-VALUE'));
+    } finally { fake.close(); }
+  });
+
+  await test('--change gives every run its own checkout, lets both arms edit, grades the patch with the hidden tests and records the grade', async () => {
+    if (!needRg('the live --agent api --change run')) return;
+    const d = makeDataRoot([
+      { name: 'r1', tasks: [{ id: 'c01', query: 'FIX-ALPHA alphaThing returns its argument unchanged', expected: ['src/alpha.js'] }] },
+      { name: 'r2', tasks: [{ id: 'c02', query: 'FIX-BETA betaThing returns its argument unchanged', expected: ['src/beta.js'] }] },
+    ]);
+    const jsonl = path.join(d.root, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl');
+    const hidden = (fn, file) => [{ path: 'test/hidden.test.js', content: `const assert = require('assert');\nconst { ${fn} } = require('../src/${file}');\nassert.strictEqual(${fn}(2), 3);\n` }];
+    const tasks = fs.readFileSync(jsonl, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    fs.writeFileSync(jsonl, tasks.map((t) => JSON.stringify({ ...t, hidden: t.id === 'c01' ? hidden('alphaThing', 'alpha') : hidden('betaThing', 'beta') })).join('\n') + '\n');
+    const out = mktmp('ab-out-');
+    const raw = path.join(out, 'raw.json');
+    const fake = await fakeApi((body, n) => {
+      const first = body.messages[0].content[0].text;
+      if (body.messages.length === 1) {
+        const file = first.includes('FIX-ALPHA') ? 'src/alpha.js' : 'src/beta.js';
+        // r1 gets the right fix; r2 changes the wrong thing, so its hidden test still fails
+        return toolTurn('Edit', { file_path: file, old_string: 'return ' + (first.includes('FIX-ALPHA') ? 'a' : 'b') + ';', new_string: first.includes('FIX-ALPHA') ? 'return a + 1;' : 'return b * 2;' }, U(100, 20, 0, 50));
+      }
+      return textTurn('Changed the return value.');
+    });
+    try {
+      const r = await runCliAsync(['--agent', 'api', '--change', '--sigmap-variant', 'index', '--runs', '2', '--allow-unpublishable', '--raw-out', raw, '--out-dir', out], { SIGMAP_XREPO_DATA: d.root, ANTHROPIC_API_KEY: 'sk-test-KEY', ANTHROPIC_BASE_URL: fake.url });
+      assert.strictEqual(r.status, 0, r.stderr + r.stdout);
+      const recs = JSON.parse(fs.readFileSync(raw, 'utf8'));
+      assert.strictEqual(recs.length, 8, 'two tasks × two arms × two runs');
+      assert.ok(recs.every((x) => x.ok), JSON.stringify(recs.filter((x) => !x.ok).map((x) => x.error)));
+      for (const x of recs.filter((y) => y.task === 'c01')) { assert.strictEqual(x.pass, true, `${x.arm} run ${x.run}: ${x.why}`); assert.deepStrictEqual(x.patch, { files: 1, added: 1, removed: 1 }); }
+      for (const x of recs.filter((y) => y.task === 'c02')) { assert.strictEqual(x.pass, false); assert.match(x.why, /hidden tests failed: hidden\.test\.js/); }
+      const sys = fake.seen[0].body.system.map((b) => b.text).join('\n');
+      assert.match(sys, /You fix bugs in the repository/);
+      assert.ok(fake.seen.every((s) => ['Edit', 'Write', 'RunTest'].every((t) => s.body.tools.some((x) => x.name === t))), 'both arms have the edit tools');
+      assert.ok(fake.seen.some((s) => s.body.tools.some((x) => /^mcp__sigmap__/.test(x.name))) && fake.seen.some((s) => !s.body.tools.some((x) => /^mcp__sigmap__/.test(x.name))));
+      assert.match(fake.seen[0].body.messages[0].content[0].text, /^Bug report for this repository:/);
+      assert.ok(!/hidden|assert\.strictEqual/.test(JSON.stringify(fake.seen.map((s) => s.body))), 'the hidden tests never reach the model');
+    } finally { fake.close(); }
+    assert.match(runCli(['--dry-run', '--change'], { SIGMAP_XREPO_DATA: d.root }).stderr, /--change needs --agent api/);
+  });
+
+  await test('prefetch-hook: hook events are read from the stream, and the integrity check wants exactly one successful hook in the SigMap arm and none in the baseline', () => {
+    const line = (o) => JSON.stringify(o);
+    const ctx = JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'héllo ranked files' } });
+    const parsed = claude.parseStream([
+      line({ type: 'system', subtype: 'hook_started', hook_event: 'UserPromptSubmit' }),
+      line({ type: 'system', subtype: 'hook_response', hook_event: 'UserPromptSubmit', outcome: 'success', exit_code: 0, stdout: ctx }),
+      line({ type: 'system', subtype: 'hook_response', hook_event: 'SessionStart', outcome: 'success', exit_code: 0, stdout: 'plain text' }),
+      line({ type: 'system', subtype: 'init', tools: ['Read', 'Grep'], mcp_servers: [] }),
+    ].join('\n'));
+    assert.deepStrictEqual(parsed.hooks, [
+      { event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: Buffer.byteLength('héllo ranked files'), files: [] },
+      { event: 'SessionStart', outcome: 'success', exitCode: 0, bytes: Buffer.byteLength('plain text'), files: [] },
+    ]);
+    assert.deepStrictEqual(claude.parseStream('').hooks, []);
+
+    const init = { tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] };
+    const good = [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900 }];
+    const chk = (arm, hooks, i = init) => ab.checkIntegrity(i, arm, { variant: 'prefetch-hook', hooks });
+    assert.ok(chk('with', good).ok && chk('without', []).ok);
+    for (const [why, arm, hooks, re] of [
+      ['no hook events reported', 'with', undefined, /no hook events/],
+      ['the hook never ran', 'with', [], /once; it ran it 0 times/],
+      ['it ran twice', 'with', [...good, ...good], /2 times/],
+      ['it failed', 'with', [{ event: 'UserPromptSubmit', outcome: 'error', exitCode: 1, bytes: 0 }], /did not succeed/],
+      ['it added nothing', 'with', [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 0 }], /added nothing/],
+      ['the baseline ran a hook', 'without', good, /no-SigMap arm ran a hook/],
+    ]) { const r = chk(arm, hooks); assert.ok(!r.ok && re.test(r.problems.join(' ')), `${why}: ${JSON.stringify(r.problems)}`); }
+    const mcp = chk('with', good, { tools: [...init.tools, 'mcp__sigmap__query_context'], mcpServers: [{ name: 'sigmap', status: 'connected' }] });
+    assert.ok(!mcp.ok && /holds the sigmap MCP server/.test(mcp.problems.join(' ')));
+  });
+
+  await test('the run record keeps the order of the agent\'s tool calls (relative to its checkout) and the files the ranking named, whether the hook printed JSON or plain text', () => {
+    const ranking = ['## Files SigMap ranked for this question', 'x', '', '  1  src/a.js   8.290  299 tok', '  2  lib/b.py   5.100  120 tok', 'not a ranking line'].join('\n');
+    assert.deepStrictEqual(claude.rankedFilesOf(ranking), ['src/a.js', 'lib/b.py']);
+    assert.strictEqual(claude.callKey({ name: 'Read', input: { file_path: '/tmp/x/src/a.js' } }), 'Read:/tmp/x/src/a.js');
+    assert.strictEqual(claude.callKey({ name: 'Grep', input: { pattern: 'foo.*bar' } }), 'Grep:foo.*bar');
+    assert.strictEqual(claude.callKey({ name: 'Bash', input: { command: '  ls   -la\n' } }), 'Bash:ls -la');
+    assert.strictEqual(claude.callKey({ name: 'TodoWrite', input: {} }), 'TodoWrite');
+    const json = JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: ranking } });
+    for (const stdout of [json, ranking]) {
+      const parsed = claude.parseStream([
+        JSON.stringify({ type: 'system', subtype: 'hook_response', hook_event: 'UserPromptSubmit', outcome: 'success', exit_code: 0, stdout }),
+        JSON.stringify({ type: 'assistant', message: { id: 'm1', role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'Read', input: { file_path: '/tmp/arm/with/src/a.js' } }, { type: 'tool_use', id: 't2', name: 'Grep', input: { pattern: 'foo' } }], usage: { input_tokens: 1, output_tokens: 1 } } }),
+        JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: 'x', num_turns: 2 }),
+      ].join('\n'));
+      assert.deepStrictEqual(parsed.hooks[0].files, ['src/a.js', 'lib/b.py']);
+      assert.strictEqual(parsed.hooks[0].bytes, Buffer.byteLength(ranking), 'plain stdout is context too, so it counts');
+      const rec = claude.toRecord(parsed, { wallMs: 1, cwds: ['/tmp/arm/with'], model: 'claude-haiku-5-5', timedOut: false, code: 0 });
+      assert.deepStrictEqual(rec.toolCalls.sequence, ['Read:src/a.js', 'Grep:foo']);
+    }
+    assert.strictEqual(claude.parseStream(Array.from({ length: 200 }, (_, i) => JSON.stringify({ type: 'assistant', message: { id: `m${i}`, role: 'assistant', content: [{ type: 'tool_use', id: `t${i}`, name: 'Read', input: {} }], usage: { input_tokens: 1, output_tokens: 1 } } })).join('\n')).toolCalls.sequence.length, 80, 'the sequence is bounded; the totals are not');
+  });
+
+  await test('prefetch-hook: the two arms get identical command lines, --bare is refused (it skips hooks), and nothing is added to the prompt', () => {
+    const a = { model: 'm', budgetUsd: 1, bare: false, hook: true };
+    assert.deepStrictEqual(claude.buildArgs({ ...a, arm: 'with' }), claude.buildArgs({ ...a, arm: 'without' }), 'the arms differ in the checkout, not on the command line');
+    const argv = claude.buildArgs({ ...a, arm: 'with' }).join(' ');
+    assert.ok(!/--mcp-config|--append-system-prompt|sigmap/.test(argv), argv);
+    assert.ok(/--setting-sources project/.test(argv), 'project settings are what carries the hook');
+    assert.throws(() => claude.buildArgs({ ...a, arm: 'with', bare: true }), /--bare skips hooks/);
+  });
+
+  await test('prefetch-hook: only the SigMap arm gets .claude/settings.json, with the command SigMap itself writes; the probe runs it; an existing settings file is merged, not replaced', () => {
+    const hi = require(path.join(ROOT, 'src/session/hooks-install'));
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-hook-');
+    const without = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'prefetch-hook' });
+    const withArm = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'prefetch-hook' });
+    assert.ok(!fs.existsSync(path.join(without.cwd, '.claude')), 'the baseline has no settings');
+    const settings = JSON.parse(fs.readFileSync(path.join(withArm.cwd, '.claude', 'settings.json'), 'utf8'));
+    assert.deepStrictEqual(Object.keys(settings.hooks), ['UserPromptSubmit'], 'the hook and nothing else: no session capture');
+    const entry = settings.hooks.UserPromptSubmit[0].hooks[0];
+    assert.strictEqual(entry.command, hi.hookCommand(path.join(ROOT, 'gen-context.js'), 'UserPromptSubmit'));
+    // The same entry `hooks install claude --prefetch` writes for that event: a change to the installer must not leave the benchmark measuring something else.
+    const viaInstaller = mktmp('ab-hook-inst-');
+    hi.installClaudeHooks(viaInstaller, path.join(ROOT, 'gen-context.js'), { prefetch: true, shared: true });
+    assert.deepStrictEqual(settings.hooks.UserPromptSubmit, JSON.parse(fs.readFileSync(path.join(viaInstaller, '.claude', 'settings.json'), 'utf8')).hooks.UserPromptSubmit);
+    assert.ok(!withArm.mcpConfig && !withArm.sigmapContext && withArm.hook === true);
+    arms.assertArmHygiene({ without: without.cwd, with: withArm.cwd, label: 'r1' });
+    const probe = arms.probeHook({ cwd: withArm.cwd, codeRoot: ROOT });
+    assert.ok(probe.ok && probe.bytes > 0, JSON.stringify(probe));
+    assert.ok(!fs.existsSync(path.join(withArm.cwd, '.context', 'prefetch-state.json')), 'the probe leaves no dedupe state behind');
+    assert.ok(!arms.probeHook({ cwd: without.cwd, codeRoot: ROOT }).ok, 'and a checkout without the hook fails the probe');
+
+    arms.writeHookSettings(withArm.cwd, ROOT); // twice: replaced, not duplicated
+    assert.strictEqual(JSON.parse(fs.readFileSync(path.join(withArm.cwd, '.claude', 'settings.json'), 'utf8')).hooks.UserPromptSubmit.length, 1);
+    const own = mktmp('ab-hook-merge-');
+    fs.mkdirSync(path.join(own, '.claude'));
+    fs.writeFileSync(path.join(own, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: ['Read'] }, hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'echo theirs' }] }] } }));
+    arms.writeHookSettings(own, ROOT);
+    const merged = JSON.parse(fs.readFileSync(path.join(own, '.claude', 'settings.json'), 'utf8'));
+    assert.deepStrictEqual(merged.permissions, { allow: ['Read'] });
+    assert.deepStrictEqual(merged.hooks.UserPromptSubmit.map((g) => g.hooks[0].command).sort(), [hi.hookCommand(path.join(ROOT, 'gen-context.js'), 'UserPromptSubmit'), 'echo theirs'].sort());
+  });
+
+  await test('--sigmap-variant prefetch-hook needs Claude Code on the session login; through the fake Claude the SigMap arm alone runs its hook, a baseline that ran one or a hook that failed aborts the plan', () => {
+    const f = fixture();
+    assert.match(runCli(['--dry-run', '--sigmap-variant', 'prefetch-hook', '--claude', f.bin], { SIGMAP_XREPO_DATA: f.root }).stderr, /needs --agent claude and --session-auth/);
+    assert.match(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'prefetch-hook'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'k' }).stderr, /needs --agent claude and --session-auth/);
+    const args = ['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch-hook', '--session-auth', '--allow-unpublishable', '--repos', 'r1', '--raw-out'];
+    const raw = path.join(f.out, 'raw.json');
+    const ok = runCli([...args, raw, '--out-dir', f.out], live(f, { FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    const recs = JSON.parse(fs.readFileSync(raw, 'utf8'));
+    assert.ok(recs.length > 0 && recs.every((r) => (r.arm === 'with' ? r.hooks.length === 1 && r.hooks[0].bytes > 0 : r.hooks.length === 0)), 'one hook in every SigMap run and none in a baseline run');
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.every((c) => !c.argv.includes('--mcp-config') && !/Question:[^]*SigMap ranked/.test(c.stdin)), 'nothing in the prompt we write');
+    for (const [mode, re] of [['hook-leak', /no-SigMap arm ran a hook/], ['hook-fail', /did not succeed/], ['hook-silent', /ran it 0 times/]]) {
+      const g = fixture();
+      const r = runCli([...args, path.join(g.out, 'raw.json'), '--out-dir', g.out], live(g, { FAKE_MODE: mode, FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+      assert.notStrictEqual(r.status, 0, `${mode} must abort the plan`);
+      assert.match(r.stderr, re, `${mode}: ${r.stderr.slice(0, 300)}`);
+    }
+  });
+
+  await test('--prompt-style question: the prompt is the bare question plus a reference no two runs share, the answer format moves to the system prompt of BOTH arms, and runPlan asks for a prompt per run', () => {
+    const task = { id: 'x001', repo: 'r1', query: 'where is the alpha thing handled', expected_files: ['src/alpha.js'] };
+    const a = ab.questionPrompt(task), b = ab.questionPrompt(task);
+    assert.match(a, /^where is the alpha thing handled \[q[0-9a-f]{8}\]$/);
+    assert.notStrictEqual(a, b, 'no two runs share an opening prompt');
+    assert.strictEqual(ab.questionPrompt(task, 'qdeadbeef'), 'where is the alpha thing handled [qdeadbeef]');
+    assert.ok(!/repository-relative|backticks|open-source/.test(a), 'none of the template in the prompt');
+    assert.ok(/repository-relative path/.test(ab.ANSWER_FRAMING) && /at most 5/.test(ab.ANSWER_FRAMING) && /Do not modify/.test(ab.ANSWER_FRAMING), 'it all moved to the framing');
+
+    // The framing rides in both arms alike; a SigMap arm that appends its own context cannot be combined with it.
+    const hookBase = { model: 'm', budgetUsd: 1, framing: ab.ANSWER_FRAMING, hook: true, bare: false };
+    assert.deepStrictEqual(claude.buildArgs({ ...hookBase, arm: 'with' }), claude.buildArgs({ ...hookBase, arm: 'without' }), 'the hook arms differ in the checkout, not on the command line');
+    for (const arm of ['with', 'without']) {
+      const w = claude.buildArgs({ model: 'm', budgetUsd: 1, framing: ab.ANSWER_FRAMING, prefetch: true, arm });
+      assert.strictEqual(w[w.indexOf('--append-system-prompt') + 1], ab.ANSWER_FRAMING, `${arm}: the framing is there in the prefetch variant too`);
+    }
+    assert.ok(!claude.buildArgs({ model: 'm', budgetUsd: 1, arm: 'without' }).includes('--append-system-prompt'), 'no framing, no flag: the template runs are unchanged');
+    assert.throws(() => claude.buildArgs({ model: 'm', budgetUsd: 1, arm: 'with', framing: ab.ANSWER_FRAMING, sigmapContext: 'x', mcpConfig: '{}' }), /adds nothing to the system prompt/);
+  });
+
+  await test('runPlan builds the prompt once per task by default (both arms, every repetition) and once per run when the prompt function wants the run', async () => {
+    const seen = [];
+    const runner = async (job) => { seen.push({ run: job.run, arm: job.arm, prompt: job.prompt }); return { ok: true, answer: '`src/alpha.js`', init: { tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, toolCalls: { total: 1, byTool: {}, byCommand: {} }, usage: { in: 1, out: 1, cacheRead: 0, cacheWrite: 0 }, cost: { usd: 0.01, source: 'agent-reported' }, cwds: [], turns: 2, durationMs: 1 }; };
+    const tasks = [{ id: 'x001', repo: 'r1', query: 'where is alpha', expected_files: ['src/alpha.js'] }];
+    await ab.runPlan({ tasks, runs: 2, runner, variant: 'placebo' });
+    assert.strictEqual(new Set(seen.map((j) => j.prompt)).size, 1, 'the template prompt is the same for every run');
+    seen.length = 0;
+    await ab.runPlan({ tasks, runs: 2, runner, variant: 'placebo', promptFor: (t) => ab.questionPrompt(t) });
+    assert.strictEqual(new Set(seen.map((j) => j.prompt)).size, 4, 'two runs by two arms, four different prompts');
+  });
+
+  await test('--prompt-style question: the CLI refuses the Messages-API agent, --change and a bad value; through the fake Claude it sends the bare question and the same framing to both arms and marks the runs fresh', () => {
+    const f = fixture();
+    assert.match(runCli(['--dry-run', '--prompt-style', 'plain', '--claude', f.bin], { SIGMAP_XREPO_DATA: f.root }).stderr, /--prompt-style is "template"/);
+    assert.match(runCli(['--dry-run', '--prompt-style', 'question', '--agent', 'api'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'k' }).stderr, /for the Claude Code agent/);
+    const args = ['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch-hook', '--session-auth', '--prompt-style', 'question', '--allow-unpublishable', '--repos', 'r1', '--raw-out'];
+    const raw = path.join(f.out, 'raw.json');
+    const ok = runCli([...args, raw, '--out-dir', f.out], live(f, { FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    const recs = JSON.parse(fs.readFileSync(raw, 'utf8'));
+    assert.ok(recs.length > 0 && recs.every((r) => r.fresh === true), 'every run is marked a first ask');
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.every((c) => /\[q[0-9a-f]{8}\]$/.test(c.stdin.trim()) && !/Question:|repository-relative/.test(c.stdin)), `the bare question and a reference, nothing else: ${JSON.stringify(calls.map((c) => c.stdin).slice(0, 2))}`);
+    assert.strictEqual(new Set(calls.map((c) => c.stdin)).size, calls.length, 'no two runs got the same prompt');
+    assert.ok(calls.every((c) => c.argv.includes('--append-system-prompt') && c.argv[c.argv.indexOf('--append-system-prompt') + 1] === ab.ANSWER_FRAMING), 'the framing in every run, both arms');
+  });
+
+  await test('stage B1 prototypes: each style calls the product\'s prefetch() and changes only what is printed (plain text; a firmer header; a shorter block); a hook that cannot answer prints nothing', () => {
+    const proto = require(path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'));
+    const prefetchMod = require(path.join(ROOT, 'src/session/prefetch.js'));
+    assert.deepStrictEqual(proto.STYLES, ['plain', 'firm', 'brief', 'doubt']);
+    assert.ok(proto.FIRM_HEADER.startsWith('## Files SigMap ranked for this question') && /Start with them/.test(proto.FIRM_HEADER) && !/leads, not an answer/.test(proto.FIRM_HEADER));
+    assert.ok(proto.BRIEF_BYTES < prefetchMod.MAX_BYTES);
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing handled', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-proto-');
+    const run = (variant, prompt) => {
+      const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, variant), codeRoot: ROOT, variant, sessionAuth: true });
+      const settings = JSON.parse(fs.readFileSync(path.join(a.cwd, '.claude', 'settings.json'), 'utf8'));
+      const cmd = settings.hooks.UserPromptSubmit[0].hooks[0].command;
+      const r = spawnSync('sh', ['-c', cmd], { cwd: a.cwd, input: JSON.stringify({ session_id: `s-${variant}`, hook_event_name: 'UserPromptSubmit', cwd: a.cwd, prompt }), encoding: 'utf8', timeout: 60000 });
+      return { a, cmd, r, probe: arms.probeHook({ cwd: a.cwd, codeRoot: ROOT }) };
+    };
+    const q = 'where is the alpha thing handled in this repository';
+    const shipped = run('prefetch-hook', q);
+    const shippedCtx = JSON.parse(shipped.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(shippedCtx.startsWith(prefetchMod.HEADER));
+
+    const plain = run('hook-plain', q);
+    assert.ok(/prototype-hook\.cjs/.test(plain.cmd) && / plain /.test(plain.cmd), plain.cmd);
+    assert.strictEqual(plain.r.status, 0);
+    assert.strictEqual(plain.r.stdout, shippedCtx, 'plain: exactly the product\'s block, as text');
+    assert.ok(plain.probe.ok && plain.probe.bytes > 0, JSON.stringify(plain.probe));
+
+    const firm = run('hook-firm', q);
+    const firmCtx = JSON.parse(firm.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(firmCtx.startsWith(proto.FIRM_HEADER) && firmCtx.slice(proto.FIRM_HEADER.length) === shippedCtx.slice(prefetchMod.HEADER.length), 'firm: only the header differs');
+    assert.ok(firm.probe.ok, JSON.stringify(firm.probe));
+
+    const brief = run('hook-brief', q);
+    const briefCtx = JSON.parse(brief.r.stdout).hookSpecificOutput.additionalContext;
+    assert.ok(Buffer.byteLength(briefCtx) <= proto.BRIEF_BYTES && briefCtx.startsWith(prefetchMod.HEADER), 'brief: the same header and ranking, a shorter body');
+    assert.deepStrictEqual(prefetchMod.rankedFiles(briefCtx), prefetchMod.rankedFiles(shippedCtx), 'and the same five files');
+    assert.ok(brief.probe.ok, JSON.stringify(brief.probe));
+
+    // Silence on anything it cannot answer, like the shipped hook.
+    const silent = spawnSync('sh', ['-c', plain.cmd], { cwd: plain.a.cwd, input: JSON.stringify({ session_id: 'x', cwd: plain.a.cwd, prompt: 'yes' }), encoding: 'utf8' });
+    assert.strictEqual(silent.status, 0); assert.strictEqual(silent.stdout, '');
+    assert.strictEqual(spawnSync(process.execPath, [path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'), 'bogus', 'x'], { input: '{}', encoding: 'utf8' }).stdout, '');
+    assert.strictEqual(spawnSync(process.execPath, [path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'), 'plain', path.join(ROOT, 'gen-context.js')], { input: 'not json', encoding: 'utf8' }).stdout, '');
+
+    // They run the hook integrity check like the shipped one; the baseline gets no settings.
+    for (const v of ['hook-plain', 'hook-firm', 'hook-brief', 'hook-doubt']) {
+      assert.ok(ab.isHookVariant(v) && /PROTOTYPE/.test(ab.SIGMAP_VARIANTS[v]));
+      assert.ok(ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900 }] }).ok);
+      assert.ok(!ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: v, hooks: [] }).ok, `${v}: a hook that never ran is not a result`);
+    }
+    const bl = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: path.join(tmp, 'bl'), codeRoot: ROOT, variant: 'hook-firm', sessionAuth: true });
+    assert.ok(!fs.existsSync(path.join(bl.cwd, '.claude')), 'the baseline has no settings');
+  });
+
+  await test('--prompt-style wrapped: the whole template with a reference on the question line, unique per run, no framing; the CLI marks the runs fresh and refuses the API agent', () => {
+    const task = { id: 'x001', repo: 'r1', query: 'where is the alpha thing handled', expected_files: ['src/alpha.js'] };
+    const a = ab.wrappedPrompt(task, 'qdeadbeef'), b = ab.wrappedPrompt(task), c = ab.wrappedPrompt(task);
+    assert.ok(a.includes('Question: where is the alpha thing handled [qdeadbeef]') && a.startsWith('You are answering a question') && /Do not modify anything\.$/.test(a), a);
+    assert.strictEqual(a.replace(' [qdeadbeef]', ''), ab.buildPrompt(task), 'the template, and nothing else, apart from the reference');
+    assert.notStrictEqual(b, c, 'unique per call');
+    const f = fixture();
+    assert.match(runCli(['--dry-run', '--prompt-style', 'wrapped', '--agent', 'api'], { SIGMAP_XREPO_DATA: f.root, ANTHROPIC_API_KEY: 'k' }).stderr, /--prompt-style wrapped is for the Claude Code agent/);
+    const args = ['--claude', f.bin, '--runs', '2', '--sigmap-variant', 'prefetch-hook', '--session-auth', '--prompt-style', 'wrapped', '--allow-unpublishable', '--repos', 'r1', '--raw-out'];
+    const raw = path.join(f.out, 'raw.json');
+    const ok = runCli([...args, raw, '--out-dir', f.out], live(f, { FAKE_MAP: JSON.stringify({ r1: 'src/alpha.js' }) }));
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    assert.ok(JSON.parse(fs.readFileSync(raw, 'utf8')).every((r) => r.fresh === true));
+    const calls = fs.readFileSync(f.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(calls.every((c2) => /Question: .* \[q[0-9a-f]{8}\]\n/.test(c2.stdin) && /Do not modify anything/.test(c2.stdin) && !c2.argv.includes('--append-system-prompt')), 'the whole template in the user turn, nothing in the system prompt');
+    assert.strictEqual(new Set(calls.map((c2) => c2.stdin)).size, calls.length, 'no two runs got the same prompt');
+  });
+
+  await test('stage G prototype: the doubtful header replaces the standard one exactly when the list is flat, and nothing else in the block changes', () => {
+    const proto = require(path.join(ROOT, 'benchmarks/agent-study/hooks/prototype-hook.cjs'));
+    const pf = require(path.join(ROOT, 'src/session/prefetch.js'));
+    const block = (scores) => `${pf.HEADER}\n\n${scores.map((x, i) => `  ${i + 1}  src/f${i}.js   ${x.toFixed(3)}  100 tok`).join('\n')}\n\n## src/f0.js\nfunction a()  :1-1\n`;
+    assert.strictEqual(proto.flatness(block([10, 6, 4])), 1 - 4 / 10);
+    assert.ok(!proto.isThin(block([10, 6, 4])), 'a peaked list is not thin');
+    assert.ok(proto.isThin(block([10, 9.5, 8])), 'a flat list is');
+    assert.ok(proto.isThin(block([8.639, 8.304, 8.147, 8.146, 8.113])), 'the mica-mqtt example from the study: scores 8.6 to 8.1');
+    assert.ok(!proto.isThin(block([12.943])), 'one file is never thin');
+    assert.ok(!proto.isThin(block([0, 0])) && !proto.isThin('no ranking here'), 'nothing to measure, nothing flagged');
+    assert.strictEqual(proto.THIN_FLATNESS, 0.429);
+    assert.ok(proto.DOUBT_HEADER.startsWith('## Files SigMap ranked for this question (a weak ranking)') && /not to follow|not leads to\s+follow|guesses to check, not leads to follow/.test(proto.DOUBT_HEADER) && /Read directly/.test(proto.DOUBT_HEADER));
+    assert.ok(!/leads, not an answer/.test(proto.DOUBT_HEADER));
+
+    // Through the real process: on the fixture project, whatever the shipped block's flatness, the header follows it and only the header differs.
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing handled', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-doubt-');
+    const shipped = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 's'), codeRoot: ROOT, variant: 'prefetch-hook', sessionAuth: true });
+    const doubt = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'd'), codeRoot: ROOT, variant: 'hook-doubt', sessionAuth: true });
+    const cmd = (a) => JSON.parse(fs.readFileSync(path.join(a.cwd, '.claude', 'settings.json'), 'utf8')).hooks.UserPromptSubmit[0].hooks[0].command;
+    assert.ok(/prototype-hook\.cjs/.test(cmd(doubt)) && / doubt /.test(cmd(doubt)), cmd(doubt));
+    const run = (a, prompt) => spawnSync('sh', ['-c', cmd(a)], { cwd: a.cwd, input: JSON.stringify({ session_id: `s-${Math.random()}`, hook_event_name: 'UserPromptSubmit', cwd: a.cwd, prompt }), encoding: 'utf8', timeout: 60000 });
+    for (const prompt of ['where is the alpha thing handled in this repository', 'which module handles the beta feature and its helpers here']) {
+      const a = run(shipped, prompt), b = run(doubt, prompt);
+      if (!a.stdout) { assert.strictEqual(b.stdout, '', 'silent where the shipped hook is silent'); continue; }
+      const ca = JSON.parse(a.stdout).hookSpecificOutput.additionalContext, cb = JSON.parse(b.stdout).hookSpecificOutput.additionalContext;
+      if (proto.isThin(ca)) assert.strictEqual(cb, proto.DOUBT_HEADER + ca.slice(pf.HEADER.length), 'thin: only the header differs');
+      else assert.strictEqual(cb, ca, 'not thin: identical to the shipped block');
+    }
+    assert.ok(arms.probeHook({ cwd: doubt.cwd, codeRoot: ROOT }).ok);
+  });
+
+  await test('the confidence guard in the integrity check: a hook that runs and says nothing is right exactly when the product\'s own screen() says the prompt is guarded', async () => {
+    const init = { tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] };
+    const silent = [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 0, files: [] }];
+    const loud = [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: 900, files: [] }];
+    const chk = (hooks, expectSilent, arm = 'with') => ab.checkIntegrity(init, arm, { variant: 'prefetch-hook', hooks, expectSilent });
+    assert.ok(chk(silent, true).ok, 'silent where silence is expected');
+    assert.ok(chk(loud, false).ok, 'context where context is expected');
+    assert.ok(!chk(loud, true).ok && /guard should have kept the hook silent/.test(chk(loud, true).problems.join(' ')), 'context where the guard should have withheld it');
+    assert.ok(!chk(silent, false).ok && /added nothing/.test(chk(silent, false).problems.join(' ')), 'silence where it was not expected is still a defect');
+    assert.ok(!chk([], true).ok && /ran it 0 times/.test(chk([], true).problems.join(' ')), 'a hook that never ran is a defect even when silence is expected');
+    assert.ok(!chk([{ ...silent[0], exitCode: 1, outcome: 'error' }], true).ok, 'and so is one that failed');
+    assert.ok(chk([], true, 'without').ok, 'the baseline arm is unchanged');
+
+    // Through runPlan, with the verdict the CLI uses: the product\'s own screen()
+    const pf = require(path.join(ROOT, 'src/session/prefetch.js'));
+    const zh = { id: 'z1', repo: 'r1', query: '\u4FEE\u590D systemPing \u547D\u4EE4\u6CE8\u5165\u6F0F\u6D1E \u7684 \u95EE\u9898 \u5728 \u8FD9\u91CC', expected_files: ['src/ping.js'] };
+    const en = { id: 'e1', repo: 'r1', query: 'where is the alpha thing handled in this repository', expected_files: ['src/alpha.js'] };
+    const mkRunner = (talk) => async (job) => ({ ok: true, answer: `\`${job.task.expected_files[0]}\``, init, cwds: [], toolCalls: { total: 1, byTool: {}, byCommand: {} }, usage: { in: 1, out: 1, cacheRead: 0, cacheWrite: 0 }, cost: { usd: 0.01, source: 'agent-reported' }, turns: 2, durationMs: 1, hooks: job.arm === 'with' ? [{ event: 'UserPromptSubmit', outcome: 'success', exitCode: 0, bytes: talk(job.task) ? 800 : 0, files: [] }] : [] });
+    const silentFor = (prompt) => !pf.screen(prompt, { focus: true, guard: true }).ok;
+    assert.ok(silentFor(ab.wrappedPrompt(zh)) && !silentFor(ab.wrappedPrompt(en)), 'the screen guards the Chinese question and not the English one');
+    const entries = await ab.runPlan({ tasks: [zh, en], runs: 1, runner: mkRunner((t) => t.id === 'e1'), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor });
+    assert.strictEqual(entries.length, 4, 'a guarded question and an unguarded one both pass');
+    await assert.rejects(ab.runPlan({ tasks: [zh], runs: 1, runner: mkRunner(() => true), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor }), /guard should have kept the hook silent/);
+    await assert.rejects(ab.runPlan({ tasks: [en], runs: 1, runner: mkRunner(() => false), variant: 'prefetch-hook', promptFor: (t) => ab.wrappedPrompt(t), silentFor }), /added nothing/);
+  });
+
+  await test('the placebo variant is a block of generic text in the SigMap arm\'s system prompt and nothing else: no SigMap, no tools, no change to what the agent can search', async () => {
+    const { PLACEBO_SECTION } = await import('../../scripts/lib/agent-ab-placebo.mjs');
+    assert.ok(PLACEBO_SECTION.length > 6500 && PLACEBO_SECTION.length < 8500, `${PLACEBO_SECTION.length} characters: sized to what the index setup adds to every turn`);
+    assert.ok(!/sigmap|\.context|gen-context|query_context|mcp/i.test(PLACEBO_SECTION), 'the control must say nothing about SigMap');
+    assert.ok(!/\bsrc\/|\.js\b/.test(PLACEBO_SECTION.replace(/`[^`]*`/g, '')), 'and nothing about a particular repository');
+
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-placebo-');
+    const without = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT, variant: 'placebo' });
+    const withArm = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT, variant: 'placebo' });
+    assert.strictEqual(withArm.sigmapContext, PLACEBO_SECTION);
+    assert.ok(!withArm.mcpConfig && !withArm.binDir && !without.sigmapContext);
+    assert.ok(!fs.existsSync(path.join(withArm.cwd, 'gen-context.config.json')) && !fs.existsSync(path.join(withArm.cwd, '.context')), 'nothing was generated into the checkout');
+    arms.assertArmHygiene({ without: without.cwd, with: withArm.cwd, label: 'r1' });
+
+    assert.ok(ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash'], mcpServers: [] }, 'with', { variant: 'placebo' }).ok);
+    const leaked = ab.checkIntegrity({ tools: ['Read', 'Grep', 'Glob', 'Bash', 'mcp__sigmap__query_context'], mcpServers: [{ name: 'sigmap', status: 'connected' }] }, 'with', { variant: 'placebo' });
+    assert.ok(!leaked.ok && /placebo variant holds the sigmap MCP server/.test(leaked.problems.join(' ')));
+
+    const fake = await fakeApi(() => textTurn('`src/alpha.js`'));
+    try {
+      const mk = (arm, a) => api.makeApiRunner({ apiKey: 'k', model: 'claude-haiku-5-5', budgetUsd: 1, timeoutMs: 30000, arms: () => a, baseUrl: fake.url, env: {} })({ task: { repo: 'r1', id: 'x001', query: 'q' }, arm, run: 1, prompt: 'q' });
+      await mk('without', without); await mk('with', withArm);
+      const sys = (i) => fake.seen[i].body.system.map((b) => b.text).join('\n');
+      assert.ok(!sys(0).includes('Working notes') && sys(1).includes('Working notes: finding code'));
+      assert.deepStrictEqual(fake.seen[0].body.tools.map((t) => t.name), fake.seen[1].body.tools.map((t) => t.name), 'the same tools in both arms');
+    } finally { fake.close(); }
+
+    assert.match(runCli(['--dry-run', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).stderr, /placebo puts its text in the system prompt, which only --agent api controls/);
+    assert.strictEqual(runCli(['--dry-run', '--agent', 'api', '--sigmap-variant', 'placebo'], { SIGMAP_XREPO_DATA: root }).status, 0);
+  });
+
+  await test('the locate variant is the index setup with the tool list cut to query_context and get_lines, and nothing else changes', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'where is the alpha thing', expected: ['src/alpha.js'] }] }]);
+    const tmp = mktmp('ab-locate-');
+    const idx = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'a'), codeRoot: ROOT, variant: 'index' });
+    const loc = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: path.join(tmp, 'b'), codeRoot: ROOT, variant: 'locate' });
+    const cfg = (a) => JSON.parse(fs.readFileSync(path.join(a.cwd, 'gen-context.config.json'), 'utf8'));
+    assert.strictEqual(cfg(idx).strategy, 'index');
+    assert.strictEqual(cfg(loc).strategy, 'index');
+    assert.deepStrictEqual(cfg(loc).mcp, { tools: 'locate' });
+    assert.deepStrictEqual(cfg(idx).mcp, { tools: 'core' });
+    assert.strictEqual(loc.sigmapContext, idx.sigmapContext, 'the same section');
+    assert.ok(loc.mcpConfig && loc.binDir);
+    const probe = arms.probeMcp({ cwd: loc.cwd, codeRoot: ROOT });
+    assert.ok(probe.ok, probe.error);
+    assert.strictEqual(probe.tools, 2, 'the server advertises exactly the two tools');
+    assert.strictEqual(arms.probeMcp({ cwd: idx.cwd, codeRoot: ROOT }).tools, 7);
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }

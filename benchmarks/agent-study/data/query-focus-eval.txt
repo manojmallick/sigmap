@@ -1,0 +1,20 @@
+222 questions (all), ranked by the real `sigmap ask`; rule = src/session/query-focus.js
+
+top-5 hits, with top-1 in brackets  raw prompt          focused             batch
+bare                                159 72% (99 45%)    159 72% (99 45%)    reference
+template                            113 51% (35 16%)    160 72% (96 43%)    tune
+polite                              147 66% (78 35%)    159 72% (99 45%)    tune
+rules                               155 70% (83 37%)    156 70% (83 37%)    tune
+log                                 102 46% (34 15%)    159 72% (97 44%)    tune
+context                             134 60% (62 28%)    155 70% (87 39%)    tune
+standards                           103 46% (38 17%)    102 46% (44 20%)    tune
+task                                122 55% (46 21%)    121 55% (50 23%)    confirm
+trace                               130 59% (64 29%)    146 66% (80 36%)    confirm
+chat                                151 68% (92 41%)    157 71% (96 43%)    confirm
+issue                               138 62% (54 24%)    142 64% (78 35%)    validate
+review                              140 63% (77 35%)    144 65% (88 40%)    validate
+longpolite                          131 59% (55 25%)    135 61% (67 30%)    validate
+instr2                              149 67% (80 36%)    158 71% (85 38%)    validate
+
+bare questions changed by focusing: 0 of 222 (must be 0)
+pooled over 13 wrappers (2886 prompts): top-5 raw 1715 -> focused 1894; top-1 raw 798 -> focused 1050; the bare question: 159 and 99 per 222
