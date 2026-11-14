@@ -100,22 +100,25 @@ provenance of every figure). Switch the prefetch hook on and off with `SIGMAP_PR
 pairs a question with itself.
 
 **3. Measure it, paired.** The study's harness runs the same questions with and without a setup against a real agent and pairs them. It spends real money, so look at the plan first. It lives in the
-SigMap repository, not in the npm package, so clone it:
+SigMap repository, not in the npm package, so clone that, and let `advise` write the harness's inputs from your own project (any project with a git history, private or not):
 
 ```bash
-# 1. questions from your repository's own merged changes (a public GitHub repository; needs network, no key)
-node scripts/build-heldout-set.mjs --out ./my-root --repos owner/name --max-per-repo 12
+# 1. in YOUR project (a plain clone: its .git must be a directory, not a linked worktree): questions from its own merged changes,
+#    written outside it. Nothing in the project is touched; the harness copies it, and the copies are reset to the pinned commit.
+cd /path/to/your/project && sigmap advise --no-grep --emit-root ~/advise-root     # it prints the two commands below, with the path quoted
 
-# 2. the plan and the worst-case spend; spawns nothing (the study used --model claude-haiku-5-5)
-SIGMAP_XREPO_DATA=./my-root node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --sigmap-variant prefetch --runs 4 --dry-run
+# 2. in a clone of the SigMap repository: the plan and the worst-case spend; spawns nothing (the study used --model claude-haiku-5-5)
+SIGMAP_XREPO_DATA=~/advise-root node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo 8 --runs 4 --sigmap-variant prefetch --dry-run
 
-# 3. the real run: ANTHROPIC_API_KEY, --max-budget-usd caps each run; try --sigmap-variant index and locate the same way
-SIGMAP_XREPO_DATA=./my-root ANTHROPIC_API_KEY=... node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --sigmap-variant prefetch --runs 4 --save
+# 3. the real run: ANTHROPIC_API_KEY, --max-budget-usd caps each run; then the same with --sigmap-variant index and locate
+SIGMAP_XREPO_DATA=~/advise-root ANTHROPIC_API_KEY=... node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo 8 --runs 4 --sigmap-variant prefetch --save
 ```
 
 Read the typical-task change with its interval, and the file found beside it: a saving whose interval includes zero is not a saving, and a small set of questions only sees a large change (the study's
-30 to 45 questions with two to four repetitions saw a change of about 10%, not a smaller one). A repository needs at least 8 qualifying changes since `--since` (default 2026-07-01) to contribute
-questions; lower `--min-per-repo` or move `--since` back for a quieter one. The [study protocol](/guide/agent-study-protocol) says how the numbers are formed, and [Measure AI credits](/guide/measure-ai-credits) is the same idea against GitHub's own billing view for Copilot.
+30 to 45 questions with two to four repetitions saw a change of about 10%, not a smaller one). `advise` uses the oldest 12 qualifying changes of the last year by default (`--since`, `--max`); a quiet
+project has fewer, and eight is a floor below which the interval is too wide to read. The questions are your commits' titles, and some titles are poor questions (a build or bundling change reads as noise);
+look at them in the `advise` output before you spend. The harness measures the **committed** state (`advise` says so when your tree has uncommitted changes). For a public repository the study's own
+builder is `node scripts/build-heldout-set.mjs --out <dir> --repos owner/name`. The [study protocol](/guide/agent-study-protocol) says how the numbers are formed, and [Measure AI credits](/guide/measure-ai-credits) is the same idea against GitHub's own billing view for Copilot.
 
 ## What this page does not say
 
