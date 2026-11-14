@@ -64,7 +64,7 @@ async function get(url, accept = 'application/json') {
 const maintainers = (doc) => (doc.maintainers || []).map((m) => m.name || m.username);
 
 for (const name of [...new Set([...CORE, ...RESERVED])]) {
-  const r = await get(`${REG}/${name.replace('/', '%2f')}`);
+  const r = await get(`${REG}/${encodeURIComponent(name)}`);
   if (r.status === 0) { add(name, 'ERROR', `registry unreachable: ${r.error}`, true); continue; }
   if (r.status === 404) { add(name, 'UNCLAIMED', 'returns 404: anyone can register it', true); continue; }
   const m = maintainers(r.json);
