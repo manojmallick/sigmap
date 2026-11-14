@@ -96,6 +96,7 @@ If you are new to the product, start with the workflow pages first:
 |----------------|-------------|
 | `roots [--explain | --json | --fix]` | Auto-detect source roots for 17 languages and 50+ frameworks; shows confidence and scoring |
 | `tune [--apply | --json]` | Recommend config from repo detection — srcDirs pin, monorepo, adapters, exclude, budget — one reason per change; `--apply` writes |
+| `advise [--since <date>] [--max <n>] [--no-grep] [--json]` | Offline facts for choosing how an agent gets SigMap (no model call, no forecast): what each setup adds to a turn, how often SigMap's first five files hold the file your recent changes touched against a single-shot grep, and whether the prefetch hook would fire. See [Choosing a setup](/guide/choosing-a-setup) |
 | `skills list` | List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) with presence and install state (`--json`) |
 | `skills install [--client <name> \| --all]` | Install the SigMap agent playbooks in each client's native skill/rules format, including the invokable `sigmap-task` loop; plain `install` wires only detected clients |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
@@ -2089,6 +2090,61 @@ Five rules, each deterministic:
 | `--dry-run` | Alias of the read-only default |
 
 ---
+
+## advise
+
+Offline facts for choosing **how an agent gets SigMap**, for one project. It spends nothing and writes nothing: it makes no model call, never generates an index (without one it says to run `sigmap` first), and prints no forecast. It reports what each setup adds to every turn in your project; how often SigMap's first five files hold the file a recent change of yours touched, against the honest benchmark's single-shot grep; and whether the [prefetch hook](#the-prefetch-hook) would fire on those titles as prompts. It then prints what the [agent study](/guide/agent-study) measured, by goal.
+
+```bash
+sigmap advise                       # the questions come from your git history of the last year
+sigmap advise --since 2026-01-01    # a date, or 90d / 6m / 1y
+sigmap advise --max 20 --json       # more questions; machine-readable
+sigmap advise --no-grep             # skip the grep side (a very large tree)
+```
+
+```
+sigmap advise — sigmap: what SigMap can tell you offline (no model call, nothing written)
+
+What each setup adds to a turn (tokens, estimated as chars/4; the API's own counter read the study's locate profile at 426 and core at 1,505):
+  tools, locate profile      278   (2 tools: query_context, get_lines)
+  tools, core profile        953   (7 tools)
+  tools, all               2,561   (22 tools)
+  prefetch hook                0   standing; one block per prompt, at most ~2,048; on your first question below, the search result is ~761
+  now: strategy "full", mcp.tools "all"
+  CLAUDE.md                       2,936   the whole file (which one your agent loads depends on the client)
+  AGENTS.md                       8,087   the whole file (which one your agent loads depends on the client)
+  .github/copilot-instructions.md 15,807   the whole file (which one your agent loads depends on the client)
+  the map `strategy: "index"` writes was 761 tokens on the API's counter for the study's snapshot of SigMap's own repository; it is not measured for yours here
+
+Questions mined from your git history since 2025-11-14: 12 (55 commit(s) examined; the title is the question, the source files it touched are the answer).
+  the file is in SigMap's first five   9 of 12 (75%, 95% interval 47% to 91%)
+  the file is in a single-shot grep's  1 of 12 (8%, 95% interval 1% to 35%)
+  headroom (SigMap minus grep)         +67 points
+  the prefetch hook would fire for     12 of 12 of those titles as prompts
+
+What this does NOT do: it makes no call and prints no saving. In the agent study these numbers did not predict which repositories save
+  (headroom against the cost of prefetch over 20 repositories: rho -0.13 [-0.57, +0.36]; the bar was -0.5 with the interval below zero).
+
+What the study measured, by goal (20 repositories, Messages-API agent, Haiku 5.5; repositories that save / cost more):
+  time    prefetch −18% (19 save, 0 slower)   index +2%   locate +1%
+  tokens  prefetch −26% (9 save, 0 more)   index +51%   locate +18%
+  cost    prefetch −7% (7 save, 5 more)   locate −7% (4 save, 0 more)   index −1%
+
+To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup
+```
+
+(From SigMap's own repository, whose ranker was tuned on questions like these, so the first-five share is the best case. The checkout name above is the directory it runs in.)
+
+**It makes no call on purpose.** The study tested, with its bar written first, whether any of these numbers predicts how much a setup saves on a repository (the share of questions with the file in SigMap's first five, the same for grep, their difference, and the repository's size). None did: over twenty repositories the correlation of the headroom with the cost of `prefetch` was −0.13 [−0.57, +0.36] against a bar of −0.50 with the interval below zero ([Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository)). So the numbers are facts about your project, not a recommendation, and `call` and `forecast` are `null` in `--json`. To know what a setup saves for you, measure it: [Choosing a setup](/guide/choosing-a-setup).
+
+**The questions** are mined by the rule that built the study's held-out set: the first-parent commits since `--since`, oldest first; the title (with a trailing `(#123)` and a conventional-commit type removed, 25 to 160 characters, four words or more, not about lint, tests, docs, renames or CI, no bot, no dependency bump or release) is the question, and the one to three source files the commit changed (not tests, fixtures, examples, docs, config or generated files, all still present, none named in the title) are the answer. Fewer than eight qualifying changes are still scored, with a note that the interval is too wide to read.
+
+| Option | Description |
+|--------|-------------|
+| `--since <date>` | Where the history starts: `2026-01-01`, `90d`, `6m` or `1y` (default `365d`) |
+| `--max <n>` | The most questions to use, oldest first (default 12) |
+| `--no-grep` | Leave the grep side (and the headroom row) out |
+| `--json` | One object: `project, call, forecast, standing, questions, lead, readability, notes, study` |
 
 ## skills
 
