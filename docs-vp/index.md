@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.8% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.32× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.8% where a single-shot grep agent finds the right file 39.2% of the time — a measured 2.37× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.85.1</span>
+  <span><strong>Release:</strong> v8.86.0</span>
   <span>·</span>
-  <span><strong>New — the CI that builds the package runs pinned code with least-privilege tokens:</strong> all 53 workflow actions are commit SHAs, every default token is read-only and write scopes sit on the job that needs them, Dependabot moves the pins by pull request, and <code>CHANGELOG.md</code> no longer ships in every download (257 KB smaller to fetch). No runtime change.</span>
+  <span><strong>New — the agent study, and the two opt-in tools it pointed at:</strong> SigMap against no SigMap in a real agent loop (22,540 recorded runs) saved 28% to 44% of a task's cost on code a model has not read, and on twenty repositories it was never tuned on no setup met the bar written down beforehand. <code>sigmap hooks install claude --prefetch</code> and <code>mcp.tools: "locate"</code> are opt-in; a source file with no signature is now findable by its path.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.85-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.86-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.2% token reduction · 2026-10-27</span>
+  <span>80.4% hit@5 · 95.2% token reduction · 2026-11-14</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.58** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **92.8%** (2.32× lift) |
+| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | **92.8%** (2.37× lift) |
 | Overall token reduction | — | **95.2%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-28 (v8.85.1)**.
+Latest saved benchmark run: **2026-11-14 (v8.86.0)**.
 
 </div>
 

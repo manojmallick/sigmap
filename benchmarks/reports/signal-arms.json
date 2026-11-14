@@ -452,20 +452,20 @@
       "mined": {
         "hits": 115,
         "tasks": 125,
-        "mrr": 0.766,
+        "mrr": 0.777,
         "gained": [],
         "lost": [
           "fastify/fastify-h001"
         ],
-        "moved": 11
+        "moved": 8
       },
       "callgraph": {
         "hits": 116,
         "tasks": 125,
-        "mrr": 0.775,
+        "mrr": 0.776,
         "gained": [],
         "lost": [],
-        "moved": 9
+        "moved": 10
       },
       "body": {
         "hits": 112,
@@ -478,7 +478,7 @@
           "retrieval/t005",
           "svelte/svelte-t002"
         ],
-        "moved": 22
+        "moved": 20
       }
     }
   },
@@ -509,21 +509,21 @@
       "tasks": 564,
       "gained": 8,
       "lost": 12,
-      "moved": 107
+      "moved": 104
     },
     "callgraph": {
       "hits": 373,
       "tasks": 564,
       "gained": 2,
       "lost": 9,
-      "moved": 76
+      "moved": 77
     },
     "body": {
       "hits": 329,
       "tasks": 564,
       "gained": 7,
       "lost": 58,
-      "moved": 168
+      "moved": 166
     },
     "nograph": {
       "hits": 261,
@@ -555,10 +555,10 @@
       "generated": "2026-10-23T00:10:09.305Z"
     },
     "honest": {
-      "version": "8.85.1",
-      "generated": "2026-10-28T23:09:58.496Z"
+      "version": "8.86.0",
+      "generated": "2026-11-14T08:03:20.883Z"
     }
   },
-  "version": "8.85.1",
-  "generated": "2026-10-28T23:09:58.496Z"
+  "version": "8.86.0",
+  "generated": "2026-11-14T08:03:20.883Z"
 }
