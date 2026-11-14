@@ -94,7 +94,7 @@ for (const term of ['sigmap', 'sig-map']) {
 // get an ownership drift check.
 for (const name of Object.keys(REVIEWED_FOREIGN)) {
   if (seen.has(name)) continue;
-  const r = await get(`${REG}/${name.replace('/', '%2f')}/latest`);
+  const r = await get(`${REG}/${encodeURIComponent(name)}/latest`);
   if (r.status === 404) add(name, 'REVIEWED-GONE', 'was reviewed as foreign; now 404 (claimable)', false);
 }
 
