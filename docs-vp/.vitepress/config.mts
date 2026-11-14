@@ -89,6 +89,7 @@ export default defineConfig({
         text: 'Guides',
         items: [
           { text: 'When to use what', link: '/guide/when-to-use' },
+          { text: 'Choosing a setup', link: '/guide/choosing-a-setup' },
           { text: 'End-to-end walkthrough', link: '/guide/walkthrough' },
           { text: 'Compare alternatives', link: '/guide/compare-alternatives' },
           { text: 'Measure AI credits', link: '/guide/measure-ai-credits' },

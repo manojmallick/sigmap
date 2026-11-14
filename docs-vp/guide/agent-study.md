@@ -56,6 +56,12 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
 - **Not every way of handing SigMap to an agent works.** The old default (`current`, +9%), the lean section (`lean`, +16%) and a skill
   that the agent is told to call first (`skill-always`, +25%) cost more than no SigMap on Haiku 5.5. A skill the agent may call or not
   was never called and changed nothing.
+- **By goal, on the twenty repositories (Messages-API agent, Haiku 5.5): `prefetch` is the only setup that cut time and tokens.** Time on 19 of 20 repositories (**−18% [−21, −14]**), tokens
+  **−26% [−39, −14]** with none using more; it saved cost on 7 and cost more on 5. `locate` is the only one that cost more on none (−7%) and saves no time; `index` raised tokens on 17 of 20
+  (+51%) and saves no time. The installed hook is about a third of the benchmark's `prefetch`. Per repository and measure: [Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository).
+- **Nothing SigMap can compute offline predicted which repositories save.** The share of a repository's questions whose file is in SigMap's first five, the same for a single-shot grep, their
+  difference and the repository's size: none tracked the saving (the pre-registered test, headroom against `prefetch` cost: ρ = −0.13 [−0.57, +0.36], bar −0.50 with the interval below zero).
+  To find out for a project, measure it: [choosing a setup](/guide/choosing-a-setup).
 
 ## Set it up the way the runs did
 
