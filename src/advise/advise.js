@@ -9,7 +9,7 @@
  * how often SigMap's first five files hold the file a recent change of the project touched, against a single-shot grep, and whether the
  * project's prompts are readable by the hook, and says that these numbers did not predict the saving. It prints no percentage as a forecast.
  *
- * Read-only: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing (it never generates an
+ * Read-only on the project: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing there (it never generates an
  * index; without one it says so).
  *
  * Zero-dependency.
@@ -126,7 +126,7 @@ function buildAdvice(cwd, opts = {}) {
   };
 
   const mined = mineQuestions(cwd, { since: opts.since, max: opts.max });
-  advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ title: q.title, files: q.files })) };
+  advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ sha: q.sha, title: q.title, files: q.files })) };
   if (!mined.ok) { advice.notes.push(`no questions mined: ${mined.reason}`); return advice; }
   if (mined.questions.length === 0) { advice.notes.push(`no change since ${mined.since} qualified as a question (1 to 3 source files, a title that describes behaviour); try a longer --since`); return advice; }
 
@@ -202,6 +202,19 @@ function formatAdvice(a) {
   L.push(`  tokens  prefetch ${sgn(g.tokens.prefetch.pooled)}% (${g.tokens.prefetch.saves} save, ${g.tokens.prefetch.costs} more)   index ${sgn(g.tokens.index.pooled)}%   locate ${sgn(g.tokens.locate.pooled)}%`);
   L.push(`  cost    prefetch ${sgn(g.cost.prefetch.pooled)}% (${g.cost.prefetch.saves} save, ${g.cost.prefetch.costs} more)   locate ${sgn(g.cost.locate.pooled)}% (${g.cost.locate.saves} save, ${g.cost.locate.costs} more)   index ${sgn(g.cost.index.pooled)}%`);
   L.push('');
+  if (a.emitted) {
+    const e = a.emitted;
+    const q = (p) => `'${String(p).replace(/'/g, "'\\''")}'`;
+    const per = Math.min(e.questions, 8);
+    const base = `SIGMAP_XREPO_DATA=${q(e.root)} node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo ${per} --runs 4`;
+    L.push(`Harness inputs written under ${e.root} (nothing in your project): ${e.questions} question(s), pinned to ${e.commit.slice(0, 10)}, checkout linked to this project.`);
+    if (e.dirty) L.push('  note: the working tree has uncommitted changes; every arm is a copy reset to the pinned commit, so the harness measures the committed state.');
+    L.push('  1. preview the plan and the worst-case spend (spawns nothing); scripts/run-agent-ab.mjs is in the SigMap repository, not in the npm package:');
+    L.push(`       ${base} --sigmap-variant prefetch --dry-run`);
+    L.push('  2. run it (ANTHROPIC_API_KEY, each run capped by --max-budget-usd), once per setup; compare with the interval, not the point:');
+    L.push(`       ${base} --sigmap-variant prefetch --save   # then --sigmap-variant index, then locate`);
+    L.push('');
+  }
   L.push('To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup');
   return L.join('\n');
 }

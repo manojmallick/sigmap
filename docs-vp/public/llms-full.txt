@@ -150,7 +150,7 @@ sigmap budget --budget <tokens>          One-off budget override (config: sessio
 sigmap redact [file]                     Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)
 sigmap tune                              Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)
 sigmap tune --apply                      Write the recommendations into gen-context.config.json (merges; your keys preserved)
-sigmap advise                            Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --json)
+sigmap advise                            Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --emit-root <dir>, --json)
 sigmap skills list                       List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)
 sigmap skills install                    Install the SigMap agent playbooks for detected clients (--client <name> | --all)
 sigmap lines <file> <start>-<end>        Print an exact line range — CLI twin of get_lines (secrets redacted)

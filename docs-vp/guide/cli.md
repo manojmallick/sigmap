@@ -96,7 +96,7 @@ If you are new to the product, start with the workflow pages first:
 |----------------|-------------|
 | `roots [--explain | --json | --fix]` | Auto-detect source roots for 17 languages and 50+ frameworks; shows confidence and scoring |
 | `tune [--apply | --json]` | Recommend config from repo detection — srcDirs pin, monorepo, adapters, exclude, budget — one reason per change; `--apply` writes |
-| `advise [--since <date>] [--max <n>] [--no-grep] [--json]` | Offline facts for choosing how an agent gets SigMap (no model call, no forecast): what each setup adds to a turn, how often SigMap's first five files hold the file your recent changes touched against a single-shot grep, and whether the prefetch hook would fire. See [Choosing a setup](/guide/choosing-a-setup) |
+| `advise [--since <date>] [--max <n>] [--no-grep] [--emit-root <dir>] [--json]` | Offline facts for choosing how an agent gets SigMap (no model call, no forecast): what each setup adds to a turn, how often SigMap's first five files hold the file your recent changes touched against a single-shot grep, and whether the prefetch hook would fire. See [Choosing a setup](/guide/choosing-a-setup) |
 | `skills list` | List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) with presence and install state (`--json`) |
 | `skills install [--client <name> \| --all]` | Install the SigMap agent playbooks in each client's native skill/rules format, including the invokable `sigmap-task` loop; plain `install` wires only detected clients |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
@@ -2093,13 +2093,14 @@ Five rules, each deterministic:
 
 ## advise
 
-Offline facts for choosing **how an agent gets SigMap**, for one project. It spends nothing and writes nothing: it makes no model call, never generates an index (without one it says to run `sigmap` first), and prints no forecast. It reports what each setup adds to every turn in your project; how often SigMap's first five files hold the file a recent change of yours touched, against the honest benchmark's single-shot grep; and whether the [prefetch hook](#the-prefetch-hook) would fire on those titles as prompts. It then prints what the [agent study](/guide/agent-study) measured, by goal.
+Offline facts for choosing **how an agent gets SigMap**, for one project. It spends nothing and writes nothing in your project: it makes no model call, never generates an index (without one it says to run `sigmap` first), and prints no forecast; only `--emit-root`, if you pass it, writes, and only under the directory you name. It reports what each setup adds to every turn in your project; how often SigMap's first five files hold the file a recent change of yours touched, against the honest benchmark's single-shot grep; and whether the [prefetch hook](#the-prefetch-hook) would fire on those titles as prompts. It then prints what the [agent study](/guide/agent-study) measured, by goal.
 
 ```bash
 sigmap advise                       # the questions come from your git history of the last year
 sigmap advise --since 2026-01-01    # a date, or 90d / 6m / 1y
 sigmap advise --max 20 --json       # more questions; machine-readable
 sigmap advise --no-grep             # skip the grep side (a very large tree)
+sigmap advise --emit-root ../advise-root   # write the paired harness's inputs for THIS project, outside it
 ```
 
 ```
@@ -2139,12 +2140,15 @@ To find out for this project, measure it: https://sigmap.io/guide/choosing-a-set
 
 **The questions** are mined by the rule that built the study's held-out set: the first-parent commits since `--since`, oldest first; the title (with a trailing `(#123)` and a conventional-commit type removed, 25 to 160 characters, four words or more, not about lint, tests, docs, renames or CI, no bot, no dependency bump or release) is the question, and the one to three source files the commit changed (not tests, fixtures, examples, docs, config or generated files, all still present, none named in the title) are the answer. Fewer than eight qualifying changes are still scored, with a note that the interval is too wide to read.
 
+**`--emit-root <dir>`** turns the same questions into what the paired agent harness (`scripts/run-agent-ab.mjs`, in the SigMap repository and not in the npm package) reads, so a private project can be measured too: `benchmarks/xrepo-repos.json` (the project pinned to its `HEAD`), `benchmarks/tasks/retrieval-xrepo.jsonl` (one task per question, with the commit that made the change) and `benchmarks/repos/<name>`, a link to the project. It writes only under `<dir>`, which must be outside the project and either empty or a root this command wrote earlier; the harness resolves the link and copies the project for each arm, so the project is never reset, cleaned or written. It refuses a project whose `.git` is a file (a linked worktree or a submodule), because the copy's reset would write into the repository that file points at; run it in a plain clone. Uncommitted changes are reported, because every arm is reset to the pinned commit. It then prints the dry-run and run commands with the path quoted.
+
 | Option | Description |
 |--------|-------------|
 | `--since <date>` | Where the history starts: `2026-01-01`, `90d`, `6m` or `1y` (default `365d`) |
 | `--max <n>` | The most questions to use, oldest first (default 12) |
 | `--no-grep` | Leave the grep side (and the headroom row) out |
-| `--json` | One object: `project, call, forecast, standing, questions, lead, readability, notes, study` |
+| `--emit-root <dir>` | Write the inputs the [paired agent harness](/guide/choosing-a-setup#find-out-for-your-own-project) reads, for this project, under `<dir>`, and print the commands to run it |
+| `--json` | One object: `project, call, forecast, standing, questions, lead, readability, notes, study`, and `emitted` with `--emit-root` |
 
 ## skills
 

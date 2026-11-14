@@ -980,7 +980,7 @@ __factories["./src/advise/advise"] = function(module, exports) {
    * how often SigMap's first five files hold the file a recent change of the project touched, against a single-shot grep, and whether the
    * project's prompts are readable by the hook, and says that these numbers did not predict the saving. It prints no percentage as a forecast.
    *
-   * Read-only: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing (it never generates an
+   * Read-only on the project: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing there (it never generates an
    * index; without one it says so).
    *
    * Zero-dependency.
@@ -1097,7 +1097,7 @@ __factories["./src/advise/advise"] = function(module, exports) {
     };
 
     const mined = mineQuestions(cwd, { since: opts.since, max: opts.max });
-    advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ title: q.title, files: q.files })) };
+    advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ sha: q.sha, title: q.title, files: q.files })) };
     if (!mined.ok) { advice.notes.push(`no questions mined: ${mined.reason}`); return advice; }
     if (mined.questions.length === 0) { advice.notes.push(`no change since ${mined.since} qualified as a question (1 to 3 source files, a title that describes behaviour); try a longer --since`); return advice; }
 
@@ -1173,11 +1173,128 @@ __factories["./src/advise/advise"] = function(module, exports) {
     L.push(`  tokens  prefetch ${sgn(g.tokens.prefetch.pooled)}% (${g.tokens.prefetch.saves} save, ${g.tokens.prefetch.costs} more)   index ${sgn(g.tokens.index.pooled)}%   locate ${sgn(g.tokens.locate.pooled)}%`);
     L.push(`  cost    prefetch ${sgn(g.cost.prefetch.pooled)}% (${g.cost.prefetch.saves} save, ${g.cost.prefetch.costs} more)   locate ${sgn(g.cost.locate.pooled)}% (${g.cost.locate.saves} save, ${g.cost.locate.costs} more)   index ${sgn(g.cost.index.pooled)}%`);
     L.push('');
+    if (a.emitted) {
+      const e = a.emitted;
+      const q = (p) => `'${String(p).replace(/'/g, "'\\''")}'`;
+      const per = Math.min(e.questions, 8);
+      const base = `SIGMAP_XREPO_DATA=${q(e.root)} node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo ${per} --runs 4`;
+      L.push(`Harness inputs written under ${e.root} (nothing in your project): ${e.questions} question(s), pinned to ${e.commit.slice(0, 10)}, checkout linked to this project.`);
+      if (e.dirty) L.push('  note: the working tree has uncommitted changes; every arm is a copy reset to the pinned commit, so the harness measures the committed state.');
+      L.push('  1. preview the plan and the worst-case spend (spawns nothing); scripts/run-agent-ab.mjs is in the SigMap repository, not in the npm package:');
+      L.push(`       ${base} --sigmap-variant prefetch --dry-run`);
+      L.push('  2. run it (ANTHROPIC_API_KEY, each run capped by --max-budget-usd), once per setup; compare with the interval, not the point:');
+      L.push(`       ${base} --sigmap-variant prefetch --save   # then --sigmap-variant index, then locate`);
+      L.push('');
+    }
     L.push('To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup');
     return L.join('\n');
   }
 
   module.exports = { buildAdvice, formatAdvice, wilson, rankOf, inTop, headroomPoints, TOP, STUDY, MIN_QUESTIONS, DEFAULT_SINCE, DEFAULT_MAX };
+  
+};
+
+// ── ./src/advise/emit ──
+__factories["./src/advise/emit"] = function(module, exports) {
+  
+  /**
+   * emit.js — `sigmap advise --emit-root <dir>`: the inputs the paired agent harness reads, for THIS project.
+   *
+   * The harness (scripts/run-agent-ab.mjs, in the SigMap repository, not in the npm package) runs the same questions with and without a setup
+   * against a real agent and pairs them. It reads a "data root": benchmarks/xrepo-repos.json (a manifest of repositories, each pinned to a
+   * commit), benchmarks/tasks/retrieval-xrepo.jsonl (the questions) and a checkout under benchmarks/repos/<name>. The study built those from public
+   * GitHub repositories (scripts/build-heldout-set.mjs); this builds them from the project in the current directory, private or not, out of the
+   * questions `advise` already mined from its own git history.
+   *
+   * It writes ONLY under the directory it is given, never in the project: the checkout is a symlink to the project (the harness resolves a link
+   * before it copies anything, so the project is never reset, cleaned or written; each arm is a throwaway copy that is hard-reset to the pin).
+   * It will not write inside the project, and will not overwrite a directory that is not a root it wrote.
+   *
+   * Zero-dependency.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+  const { CODE } = __require('./src/advise/mine');
+
+  const MARK = 'written by sigmap advise --emit-root';
+
+  function _git(cwd, args) {
+    return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 1 << 26, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+  }
+
+  /** A directory name the harness and a shell can both hold: letters, digits, dot, underscore, hyphen. */
+  function repoNameOf(dir) {
+    const n = path.basename(dir).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[.-]+/, '').replace(/-+$/, '');
+    return n || 'project';
+  }
+
+  /** The language most of the questions' files are in (by extension), as the study's builder names it. */
+  function languageOf(questions) {
+    const tally = {};
+    for (const q of questions) for (const f of q.files) { const l = CODE[(f.split('.').pop() || '').toLowerCase()]; if (l) tally[l] = (tally[l] || 0) + 1; }
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    return top ? top[0] : 'unknown';
+  }
+
+  const pad = (n, w) => String(n).padStart(w, '0');
+
+  /**
+   * @param {string} cwd the project (a git work tree)
+   * @param {string} outDir where to write the data root
+   * @param {Array<{sha: string, title: string, files: string[]}>} questions as mined, oldest first
+   * @returns {{ root: string, name: string, commit: string, dirty: boolean, questions: number, language: string, link: string, manifest: string, tasks: string }}
+   * @throws {Error} with a message that says what to change
+   */
+  function emitRoot(cwd, outDir, questions) {
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('no question qualified, so there is nothing to write (try a longer --since)');
+    const project = fs.realpathSync(cwd);
+    const out = path.resolve(outDir);
+    const rel = path.relative(project, out);
+    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) throw new Error(`--emit-root ${outDir} is inside the project; give a directory outside it (the harness copies the project, and a copy of its own inputs would be searchable by the agent)`);
+
+    const manifestPath = path.join(out, 'benchmarks', 'xrepo-repos.json');
+    if (fs.existsSync(out) && fs.readdirSync(out).length > 0) {
+      let ours = false;
+      try { ours = String(JSON.parse(fs.readFileSync(manifestPath, 'utf8'))._comment || '').includes(MARK); } catch (_) { /* not a root of ours */ }
+      if (!ours) throw new Error(`${outDir} is not empty and is not a root this command wrote; use a new directory`);
+    }
+
+    let dotGit = null;
+    try { dotGit = fs.lstatSync(path.join(project, '.git')); } catch (_) { /* absent: reported below */ }
+    if (!dotGit || dotGit.isSymbolicLink() || !dotGit.isDirectory()) {
+      throw new Error('this project\'s .git is not a directory of its own (a linked worktree or a submodule keeps it elsewhere), and the harness copies the project and resets the copy, which would write into that other repository; run advise in a plain clone (git clone <path> <dir>)');
+    }
+
+    const head = _git(project, ['rev-parse', 'HEAD']);
+    if (head.error || head.status !== 0) throw new Error('not a git work tree with a commit: the harness pins every repository to one');
+    const commit = head.stdout.trim();
+    const st = _git(project, ['status', '--porcelain', '--untracked-files=no']);
+    const dirty = st.status === 0 && st.stdout.trim().length > 0;
+
+    const name = repoNameOf(project);
+    const language = languageOf(questions);
+    const tasks = questions.map((q, i) => ({ id: `p${pad(i + 1, 3)}`, split: 'local', source: 'merged-commit', repo: name, project: name, query: q.title, expected_files: q.files, goldCommit: q.sha }));
+    const manifest = { _comment: `${MARK}: questions mined from this project's own git history`, repos: [{ name, url: 'local', commit, language, layout: 'local' }] };
+
+    const tasksPath = path.join(out, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl');
+    const link = path.join(out, 'benchmarks', 'repos', name);
+    fs.mkdirSync(path.dirname(tasksPath), { recursive: true });
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    fs.writeFileSync(tasksPath, `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n`);
+    let existing = null;
+    try { existing = fs.lstatSync(link); } catch (_) { /* nothing there */ }
+    if (existing) {
+      if (!existing.isSymbolicLink()) throw new Error(`${link} exists and is not a link this command made; remove it or use a new directory`);
+      fs.unlinkSync(link); // our own link from an earlier run
+    }
+    fs.symlinkSync(project, link, 'dir');
+    return { root: out, name, commit, dirty, questions: tasks.length, language, link, manifest: manifestPath, tasks: tasksPath };
+  }
+
+  module.exports = { emitRoot, repoNameOf, languageOf, MARK };
   
 };
 
@@ -3695,7 +3812,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'redact [file]', desc: 'Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)' },
     { argv: 'tune', desc: 'Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)' },
     { argv: 'tune --apply', desc: 'Write the recommendations into gen-context.config.json (merges; your keys preserved)' },
-    { argv: 'advise', desc: 'Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --json)' },
+    { argv: 'advise', desc: 'Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --emit-root <dir>, --json)' },
     { argv: 'skills list', desc: 'List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)' },
     { argv: 'skills install', desc: 'Install the SigMap agent playbooks for detected clients (--client <name> | --all)' },
     { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
@@ -49991,7 +50108,7 @@ function main() {
     process.exit(0);
   }
 
-  // `sigmap advise [--since <date|90d|6m|1y>] [--max <n>] [--no-grep] [--json]` — offline facts for choosing how an
+  // `sigmap advise [--since <date|90d|6m|1y>] [--max <n>] [--no-grep] [--emit-root <dir>] [--json]` — offline facts for choosing how an
   // agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file a recent change
   // touched (vs a single-shot grep), whether the hook would fire. Read-only; it makes no call and prints no forecast,
   // because those numbers did not predict the saving in the agent study (Stage I).
@@ -49999,6 +50116,11 @@ function main() {
     const { buildAdvice, formatAdvice } = requireSourceOrBundled('./src/advise/advise');
     const flag = (name) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : undefined; };
     const maxArg = flag('--max');
+    const emitDir = flag('--emit-root');
+    if (args.includes('--emit-root') && !emitDir) {
+      console.error('[sigmap] advise: --emit-root takes a directory');
+      process.exit(2);
+    }
     if (maxArg !== undefined && !(Number.isInteger(Number(maxArg)) && Number(maxArg) > 0)) {
       console.error('[sigmap] advise: --max takes a positive whole number');
       process.exit(2);
@@ -50009,6 +50131,14 @@ function main() {
     } catch (err) {
       console.error(`[sigmap] advise failed: ${err.message}`);
       process.exit(1);
+    }
+    if (emitDir) {
+      try {
+        advice.emitted = requireSourceOrBundled('./src/advise/emit').emitRoot(cwd, emitDir, advice.questions.list || []);
+      } catch (err) {
+        console.error(`[sigmap] advise --emit-root: ${err.message}`);
+        process.exit(1);
+      }
     }
     if (args.includes('--json')) {
       writeAll(1, JSON.stringify(advice) + '\n');
