@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-28T22:14:32.113Z",
+  "generated": "2026-11-14T07:54:46.741Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -27,7 +27,7 @@
     "hitAt5With": 80.4,
     "avgImprovement": 60.2,
     "totalGroundedSymbols": 17979,
-    "totalDarkSymbols": 50589,
+    "totalDarkSymbols": 50642,
     "hallucinationRiskPct": 73.8
   },
   "repos": [
@@ -196,8 +196,8 @@
       "promptsWithout": 3,
       "reductionPct": 60,
       "groundedSymbols": 1638,
-      "darkSymbols": 6760,
-      "hallucinationRiskPct": 80.5
+      "darkSymbols": 6813,
+      "hallucinationRiskPct": 80.6
     },
     {
       "repo": "akka",
@@ -284,5 +284,5 @@
       "hallucinationRiskPct": 61.9
     }
   ],
-  "version": "8.85.1"
+  "version": "8.86.0"
 }
