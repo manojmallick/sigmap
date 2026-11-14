@@ -840,6 +840,35 @@ bigger saving), with a 95% interval from resampling repositories (10,000 times, 
 was asked, where `advise` will mine its own from the project's history. A pass would be a reason to offer a hint and not a reason to trust a number; a second, independent set
 of questions would be the next check.
 
+**Result** (`node benchmarks/agent-study/setup-signal-eval.mjs`, committed before it was run; output in `data/setup-signal-eval.txt`; 20 repositories, 222 questions).
+
+- **The primary test does not pass.** ρ between `headroom` and the change in real cost of `prefetch` is **−0.13, 95% interval [−0.57, +0.36]**, against a bar of ρ ≤ −0.50 with
+  the interval entirely below zero. As decided above, `sigmap advise` prints the facts and makes no call.
+- **Nothing else predicts either, and the one place that looks like it should not be read as a finding.** Of the 36 secondary intervals (four features, three setups, three measures),
+  3 exclude zero, all on `files` (`locate` cost −0.57 [−0.86, −0.12], `index` tokens −0.50 [−0.78, −0.04], `locate` tokens −0.54 [−0.85, −0.04]); at 95% about 2 of 36 would
+  by chance. `files` is the feature the study had reported not to predict, and the larger savings sit on a few large repositories (`flamingock-java`, 1,205 files, −64% for `prefetch`).
+  It would need its own test, on other repositories, to count.
+
+**By goal** (descriptive; added after the test was run and not part of it). Per setup and measure, how many of the twenty repositories save, show no clear change or cost more (by each
+repository's own 95% interval), and the pooled typical-task change with an interval from resampling repositories. The cost rows reproduce `summarize.mjs --by-repo`.
+
+| Goal | Setup | Saves | No clear change | Costs more | Pooled change [95% interval] |
+|---|---|---:|---:|---:|---:|
+| cost | `index` | 3 | 15 | 2 | −1% [−8%, +5%] |
+| cost | `prefetch` | 7 | 8 | 5 | −7% [−19%, +4%] |
+| cost | `locate` | 4 | 16 | 0 | −7% [−13%, −2%] |
+| time | `index` | 1 | 15 | 4 | +2% [0%, +5%] |
+| time | `prefetch` | **19** | 1 | 0 | **−18% [−21%, −14%]** |
+| time | `locate` | 1 | 16 | 3 | +1% [−1%, +4%] |
+| tokens | `index` | 0 | 3 | 17 | **+51% [+37%, +66%]** |
+| tokens | `prefetch` | 9 | 11 | 0 | **−26% [−39%, −14%]** |
+| tokens | `locate` | 1 | 8 | 11 | +18% [+7%, +27%] |
+
+On the Messages-API agent with Haiku 5.5, `prefetch` is the only setup that cut time (19 of 20 repositories) and tokens (none used more), and it saved cost on 7 and cost more on 5.
+`locate` is the only setup that cost more on none (−7%), saves no time and raises total tokens (11 repositories used more). `index` raised tokens on 17 of 20 and saves no time.
+What this cannot say: `prefetch` here is the benchmark's (the ranking put in the prompt by the harness), and the installed hook measured about a third of it in Claude Code on eight
+repositories (time −11%, tokens −23%, cost −4%); it is one cheap model on one agent; and these twenty are the repositories the setups were looked at on.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
