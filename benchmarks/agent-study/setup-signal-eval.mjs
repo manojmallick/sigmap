@@ -155,7 +155,18 @@ for (const f of FEATS) for (const s of SETUPS) for (const m of Object.keys(METRI
 const P = corr.headroom.prefetch.cost;
 const passes = P.rho <= BAR.rho && P.hi < 0;
 
-const result = { repositories: features.length, questions: questions.length, features, outcome, primary: { feature: 'headroom', setup: 'prefetch', measure: 'cost', ...P, bar: `rho <= ${BAR.rho} and the 95% interval entirely below zero`, passes }, correlations: corr };
+// Descriptive, added after the test was run and not part of it: per setup and measure, how many repositories save, show no clear change or cost more
+// (by each repository's 95% interval), and the pooled typical-task change with an interval from resampling repositories (10,000 times, seed 1).
+const byGoal = {};
+for (const sU of SETUPS) for (const m of Object.keys(METRICS)) {
+  const rs = features.map((r) => outcome[sU][m][r.repo]); const logs = rs.map((o) => Math.log(1 + o.change)); const rng = makeRng(SEED); const draws = [];
+  for (let b = 0; b < BOOT; b++) { let sum = 0; for (let i = 0; i < logs.length; i++) sum += logs[Math.floor(rng() * logs.length)]; draws.push(Math.exp(sum / logs.length) - 1); }
+  draws.sort((x, y) => x - y);
+  (byGoal[sU] = byGoal[sU] || {})[m] = { saves: rs.filter((o) => o.cls === 'saves').length, none: rs.filter((o) => o.cls === 'none').length, costs: rs.filter((o) => o.cls === 'costs').length,
+    pooled: Math.exp(logs.reduce((x, y) => x + y, 0) / logs.length) - 1, lo: draws[Math.floor(0.025 * BOOT)], hi: draws[Math.ceil(0.975 * BOOT) - 1] };
+}
+
+const result = { byGoal, repositories: features.length, questions: questions.length, features, outcome, primary: { feature: 'headroom', setup: 'prefetch', measure: 'cost', ...P, bar: `rho <= ${BAR.rho} and the 95% interval entirely below zero`, passes }, correlations: corr };
 if (AS_JSON) { console.log(JSON.stringify(result, null, 1)); process.exit(0); }
 
 const pc = (v) => (v === null || v === undefined ? ' n/a' : `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`);
@@ -178,4 +189,8 @@ for (const f of FEATS) for (const m of Object.keys(METRICS)) {
   const c = (s) => { const v = corr[f][s][m]; return `${f2(v.rho)} [${f2(v.lo)}, ${f2(v.hi)}]`; };
   console.log(`| ${f}${f === 'headroom' && m === 'cost' ? ' (primary row: prefetch)' : ''} | ${m} | ${c('index')} | ${c('prefetch')} | ${c('locate')} |`);
 }
+console.log('\nBy goal (descriptive, added after the test and not part of it; the unit is the repository, an S/none/C count by each repository\'s own 95% interval):\n');
+console.log('| goal | setup | saves | no clear change | costs more | pooled typical-task change [95% interval, resampling repositories] |');
+console.log('|---|---|---:|---:|---:|---:|');
+for (const m of Object.keys(METRICS)) for (const sU of SETUPS) { const g = byGoal[sU][m]; console.log(`| ${m} | \`${sU}\` | ${g.saves} | ${g.none} | ${g.costs} | ${pc(g.pooled)} [${pc(g.lo)}, ${pc(g.hi)}] |`); }
 console.log(`\nWhat follows (decided before the run): ${passes ? 'sigmap advise may say "likely to save" or "uncertain" for the hook, from a headroom cut chosen by leave-one-out, and must print the cut, the evidence and how often it was wrong.' : 'sigmap advise prints the facts and makes no call, and says that no offline signal predicted the saving on these repositories.'}`);
