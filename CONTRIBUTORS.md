@@ -39,6 +39,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.87.0)
+- **@manojmallick** — feat(advise): `sigmap advise`, offline facts for choosing how an agent gets SigMap (what each setup adds to a turn, how often SigMap's first five files hold the file a recent change touched against a single-shot grep, whether the prefetch hook would fire), with no call and no forecast because the agent study's Stage I found no offline number that predicts the saving; `--emit-root <dir>` writes the paired harness's inputs for your own project (#1067, #1068).
+- **@manojmallick** — docs(agent-study): the Choosing a setup guide (which setup saves what, by goal) and Stage I of the protocol, with the plan committed before any feature was computed (#1067).
+- **@manojmallick** — test: `advise` (18) and `advise-emit` (13) added, the mining rule, the grep scan, the cut at five, the headroom sign, the interval, the quoted study numbers and the writer's guards checked by 63 mutants applied to temporary copies (#1067, #1068).
 ### Recent Contributors (v8.86.0)
 - **@manojmallick** — feat(hooks,mcp): `sigmap hooks install claude --prefetch`, a `UserPromptSubmit` hook that ranks each substantive prompt and hands the agent the top five files (long prompts are focused first, a prompt the ranker cannot read gets nothing, `SIGMAP_PREFETCH=0` turns it off), and the two-tool `mcp.tools: "locate"` profile (#1063).
 - **@manojmallick** — feat(retrieval): a source file with no signature is indexed by its path (a `bare` list in `.context/sig-index.json`, ranked by `ask` and the MCP `query_context`, byte-identical context file); fix(php): `final` and `readonly` classes, enums and namespaced parents are read; fix(generate): a top-level directory called `constructor` no longer breaks generation; fix(index): a Python virtual environment below the source root is never walked (#1063).

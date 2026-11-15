@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, session, hooks, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, advise, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, session, hooks, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 129 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 130 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, advise, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 129 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 130 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, advise, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -2623,7 +2623,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.86.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.87.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3326,7 +3326,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.86.0
+# 8.87.0
 ```
 
 ---
