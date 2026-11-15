@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.86.0</span>
+  <span><strong>Release:</strong> v8.87.0</span>
   <span>·</span>
-  <span><strong>New — the agent study, and the two opt-in tools it pointed at:</strong> SigMap against no SigMap in a real agent loop (22,540 recorded runs) saved 28% to 44% of a task's cost on code a model has not read, and on twenty repositories it was never tuned on no setup met the bar written down beforehand. <code>sigmap hooks install claude --prefetch</code> and <code>mcp.tools: "locate"</code> are opt-in; a source file with no signature is now findable by its path.</span>
+  <span><strong>New — <code>sigmap advise</code>, and a guide to which setup saves what:</strong> offline facts about your project (what each setup adds to a turn, how often SigMap's first five files hold the file your recent changes touched, against grep), with no forecast, because the agent study found no offline number that predicts a repository's saving. <code>--emit-root</code> writes the paired harness's inputs for your own project, so you can measure it instead. <a href="/guide/choosing-a-setup">Choosing a setup →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.86-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.87-main</span>
   <span>·</span>
   <span>80.4% hit@5 · 95.2% token reduction · 2026-11-14</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.2%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-11-14 (v8.86.0)**.
+Latest saved benchmark run: **2026-11-14 (v8.87.0)**.
 
 </div>
 
