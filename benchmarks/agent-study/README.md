@@ -70,6 +70,21 @@ with the tool list cut to `query_context` and `get_lines`.
 `data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
 study used; `data/closed-book.heldout.*.json` is its closed-book control.
 
+### Repeating a run on the same held-out repositories
+
+`build-heldout-set.mjs` reads each repository's current head, so running it again gives different questions. To repeat a run on what the study used, rebuild the data root from the saved pins (about 100 MB; network only, no key):
+
+```bash
+node benchmarks/agent-study/rebuild-heldout-root.mjs --out ~/heldout-root --exclude emilk__egui_plot   # the 20 repositories, 222 questions, of the API and hook series
+# plan and cost ceiling first (starts nothing); then GO=1. ANTHROPIC_API_KEY in your shell only.
+SETS=heldout HELDOUT_ROOT=~/heldout-root VARIANTS=locate AGENT=claude MODEL=claude-haiku-5-5 RUNS=4 MAX_TOTAL_USD=25 BUDGET=0.05 PROMPT_STYLE=question \
+  OUT=~/locate-runs bash benchmarks/agent-study/run-token-saving.sh
+node benchmarks/agent-study/to-runs.mjs ~/locate-runs --route claude-code --model claude-haiku-5-5 > locate.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs locate.ndjson --variant locate --set heldout   # a pre-registered bar, clause by clause
+```
+
+`confirm-bar.mjs` applies the bar written in its own source (B1 to B4) with the study's pairing, drop rule and repository-level pooling, and exits 1 if a clause is not met. `--out` must be outside this repository.
+
 ### Change tasks (stage 2)
 
 ```bash
