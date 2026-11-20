@@ -183,6 +183,42 @@ const git = (args, cwd) => { const r = spawnSync('git', args, { cwd, encoding: '
     assert.ok(j.pooled.hi > -0.02 && j.pooled.hi < 0, `upper ${j.pooled.hi}`);
   });
 
+  // The confirmatory run of #1071 (T5): `locate` in Claude Code, Haiku 5.5, the 20 held-out repositories, run 2026-11-18/19 on the maintainer's key
+  // and converted with to-runs.mjs. The file is the run table; the headline below is what the pre-registered bar says about it.
+  const T5 = () => fs.readFileSync(path.join(ROOT, 'benchmarks/agent-study/data/confirm-locate-claude-code.ndjson'), 'utf8').trim().split('\n').map(JSON.parse);
+
+  await test('the saved confirmatory run is complete: 1,776 runs, 20 repositories, both arms, none failed or capped', () => {
+    const rows = T5();
+    assert.strictEqual(rows.length, 1776);
+    assert.strictEqual(rows.filter((r) => r.arm === 'with').length, 888);
+    assert.strictEqual(rows.filter((r) => r.arm === 'without').length, 888);
+    assert.strictEqual(new Set(rows.map((r) => r.repo)).size, 20);
+    assert.ok(rows.every((r) => r.ok && !r.limit && r.variant === 'locate' && r.set === 'heldout' && r.model === 'claude-haiku-5-5' && r.route === 'claude-code'));
+    assert.deepStrictEqual([rows.filter((r) => r.ask === 'first').length, rows.filter((r) => r.ask === 'repeat').length], [444, 1332], 'run 1 of each question is a first ask, runs 2-4 are cache repeats');
+  });
+
+  await test('the saved confirmatory run: the pre-registered bar is met, on first asks and on all runs (the numbers posted on #1071)', () => {
+    const rows = T5();
+    const first = cb.judge(rows.filter((r) => r.ask !== 'repeat'), { variant: 'locate', set: 'heldout' });
+    assert.strictEqual(first.pairs, 222); assert.strictEqual(first.repositories, 20);
+    assert.strictEqual(first.foundWith, 205); assert.strictEqual(first.foundWithout, 208);
+    assert.ok(first.pooled.change > -0.17 && first.pooled.change < -0.16, `pooled ${first.pooled.change}`);       // -16.6%
+    assert.ok(first.pooled.lo > -0.235 && first.pooled.lo < -0.23, `lower ${first.pooled.lo}`);                   // -23.2%
+    assert.ok(first.pooled.hi > -0.10 && first.pooled.hi < -0.09, `upper ${first.pooled.hi}`);                    // -9.7%
+    assert.ok(first.uptake > 0.95 && first.uptake < 0.97, `uptake ${first.uptake}`);
+    assert.deepStrictEqual(first.clauses.map((c) => c.ok), [true, true, true, true]);
+    assert.strictEqual(first.met, true);
+    const cls = {}; for (const r of first.repos) cls[r.cls] = (cls[r.cls] || 0) + 1;
+    assert.deepStrictEqual(cls, { saves: 10, none: 10 }, 'ten repositories clearly save, ten are indeterminate, none clearly costs more');
+    assert.deepStrictEqual(first.flaggedAbove15, []);
+    const all = cb.judge(rows, { variant: 'locate', set: 'heldout' });
+    assert.strictEqual(all.pairs, 888); assert.strictEqual(all.foundWith, 819); assert.strictEqual(all.foundWithout, 823);
+    assert.ok(all.pooled.change > -0.17 && all.pooled.change < -0.155 && all.pooled.hi < -0.10, `all runs ${JSON.stringify(all.pooled)}`);
+    assert.strictEqual(all.met, true);
+    const noPjp = cb.judge(rows.filter((r) => r.repo !== 'stefankoegl__python-json-patch'), { variant: 'locate', set: 'heldout' });
+    assert.strictEqual(noPjp.repositories, 19); assert.strictEqual(noPjp.met, true);
+  });
+
   await test('the bar constants are the pre-registered ones', () => {
     assert.deepStrictEqual({ ...cb.BAR }, { poolHiBelow: 0.05, maxCostsShare: 0.15, foundPointsAtLeast: -5, uptakeAtLeast: 0.5, repoPointFlag: 0.15 });
   });

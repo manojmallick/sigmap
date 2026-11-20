@@ -87,6 +87,15 @@ node benchmarks/agent-study/confirm-bar.mjs --runs locate-first.ndjson --variant
 
 `confirm-bar.mjs` applies the bar written in its own source (B1 to B4) with the study's pairing, drop rule and repository-level pooling, and exits 1 if a clause is not met. `--out` must be outside this repository.
 
+**The run this was written for is saved:** `data/confirm-locate-claude-code.ndjson` is the table of the confirmatory run of #1071 (`locate`, Claude Code, Haiku 5.5, the 20 held-out repositories, 1,776 runs, run 2026-11-18/19; the output of `to-runs.mjs`, unedited). It is kept apart from `data/runs.ndjson` so the study's counts and every figure derived from them stay as published. Anyone can re-derive its headline with no key and no network:
+
+```bash
+grep '"ask":"first"' benchmarks/agent-study/data/confirm-locate-claude-code.ndjson > first.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs first.ndjson --variant locate --set heldout   # BAR MET: cost -16.6% [-23.2, -9.7], file found 205 vs 208, uptake 96%
+```
+
+`test/integration/agent-study-confirmatory-tools.test.js` pins those numbers. They say what the bar says about this run and nothing beyond it: one model, one agent setup, 20 repositories of up to about 2,400 files, and "file found", not answer quality.
+
 Three things the first live attempts taught, so they need not be learned again:
 
 - **`PROMPT_STYLE=question` does not work for `locate`.** The harness refuses it (`scripts/lib/agent-ab-claude.mjs`): the SigMap arm of a variant that is neither a hook nor prefetch needs the system-prompt slot the style also uses. Leave `PROMPT_STYLE` unset, which is why runs 2-4 of a question are `repeat` asks and the bar above is read on first asks.
