@@ -88,7 +88,7 @@ async function against(opts, env) {
   try { return await guard(reg, env); } finally { await reg.close(); }
 }
 
-const row = (out, name, status) => new RegExp('\\| `' + name.replace(/[/@-]/g, '\\$&') + '` \\| ' + status + ' \\|').test(out);
+const row = (out, name, status) => new RegExp('\\| `' + name.replace(/[.*+?^${}()|[\]\\/@-]/g, '\\$&') + '` \\| ' + status + ' \\|').test(out);
 
 (async () => {
   console.log('\nnpm name guard\n');
