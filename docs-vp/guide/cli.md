@@ -3280,6 +3280,8 @@ sigmap --impact src/auth/service.ts --json
 
 Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
 
+**Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) are not resolved outside Java.** For a symbol in TypeScript, Python or Go the output says so and `--json` carries `receiverCalls`, because an empty list there is not a safe answer ([measured](/guide/callgraph-accuracy)).
+
 ```bash
 sigmap --callers validateToken            # who (transitively) calls validateToken?
 sigmap --callees handleRequest --depth 1  # what does handleRequest call directly?
