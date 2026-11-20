@@ -183,6 +183,14 @@ export const SIGMAP_CLI = 'sigmap';
 /** A run that proves an arm is not what the report says it is. Nothing is recorded. */
 export class IntegrityError extends Error {}
 
+/**
+ * How many times one SigMap-arm run is repeated when Claude Code printed its init event while the sigmap MCP server was still starting
+ * (status "pending"). Claude Code 2.1.178 does not wait for an MCP server before its first model request unless MCP_CONNECTION_NONBLOCKING=0,
+ * and even then a slow start under load was seen once in 93 SigMap-arm launches. A pending server is read from the init event alone, before the agent has
+ * done anything, so repeating the job cannot select on its outcome; every other integrity failure is still fatal.
+ */
+export const MCP_STARTUP_RETRIES = 3;
+
 // ── tasks ────────────────────────────────────────────────────────────────────
 
 /**
@@ -442,15 +450,20 @@ export function checkIntegrity(init, arm, opts = {}) {
     }
     return { ok: problems.length === 0, problems, builtins };
   }
+  // startupRace: the ONLY thing wrong with the SigMap arm is that its server was still "pending" when the init event was written (no
+  // forbidden tool, no foreign server or tool). A server that is absent or "failed" is not a race, and neither is anything in the other arm.
+  let startupRace = false;
   if (arm === 'without') {
     if (sigmap || sigmapTools.length) problems.push('the no-SigMap arm has the sigmap MCP server');
   } else {
+    const elsewhere = problems.length;
     if (!sigmap || sigmap.status !== 'connected') {
       problems.push(`the SigMap arm's sigmap server is ${sigmap ? `"${sigmap.status}"` : 'absent'}, not connected`);
     }
     if (!sigmapTools.length) problems.push('the SigMap arm lists no sigmap tool');
+    startupRace = elsewhere === 0 && !!sigmap && sigmap.status === 'pending';
   }
-  return { ok: problems.length === 0, problems, builtins };
+  return { ok: problems.length === 0, problems, builtins, startupRace };
 }
 
 // ── the run schedule ─────────────────────────────────────────────────────────
@@ -471,6 +484,8 @@ export function checkIntegrity(init, arm, opts = {}) {
  * @param {(job:{task:object, arm:string, run:number, prompt:string}) => Promise<object>} p.runner
  * @param {(entry:object) => void} [p.onRun]
  * @param {number} [p.maxConsecutiveFailures]
+ * @param {number} [p.startupRetries] repeats allowed for one SigMap-arm run whose sigmap server was still "pending" at init (MCP_STARTUP_RETRIES)
+ * @param {(e:{task:object, arm:string, run:number, attempt:number, of:number, record:object}) => void} [p.onRetry] called for each discarded run
  * @param {(prompt:string) => boolean} [p.silentFor] for a hook variant: whether the product's hook is expected to say nothing for this prompt (the confidence guard)
  * @param {(task:object, run:{run:number, arm:string}) => string} [p.promptFor] the prompt of a run (default: the locate prompt, the same for every run of a task)
  * @param {(record:object, task:object) => Promise<{pass:boolean}>|{pass:boolean}} [p.scoreRun] scores a finished run (default: hit@5 on the files named)
@@ -478,7 +493,7 @@ export function checkIntegrity(init, arm, opts = {}) {
  * @param {string} [p.variant] the SigMap variant, so a skill variant is checked for its skills and not for an MCP server
  * @returns {Promise<Array<{task:object, arm:string, run:number, record:object}>>}
  */
-export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false, silentFor = null }) {
+export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailures = 3, variant, promptFor = buildPrompt, scoreRun = null, change = false, silentFor = null, startupRetries = MCP_STARTUP_RETRIES, onRetry = null }) {
   const out = [];
   const builtinsByArm = {};
   let streak = 0;
@@ -487,11 +502,23 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
       const order = run % 2 === 1 ? ARMS : [...ARMS].reverse();
       for (const arm of order) {
         const prompt = promptFor(task, { run, arm });
-        const record = await runner({ task, arm, run, prompt });
-        if (record.init || record.ok) {
-          const chk = checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks, expectSilent: !!(silentFor && silentFor(prompt)) });
+        let record;
+        let chk = null;
+        let retries = 0;
+        for (;;) {
+          record = await runner({ task, arm, run, prompt });
+          chk = record.init || record.ok ? checkIntegrity(record.init, arm, { variant, change, hooks: record.hooks, expectSilent: !!(silentFor && silentFor(prompt)) }) : null;
+          // A startup race (see MCP_STARTUP_RETRIES): discard this run and repeat the same job. Nothing else is ever repeated.
+          if (chk && !chk.ok && chk.startupRace && retries < startupRetries) {
+            retries++;
+            if (onRetry) onRetry({ task, arm, run, attempt: retries, of: startupRetries, record });
+            continue;
+          }
+          break;
+        }
+        if (chk) {
           if (!chk.ok) {
-            throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}`);
+            throw new IntegrityError(`${task.repo}/${task.id} run ${run} (${arm}): ${chk.problems.join('; ')}${retries ? ` (after ${retries} repeat${retries === 1 ? '' : 's'})` : ''}`);
           }
           builtinsByArm[arm] = chk.builtins.join(',');
           const other = builtinsByArm[arm === 'with' ? 'without' : 'with'];
@@ -501,7 +528,7 @@ export async function runPlan({ tasks, runs, runner, onRun, maxConsecutiveFailur
         }
         const score = record.ok ? (scoreRun ? await scoreRun(record, task) : scoreAnswer(record.answer, task.expected_files, { cwds: record.cwds }))
           : { pass: false, rank: null, named: [] };
-        const entry = { task, arm, run, record: Object.assign({}, record, { score }) };
+        const entry = { task, arm, run, record: Object.assign({}, record, { score }, retries ? { startupRetries: retries } : {}) };
         out.push(entry);
         if (onRun) onRun(entry);
         if (record.ok) streak = 0;

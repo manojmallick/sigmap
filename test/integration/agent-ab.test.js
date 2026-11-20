@@ -100,9 +100,16 @@ process.stdin.on('end', () => {
     out({ type: 'system', subtype: 'hook_response', hook_event: 'UserPromptSubmit', outcome: failing ? 'error' : 'success', exit_code: failing ? 1 : 0,
       stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'Files SigMap ranked: src/alpha.js' } }) });
   }
-  const tools = ['Read', 'Grep', 'Glob', 'Bash'].concat(withSigmap || leaked ? ['mcp__sigmap__query_context'] : []);
+  // FAKE_PENDING_TIMES=K with FAKE_PENDING_STATE=<file>: the first K SigMap launches write their init event while the server is still pending.
+  let pending = false;
+  if (withSigmap && process.env.FAKE_PENDING_STATE) {
+    const sf = process.env.FAKE_PENDING_STATE;
+    const seen = fs.existsSync(sf) ? Number(fs.readFileSync(sf, 'utf8')) : 0;
+    if (seen < Number(process.env.FAKE_PENDING_TIMES || 0)) { pending = true; fs.writeFileSync(sf, String(seen + 1)); }
+  }
+  const tools = ['Read', 'Grep', 'Glob', 'Bash'].concat((withSigmap && !pending) || leaked ? ['mcp__sigmap__query_context'] : []);
   out({ type: 'system', subtype: 'init', tools, model: 'claude-sonnet-5-5',
-    mcp_servers: withSigmap || leaked ? [{ name: 'sigmap', status: 'connected' }] : [] });
+    mcp_servers: withSigmap || leaked ? [{ name: 'sigmap', status: pending ? 'pending' : 'connected' }] : [] });
   if (mode === 'error') {
     out({ type: 'result', subtype: 'error_during_execution', is_error: true, num_turns: 1, result: 'boom' });
     return;
@@ -279,6 +286,95 @@ const treeHash = (dir) => {
   await test('runPlan aborts when the arms hold different built-in tools', async () => {
     const runner = async (job) => stub({ init: { tools: job.arm === 'with' ? ['Read', 'Grep', 'mcp__sigmap__q'] : ['Read', 'Grep', 'Glob'], mcpServers: job.arm === 'with' ? [{ name: 'sigmap', status: 'connected' }] : [] } })(job);
     await assert.rejects(ab.runPlan({ tasks: TASKS, runs: 1, runner }), /different built-in tools/);
+  });
+
+  // ── a SigMap server that was still starting: repeat that run, and nothing else ──────────────────────────────────────────
+
+  const BASE_TOOLS = ['Read', 'Grep', 'Glob', 'Bash'];
+  const pendingInit = (status = 'pending', extraTools = []) => ({ tools: [...BASE_TOOLS, ...extraTools], mcpServers: [{ name: 'sigmap', status }] });
+  // A runner whose first `times` SigMap-arm launches report the server still pending (its record costs $0.002, like a real discarded run).
+  const racing = (times, pendingWith = () => pendingInit()) => {
+    const calls = []; const jobs = []; let left = times;
+    const runner = async (job) => {
+      calls.push(`${job.run}${job.arm === 'with' ? '+' : '-'}`); jobs.push(job);
+      if (job.arm === 'with' && left > 0) { left--; return stub({ init: pendingWith(), cost: { usd: 0.002, source: 'agent-reported' } })(job); }
+      return stub()(job);
+    };
+    return { calls, jobs, runner };
+  };
+
+  await test('checkIntegrity calls it a startup race only when the sigmap server is pending and nothing else is wrong', () => {
+    const race = ab.checkIntegrity(pendingInit(), 'with');
+    assert.strictEqual(race.ok, false);
+    assert.strictEqual(race.startupRace, true);
+    assert.strictEqual(ab.checkIntegrity(pendingInit('failed'), 'with').startupRace, false, 'a failed server is not a race');
+    assert.strictEqual(ab.checkIntegrity({ tools: BASE_TOOLS, mcpServers: [] }, 'with').startupRace, false, 'an absent server is not a race');
+    assert.strictEqual(ab.checkIntegrity(pendingInit('pending', ['WebFetch']), 'with').startupRace, false, 'a forbidden tool alongside');
+    assert.strictEqual(ab.checkIntegrity({ tools: [...BASE_TOOLS, 'mcp__other__x'], mcpServers: [{ name: 'sigmap', status: 'pending' }, { name: 'other', status: 'connected' }] }, 'with').startupRace, false, 'a foreign server alongside');
+    assert.strictEqual(ab.checkIntegrity(pendingInit('connected', ['mcp__sigmap__query_context']), 'with').startupRace, false, 'a healthy arm');
+    assert.strictEqual(ab.checkIntegrity(pendingInit(), 'without').startupRace, false, 'the no-SigMap arm is never repeated');
+  });
+
+  await test('runPlan repeats a SigMap run whose server was still pending, keeps the clean repeat, and says how many repeats it took', async () => {
+    const { calls, jobs, runner } = racing(2);
+    const said = [];
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 2, runner, onRetry: (e) => said.push(`${e.run}${e.arm}:${e.attempt}/${e.of}:$${e.record.cost.usd}`) });
+    assert.deepStrictEqual(calls, ['1-', '1+', '1+', '1+', '2+', '2-'], 'the job is repeated in place, so the schedule is unchanged');
+    assert.deepStrictEqual(said, ['1with:1/3:$0.002', '1with:2/3:$0.002']);
+    assert.strictEqual(entries.length, 4, 'one entry per planned run: a discarded run is not an entry');
+    const [a, b, c, d] = entries;
+    assert.deepStrictEqual([a, b, c, d].map((e) => `${e.run}${e.arm === 'with' ? '+' : '-'}`), ['1-', '1+', '2+', '2-']);
+    assert.strictEqual(b.record.startupRetries, 2);
+    assert.strictEqual(b.record.init.mcpServers[0].status, 'connected', 'the kept record is the clean one');
+    assert.ok([a, c, d].every((e) => e.record.startupRetries === undefined), 'a run that needed no repeat carries no count');
+    assert.ok(entries.every((e) => e.record.score.pass));
+    const first = jobs.filter((j) => j.run === 1 && j.arm === 'with');
+    assert.strictEqual(first.length, 3);
+    assert.ok(first.every((j) => j.prompt === first[0].prompt && j.task === first[0].task), 'every repeat is the identical job');
+  });
+
+  await test('runPlan gives up after the allowed repeats, says so, and records nothing', async () => {
+    assert.strictEqual(ab.MCP_STARTUP_RETRIES, 3);
+    const { calls, runner } = racing(99);
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner }), (e) => e instanceof ab.IntegrityError && /pending/.test(e.message) && /\(after 3 repeats\)/.test(e.message));
+    assert.deepStrictEqual(calls, ['1-', '1+', '1+', '1+', '1+'], 'one launch plus exactly 3 repeats, then stop');
+  });
+
+  await test('the number of repeats is exact: 1 allowed survives one pending launch and not two, 0 allowed survives none', async () => {
+    const one = racing(1);
+    const ok = await ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: one.runner, startupRetries: 1 });
+    assert.strictEqual(ok.length, 2);
+    assert.deepStrictEqual(one.calls, ['1-', '1+', '1+']);
+    const two = racing(2);
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: two.runner, startupRetries: 1 }), (e) => /\(after 1 repeat\)/.test(e.message));
+    assert.deepStrictEqual(two.calls, ['1-', '1+', '1+']);
+    const none = racing(1);
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: none.runner, startupRetries: 0 }), (e) => e instanceof ab.IntegrityError && !/after/.test(e.message));
+    assert.deepStrictEqual(none.calls, ['1-', '1+']);
+  });
+
+  await test('nothing but a pending server is repeated: a failed server, a forbidden tool, a contaminated baseline and an unreadable init all stay fatal on the first launch', async () => {
+    const failedServer = racing(99, () => pendingInit('failed'));
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: failedServer.runner }), ab.IntegrityError);
+    assert.deepStrictEqual(failedServer.calls, ['1-', '1+']);
+    const forbidden = racing(99, () => pendingInit('pending', ['WebFetch']));
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: forbidden.runner }), /forbidden tool/);
+    assert.deepStrictEqual(forbidden.calls, ['1-', '1+']);
+    const calls = [];
+    const dirty = async (job) => { calls.push(`${job.run}${job.arm === 'with' ? '+' : '-'}`); return stub({ init: pendingInit('pending', ['mcp__sigmap__query_context']) })(job); }; // the baseline carries the server
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: dirty }), /no-SigMap arm/);
+    assert.deepStrictEqual(calls, ['1-'], 'the baseline is not repeated');
+    const unreadable = [];
+    const noList = async (job) => { unreadable.push(`${job.run}${job.arm === 'with' ? '+' : '-'}`); return job.arm === 'with' ? stub({ init: { tools: undefined, mcpServers: [] } })(job) : stub()(job); };
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 1, runner: noList }), (e) => e instanceof ab.IntegrityError && /no init event with a tool list/.test(e.message));
+    assert.deepStrictEqual(unreadable, ['1-', '1+'], 'an init event that cannot be read is not repeated');
+  });
+
+  await test('a run that failed outright is not mistaken for a startup race: it is not repeated and counts toward the failure streak', async () => {
+    const calls = [];
+    const runner = async (job) => { calls.push(`${job.run}${job.arm === 'with' ? '+' : '-'}`); return job.arm === 'with' ? { ok: false, error: 'boom', init: null, answer: '', cwds: [], toolCalls: { total: 0 }, usage: null, cost: null, durationMs: 1, turns: 0 } : stub()(job); };
+    await assert.rejects(ab.runPlan({ tasks: [TASKS[0]], runs: 3, runner, maxConsecutiveFailures: 2 }), /2 consecutive failed runs/);
+    assert.deepStrictEqual(calls, ['1-', '1+', '2+'], 'the failed SigMap run was not repeated: the next launch is the next planned run');
   });
 
   await test('runPlan stops after consecutive failed runs instead of spending on a broken setup', async () => {
@@ -829,6 +925,31 @@ const treeHash = (dir) => {
     assert.strictEqual(r.status, 1);
     assert.match(r.stderr, /integrity:.*no-SigMap arm.*Nothing was recorded/);
     assert.ok(!fs.existsSync(path.join(f.out, 'agent-ab.json')));
+  });
+
+  await test('the CLI repeats a SigMap run whose server was still pending, prints each discarded run and its cost, and saves how many repeats it took', () => {
+    const f = fixture();
+    const state = path.join(path.dirname(f.bin), 'pending.state');
+    const rawOut = path.join(f.out, 'raw.json');
+    const r = runCli(['--claude', f.bin, '--runs', '1', '--repos', 'r2', '--task-ids', 'x010', '--raw-out', rawOut], live(f, { FAKE_PENDING_STATE: state, FAKE_PENDING_TIMES: '2' }));
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.strictEqual((r.stderr.match(/RETRY r2\/x010 run 1 with/g) || []).length, 2);
+    assert.match(r.stderr, /repeat 2 of 3 \(the discarded run cost \$0\.0100\)/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, 4, 'without, then the SigMap run launched three times');
+    assert.strictEqual((r.stderr.match(/\[\d+\/2\]/g) || []).length, 2, 'the progress counts the planned runs, not the discarded ones');
+    const raw = JSON.parse(fs.readFileSync(rawOut, 'utf8'));
+    assert.deepStrictEqual(raw.map((x) => [x.arm, x.startupRetries, x.ok]).sort(), [['with', 2, true], ['without', 0, true]]);
+  });
+
+  await test('the CLI still stops, naming the repeats it made, when the server never comes up', () => {
+    const f = fixture();
+    const state = path.join(path.dirname(f.bin), 'pending.state');
+    const rawOut = path.join(f.out, 'raw.json');
+    const r = runCli(['--claude', f.bin, '--runs', '1', '--repos', 'r2', '--task-ids', 'x010', '--raw-out', rawOut], live(f, { FAKE_PENDING_STATE: state, FAKE_PENDING_TIMES: '99' }));
+    assert.strictEqual(r.status, 1);
+    assert.match(r.stderr, /integrity: .*pending.*\(after 3 repeats\)\. Nothing was recorded/);
+    assert.strictEqual(fs.readFileSync(f.log, 'utf8').trim().split('\n').length, 5, 'without, then the SigMap run and its 3 repeats');
+    assert.ok(!fs.existsSync(rawOut), 'nothing is written');
   });
 
   await test('--save below the minimum runs is refused before any agent is started', () => {
