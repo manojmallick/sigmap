@@ -139,7 +139,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
-| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented |
+| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented (`build-change-tasks.mjs` now applies the same screen, from `scripts/lib/change-task-screen.mjs`, as a rule and never keeps such a task) |
 | `summarize.mjs` | every number in the study, from `data/runs.ndjson` |
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 
