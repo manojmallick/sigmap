@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Changed
+- `--callers`, `--callees` and `get_method_impact` say when a symbol is in a language whose receiver calls (`x.m()`, `this.m()`, `self.m()`) the call graph does not resolve: TypeScript, Python and Go (0.0%, 0.1% and 0.0% of reference edges against SCIP, #976), and Java only in part. Before, `--callers save` printed "no caller found" for a method with two callers. `--json` gains `receiverCalls`, present only for those languages; every other result keeps its text and keys. The receiver-type spike the registered threshold called for was not started; the decision and what would reopen it are in the call-graph accuracy protocol (refs #1074)
+
 ---
 
 ## [8.87.0] — 2026-11-15

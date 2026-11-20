@@ -130,6 +130,12 @@ Recall and precision are over edges between the files both the graph and the com
 - **For TypeScript and JavaScript, most of the graph's edges cannot be judged.** 1,278 of the 1,365 TypeScript graph edges have a caller or callee that is a function-local constant (`const onClick = () => …` inside a React component), which scip-typescript gives no callable identity, so they are counted as wrong by the registered definition and are not shown to be. The 87 edges both sides can name are right 94.3% of the time, a cell too small to quote. The registered precision stays the headline; the judgeable column says how much of it is the reference's blind spot.
 - **The graph reads fewer files than the index covers.** The scope table has the counts, and recall counted over every reference edge, including files the graph never walked, is lower still: 5.3% in TypeScript, 10.7% in Python, 36.2% in Go.
 
+## What the commands print about this
+
+Since the finding above, `--callers`, `--callees` and `get_method_impact` say it where you read the answer. For a symbol declared in TypeScript, Python or Go, the output ends with a line that calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) are not resolved, so a short or empty list is not evidence that nothing calls the symbol; for Java it says they are resolved only in part. `--json` carries the same facts as `receiverCalls`, listed only for those languages. Before this, `--callers save` printed "no caller found" for a method with two callers in TypeScript, Python and Go.
+
+The registered threshold said a receiver-type spike was warranted. It was not started: the call graph has not been shown to help retrieval (its boost is off and changed no task on the saved A/B), nothing recorded says anyone relies on these commands, and the study's winning setup carries neither of them. That is a decision about effort and is logged, with what would reopen it, in the [protocol's deviation log](https://github.com/manojmallick/sigmap/blob/main/benchmarks/CALLGRAPH_ACCURACY_PROTOCOL.md).
+
 ## What this does not say
 
 - Nothing about PHP, C#, C/C++, Swift, Dart, Lua, GDScript, Vue, Svelte or Astro: the graph reads none of them ([#979](https://github.com/manojmallick/sigmap/issues/979)). Nor about Rust, Kotlin, Scala or Ruby, where no SCIP indexer was run.

@@ -70,6 +70,40 @@ with the tool list cut to `query_context` and `get_lines`.
 `data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
 study used; `data/closed-book.heldout.*.json` is its closed-book control.
 
+### Repeating a run on the same held-out repositories
+
+`build-heldout-set.mjs` reads each repository's current head, so running it again gives different questions. To repeat a run on what the study used, rebuild the data root from the saved pins (about 100 MB; network only, no key):
+
+```bash
+node benchmarks/agent-study/rebuild-heldout-root.mjs --out ~/heldout-root --exclude emilk__egui_plot   # the 20 repositories, 222 questions, of the API and hook series
+# plan and cost ceiling first (starts nothing); then GO=1. ANTHROPIC_API_KEY in your shell only.
+MCP_CONNECTION_NONBLOCKING=0 SETS=heldout HELDOUT_ROOT=~/heldout-root VARIANTS=locate AGENT=claude MODEL=claude-haiku-5-5 RUNS=4 MAX_TOTAL_USD=25 BUDGET=0.25 \
+  OUT=~/t5-runs bash benchmarks/agent-study/run-token-saving.sh
+node benchmarks/agent-study/to-runs.mjs ~/t5-runs --route claude-code --model claude-haiku-5-5 > locate.ndjson
+# first asks only (run 1 of each question; runs 2-4 are served from the host's prompt cache, see `ask` above), then the bar:
+node -e 'const l=require("fs").readFileSync(0,"utf8").split("\n").filter(Boolean).filter((x)=>JSON.parse(x).ask!=="repeat");process.stdout.write(l.join("\n")+"\n")' < locate.ndjson > locate-first.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs locate-first.ndjson --variant locate --set heldout   # a pre-registered bar, clause by clause
+```
+
+`confirm-bar.mjs` applies the bar written in its own source (B1 to B4) with the study's pairing, drop rule and repository-level pooling, and exits 1 if a clause is not met. `--out` must be outside this repository.
+
+**The run this was written for is saved:** `data/confirm-locate-claude-code.ndjson` is the table of the confirmatory run of #1071 (`locate`, Claude Code, Haiku 5.5, the 20 held-out repositories, 1,776 runs, run 2026-11-18/19; the output of `to-runs.mjs`, unedited). It is kept apart from `data/runs.ndjson` so the study's counts and every figure derived from them stay as published. Anyone can re-derive its headline with no key and no network:
+
+```bash
+grep '"ask":"first"' benchmarks/agent-study/data/confirm-locate-claude-code.ndjson > first.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs first.ndjson --variant locate --set heldout   # BAR MET: cost -16.6% [-23.2, -9.7], file found 205 vs 208, uptake 96%
+```
+
+`test/integration/agent-study-confirmatory-tools.test.js` pins those numbers. They say what the bar says about this run and nothing beyond it: one model, one agent setup, 20 repositories of up to about 2,400 files, and "file found", not answer quality.
+
+Three things the first live attempts taught, so they need not be learned again:
+
+- **`PROMPT_STYLE=question` does not work for `locate`.** The harness refuses it (`scripts/lib/agent-ab-claude.mjs`): the SigMap arm of a variant that is neither a hook nor prefetch needs the system-prompt slot the style also uses. Leave `PROMPT_STYLE` unset, which is why runs 2-4 of a question are `repeat` asks and the bar above is read on first asks.
+- **Set `MCP_CONNECTION_NONBLOCKING=0`.** Claude Code 2.1.178 does not wait for the MCP server before its first model request by default, so a SigMap arm can begin with no SigMap tool (its init event says the server is `pending`). With the variable set the CLI waits for it.
+- **A server that is still `pending` anyway is repeated, up to 3 times.** It happened once in 93 SigMap-arm launches with the variable set (45 in a probe, 48 in the first batch). The run is discarded and the same job is run again (read from the init event alone, before the agent has done anything, so it cannot select on the outcome); each repeat prints a `RETRY` line with the discarded run's cost, and the kept record carries `startupRetries` in `raw.json`. A server that is absent or `failed`, a forbidden tool, or any fault in the baseline arm is still fatal, and a failed batch still records nothing.
+
+A batch is one repository (96 runs with 12 questions and 4 repetitions, about 15 minutes), so a crash or Ctrl-C loses the batch in progress; rerunning resumes from the finished ones.
+
 ### Change tasks (stage 2)
 
 ```bash
@@ -105,7 +139,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
-| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented |
+| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented (`build-change-tasks.mjs` now applies the same screen, from `scripts/lib/change-task-screen.mjs`, as a rule and never keeps such a task) |
 | `summarize.mjs` | every number in the study, from `data/runs.ndjson` |
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 

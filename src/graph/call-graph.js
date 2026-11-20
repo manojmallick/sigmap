@@ -963,15 +963,21 @@ function formatCallGraph(result, kind) {
     return lines.join('\n');
   }
   const qualifier = _scopeClause(result.scope);
+  // Calls through a receiver (`x.m()`) draw no edge outside Java, so an empty or short
+  // list for a symbol in TypeScript, Python or Go is not a safe answer (#1074).
+  const { receiverCalls, receiverNote } = require('./language-support');
+  const rc = receiverCalls(result.resolved);
+  const rcLine = rc.length ? [`_${receiverNote(rc, kind)}_`] : [];
   if (result.total === 0) {
     lines.push(kind === 'callees'
       ? `_no repo-defined callee found (${qualifier})._`
-      : `_no caller found (${qualifier})._`);
+      : `_no caller found (${qualifier})._`, ...(rcLine.length ? ['', ...rcLine] : []));
     return lines.join('\n');
   }
   lines.push(`**Total ${verb}:** ${result.total} _(${qualifier})_`, '');
   if (result.direct.length) { lines.push(`### Direct`); for (const id of result.direct) lines.push(`- \`${id}\``); lines.push(''); }
   if (result.transitive.length) { lines.push(`### Transitive`); for (const id of result.transitive) lines.push(`- \`${id}\``); lines.push(''); }
+  if (rcLine.length) lines.push(...rcLine, '');
   return lines.join('\n');
 }
 
@@ -998,6 +1004,10 @@ function formatCallGraphJSON(result, kind) {
   }
   // A symbol the call graph does not know, in roots that hold files it cannot read.
   if (result.unsearched) out.unsearched = result.unsearched;
+  // Present only for a symbol in a language whose receiver calls (`x.m()`) the graph
+  // does not fully resolve, so every other result keeps its shape (#1074).
+  const rc = require('./language-support').receiverCalls(result.resolved);
+  if (rc.length) out.receiverCalls = rc.map(({ language, resolved }) => ({ language, resolved }));
   return out;
 }
 

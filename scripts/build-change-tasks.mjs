@@ -9,7 +9,8 @@
 //   - the base is the commit's parent, a sanitised snapshot (answer keys, generated agent context and the history are left out);
 //   - the task text is the issue title and its first paragraph, with every path and file name of the real fix taken out, because
 //     where the code lives is what SigMap claims to find;
-//   - the hidden tests are the test files the commit added or changed;
+//   - the hidden tests are the test files the commit added or changed, and none of them may take a name out of a module (`const { x } = require(...)`)
+//     that the base lacks (the fix would have to invent it: scripts/lib/change-task-screen.mjs, #1072);
 //   - the task is KEPT only if those tests fail on the base and pass with the real fix (src/ part only) applied, twice, each run under
 //     the time limit, and the failure is an assertion, not a missing module or a syntax error.
 // The selection rule is mechanical and fixed here; no agent has seen a task when it is chosen. Output is a data root the harness reads
@@ -20,6 +21,7 @@ import path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { problemStatement } from './lib/agent-ab-change.mjs';
+import { screenHiddenTests } from './lib/change-task-screen.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -122,6 +124,9 @@ for (const h of hashes) {
     const goldPatch = git('diff', '--binary', parent, h, '--', 'src/', 'gen-context.js');
     for (const t of hidden) { fs.mkdirSync(path.dirname(path.join(tmp, t.path)), { recursive: true }); fs.writeFileSync(path.join(tmp, t.path), t.content); }
     const files = hidden.map((t) => t.path);
+    // The screen, as a rule (#1072): a test that needs a name the fix invents cannot pass however good the patch, and no bug report can contain it.
+    const screen = screenHiddenTests(tmp, hidden);
+    if (screen.invents.length) { note(`the hidden tests need names the fix invents (${screen.invents.slice(0, 4).join(', ')}): no bug report can contain them`); continue; }
     const before = runTests(tmp, files);
     if (before.every((b) => b.code === 0)) { note('the hidden tests already pass on the base'); continue; }
     if (before.some((b) => b.code !== 0 && /Cannot find module|SyntaxError|ERR_MODULE_NOT_FOUND|is not a function \(reading|ENOENT/.test(b.out.slice(0, 4000)) && !/assert|expected|AssertionError|FAIL/i.test(b.out))) { note('fails on the base for a missing module or a syntax error, not an assertion'); continue; }

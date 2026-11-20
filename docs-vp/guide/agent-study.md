@@ -456,9 +456,11 @@ calls too, but only one interval clears zero (tool calls under `prefetch`), and 
 both times?" no for all three). Restricted to the four tasks whose tests use no invented names, `index` on Haiku 5.5 reads −17% [−26, −8]
 in cost over 12 pairs; that cut was chosen after the results were seen and is exploratory, not evidence.
 
-What would make this stage informative: screen the tasks for invented names *before* running anything (the script is there, and the
-next version of `build-change-tasks.mjs` should apply it as a rule), add the equivalence and review graders the article used instead of
-only a test file, use more tasks than nine, and a model strong enough to clear them. None of that was done here.
+What would make this stage informative: screen the tasks for invented names *before* running anything, add the equivalence and review graders the
+article used instead of only a test file, use more tasks than nine, and a model strong enough to clear them. None of that was done in this run.
+Since then `build-change-tasks.mjs` applies the screen as a rule (`scripts/lib/change-task-screen.mjs`: a task whose hidden tests need a name the
+fix invents is never kept), which only removes the first problem; the stage has not been re-run. SigMap's own history cannot supply many such tasks. On 2026-11-16, of the 113 `fix(...)` commits since 2026-07-01, 49 met the builder's structural rules (source and a test changed, no new source file, one task per issue, six source files or fewer). Of the 9 tasks that ran in this stage, 4 were answerable, so a re-run from this one repository would see at most about 20, before the builder's size and fail-then-pass filters take more, and from a
+repository the ranker was tuned on.
 
 ## Where this can mislead
 
