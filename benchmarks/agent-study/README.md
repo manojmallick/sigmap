@@ -96,6 +96,15 @@ node benchmarks/agent-study/confirm-bar.mjs --runs first.ndjson --variant locate
 
 `test/integration/agent-study-confirmatory-tools.test.js` pins those numbers. They say what the bar says about this run and nothing beyond it: one model, one agent setup, 20 repositories of up to about 2,400 files, and "file found", not answer quality.
 
+**The same test with Sonnet 5.5 (T6 of #1071) is saved too:** `data/confirm-locate-claude-code-sonnet-5-5.ndjson`, 444 runs (one per question per arm, so every run is a first ask), run 2026-11-20/21 from commit `1c85b72`, whose harness files are identical to those of the pre-registered commit; the output of `to-runs.mjs`, unedited. Run it as above with `MODEL=claude-sonnet-5-5 RUNS=1 BUDGET=0.50`; the bar reads all runs, with no first-ask filter:
+
+```bash
+node benchmarks/agent-study/confirm-bar.mjs --runs benchmarks/agent-study/data/confirm-locate-claude-code-sonnet-5-5.ndjson --variant locate --set heldout
+# BAR MET: cost -8.8% [-15.5, -2.0], file found 211 vs 207, uptake 93%; 5 repositories clearly save, 15 are indeterminate, none clearly costs more
+```
+
+With Sonnet the saving is in cost, not in tokens: the SigMap arm wrote less output and fewer cache tokens but read more from cache, so its total tokens per run were 9% higher while its reported cost was 12% lower (ratio of means; a test pins the direction). Two batches were run twice because the maintainer's laptop slept mid-run (wall times of 974 to 1,520 s against a 420 s timeout); the discarded attempt gives -8.2% [-14.9, -1.7] with the bar met, so the rerun does not decide the result. If a long run times out, compare the run's wall time with the timeout first: a figure far above it means the host was asleep, not that the agent hung.
+
 Three things the first live attempts taught, so they need not be learned again:
 
 - **`PROMPT_STYLE=question` does not work for `locate`.** The harness refuses it (`scripts/lib/agent-ab-claude.mjs`): the SigMap arm of a variant that is neither a hook nor prefetch needs the system-prompt slot the style also uses. Leave `PROMPT_STYLE` unset, which is why runs 2-4 of a question are `repeat` asks and the bar above is read on first asks.
