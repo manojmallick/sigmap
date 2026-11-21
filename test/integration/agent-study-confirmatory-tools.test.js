@@ -219,6 +219,43 @@ const git = (args, cwd) => { const r = spawnSync('git', args, { cwd, encoding: '
     assert.strictEqual(noPjp.repositories, 19); assert.strictEqual(noPjp.met, true);
   });
 
+  // The same test with the model changed (T6 of #1071): Sonnet 5.5 in Claude Code, one run per question, run 2026-11-20/21 on the maintainer's key.
+  // Every run is a first ask (RUNS=1), so there is no cache-repeat reading to choose between and the bar reads all 444 runs.
+  const T6 = () => fs.readFileSync(path.join(ROOT, 'benchmarks/agent-study/data/confirm-locate-claude-code-sonnet-5-5.ndjson'), 'utf8').trim().split('\n').map(JSON.parse);
+
+  await test('the saved Sonnet run is complete: 444 runs, 20 repositories, both arms, all first asks, none failed or capped', () => {
+    const rows = T6();
+    assert.strictEqual(rows.length, 444);
+    assert.strictEqual(rows.filter((r) => r.arm === 'with').length, 222);
+    assert.strictEqual(rows.filter((r) => r.arm === 'without').length, 222);
+    assert.strictEqual(new Set(rows.map((r) => r.repo)).size, 20);
+    assert.ok(rows.every((r) => r.ok && !r.limit && r.variant === 'locate' && r.set === 'heldout' && r.model === 'claude-sonnet-5-5' && r.route === 'claude-code' && r.ask === 'first' && r.run === 1));
+  });
+
+  await test('the saved Sonnet run: the pre-registered bar is met (the numbers posted on #1071), and the repository spread is what was posted', () => {
+    const j = cb.judge(T6(), { variant: 'locate', set: 'heldout' });
+    assert.strictEqual(j.pairs, 222); assert.strictEqual(j.dropped, 0); assert.strictEqual(j.repositories, 20);
+    assert.strictEqual(j.foundWith, 211); assert.strictEqual(j.foundWithout, 207);
+    assert.ok(j.pooled.change > -0.09 && j.pooled.change < -0.085, `pooled ${j.pooled.change}`);   // -8.8%
+    assert.ok(j.pooled.lo > -0.16 && j.pooled.lo < -0.15, `lower ${j.pooled.lo}`);                  // -15.5%
+    assert.ok(j.pooled.hi > -0.025 && j.pooled.hi < -0.015, `upper ${j.pooled.hi}`);                // -2.0%
+    assert.ok(j.uptake > 0.92 && j.uptake < 0.94, `uptake ${j.uptake}`);
+    assert.deepStrictEqual(j.clauses.map((c) => c.ok), [true, true, true, true]);
+    assert.strictEqual(j.met, true);
+    const cls = {}; for (const r of j.repos) cls[r.cls] = (cls[r.cls] || 0) + 1;
+    assert.deepStrictEqual(cls, { saves: 5, none: 15 }, 'five repositories clearly save, fifteen are indeterminate, none clearly costs more');
+    assert.deepStrictEqual(j.flaggedAbove15, ['chatmail__relay'], 'one repository is above +15% on its point estimate, and its interval spans zero');
+  });
+
+  await test('the saved Sonnet run: the agent-reported cost fell while total tokens rose (the saving is in the price mix, not in fewer tokens)', () => {
+    const rows = T6();
+    const mean = (arm, k) => { const rs = rows.filter((r) => r.arm === arm); return rs.reduce((s, r) => s + r[k], 0) / rs.length; };
+    const tokens = (arm) => ['in', 'out', 'cacheRead', 'cacheWrite'].reduce((s, k) => s + mean(arm, k), 0);
+    assert.ok(mean('with', 'usd') / mean('without', 'usd') < 0.90, 'mean cost per run is more than 10% lower with SigMap');
+    assert.ok(tokens('with') / tokens('without') > 1.05, 'total tokens per run are higher with SigMap, as the harness summary printed (+9%)');
+    assert.ok(mean('with', 'out') < mean('without', 'out') && mean('with', 'cacheWrite') < mean('without', 'cacheWrite') && mean('with', 'cacheRead') > mean('without', 'cacheRead'));
+  });
+
   await test('the bar constants are the pre-registered ones', () => {
     assert.deepStrictEqual({ ...cb.BAR }, { poolHiBelow: 0.05, maxCostsShare: 0.15, foundPointsAtLeast: -5, uptakeAtLeast: 0.5, repoPointFlag: 0.15 });
   });
