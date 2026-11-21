@@ -179,7 +179,7 @@ sigmap status                            Show repo state — branch, dirty files
 sigmap doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
 sigmap mcp list                          List MCP clients and their config paths (--json)
 sigmap mcp install <client>              Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level
-sigmap --init                            Write example config + .contextignore scaffold
+sigmap --init                            Write config (index strategy, locate MCP profile) + .contextignore scaffold
 sigmap --help                            Show this message
 sigmap --version                         Show version
 ```

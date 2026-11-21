@@ -162,7 +162,7 @@ const USAGE = [
   { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
   { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
   { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-  { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+  { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
   { argv: '--help', desc: 'Show this message' },
   { argv: '--version', desc: 'Show version' },
 ];

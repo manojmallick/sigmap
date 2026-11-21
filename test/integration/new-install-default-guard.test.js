@@ -1,14 +1,14 @@
 'use strict';
 
 /**
- * #1071 — guard rails for changing what a NEW install is proposed (T1 and T2). Nothing here changes a default. These tests pass on
- * today's code and are written so that the pull request that does flip the new-install default has to meet them, or say why not.
+ * #1071 — guard rails for what a NEW install is proposed (T1 and T2). They were written first, passing on the code of the time, so that the
+ * pull request that flipped the new-install default had to meet them; that pull request changed the two pins marked below and nothing in T2.
  *
  *   T1  config equivalence. Candidate A (`strategy: "index"` + `mcp.tools: "locate"`) is the setup the confirmatory runs measured
  *       (T5 with Haiku 5.5, T6 with Sonnet 5.5). Pinned: the study's `locate` arm writes exactly that config, the profile advertises
  *       exactly `query_context` and `get_lines`, and Candidate A differs from a project with no config in those two keys and no other.
- *       Also pinned: what `sigmap --init` proposes today, so a flip shows up as a changed pin. The last check (T1c) compares a flipped
- *       `--init` with the study's arm and says, on every run before a flip, that it was not evaluated.
+ *       Also pinned: what `sigmap --init` proposes, on both paths (the example file and a lone copy of the bundle), and that it equals
+ *       Candidate A and so the study's arm (T1c). A project with no config at all is not a new install and keeps strategy "full" and all tools.
  *   T2  upgrade invariance. Four kinds of existing project (no config, minimal, full custom, legacy `outputs`) resolve to the same effective
  *       config and tool profile as they did at v8.87.0 (`test/fixtures/upgrade-invariance`). An existing project must not change behaviour
  *       because SigMap was upgraded. Pinned with it: a key a project sets keeps its value, and `--init` never rewrites a config file.
@@ -117,19 +117,19 @@ function project(config) {
     assert.deepStrictEqual(resolveProfile(a).names.slice().sort(), TWO_TOOLS);
   });
 
-  // What `sigmap --init` proposes today. A pull request that changes the new-install default changes this pin on purpose.
+  // What `sigmap --init` proposes. Changing the new-install default means changing this pin on purpose (it was "full" + "core" until #1071).
   const fresh = project(null);
   const init = runInit(fresh);
   const proposed = effective(fresh);
   const proposedProfile = resolveProfile(proposed);
 
-  await test('T1: today `sigmap --init` proposes strategy "full" and the 7-tool core profile (the pin a flip has to change)', () => {
+  await test('T1: `sigmap --init` proposes strategy "index" and the 2-tool locate profile (Candidate A; was "full" and "core" before #1071)', () => {
     assert.strictEqual(init.status, 0, init.stderr);
-    assert.deepStrictEqual([proposed.strategy, proposed.mcp.tools, proposedProfile.profile, proposedProfile.names.length], ['full', 'core', 'core', 7]);
+    assert.deepStrictEqual([proposed.strategy, proposed.mcp.tools, proposedProfile.profile, proposedProfile.names.length], ['index', 'locate', 'locate', 2]);
   });
 
   // `--init` has a second path: with no example file beside gen-context.js (a lone copy of the bundle, the standalone binary) it writes the
-  // defaults plus the core profile. A flip has to change both, so both are pinned. (They already differ in `outputs`: four targets from the
+  // defaults plus the two Candidate A keys. A change has to change both, so both are pinned. (They already differ in `outputs`: four targets from the
   // example, the copilot file from the fallback. That is not pinned here, so this test does not lock the difference in.)
   const lone = project(null);
   const loneDir = mktmp('sigmap-lone-bundle-');
@@ -140,12 +140,10 @@ function project(config) {
   await test('T1: the lone-bundle `--init` (no example file beside it) proposes the same strategy and profile as the example', () => {
     assert.strictEqual(loneInit.status, 0, loneInit.stderr);
     assert.deepStrictEqual([loneProposed.strategy, loneProposed.mcp.tools], [proposed.strategy, proposed.mcp.tools]);
-    assert.deepStrictEqual([loneProposed.strategy, loneProposed.mcp.tools], ['full', 'core']);
+    assert.deepStrictEqual([loneProposed.strategy, loneProposed.mcp.tools], ['index', 'locate']);
   });
 
-  await test('T1c: a flipped `--init` proposes the study\'s locate arm, on both paths (evaluated only once `--init` proposes locate)', () => {
-    const profiles = [proposedProfile.profile, resolveProfile(loneProposed).profile];
-    if (profiles.every((p) => p !== 'locate')) return `not evaluated: \`sigmap --init\` proposes the "${profiles[0]}" profile, so no new-install default has been flipped to locate.`;
+  await test('T1c: `--init` proposes the study\'s locate arm, on both paths: the new-install default equals what the confirmatory runs measured', () => {
     for (const [label, p] of [['example', proposed], ['lone bundle', loneProposed]]) {
       assert.deepStrictEqual({ strategy: p.strategy, mcp: { tools: p.mcp.tools } }, armConfig, `${label}: the new-install default must equal the arm the confirmatory runs measured`);
       assert.deepStrictEqual(resolveProfile(p).names.slice().sort(), TWO_TOOLS, label);
@@ -191,7 +189,47 @@ function project(config) {
     }
   });
 
+  // ── The words: every place that says what a new install starts on says the same thing (#1071 acceptance) ─────
+
+  const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const GUIDES = ['choosing-a-setup', 'cli', 'config', 'mcp', 'troubleshooting', 'memory'].map((n) => `docs-vp/guide/${n}.md`);
+
+  await test('docs: `sigmap --help`, the README and the five guides that describe `--init` all say "index" and "locate"', () => {
+    const help = spawnSync(process.execPath, [SCRIPT, '--help'], { encoding: 'utf8' }).stdout.split('\n').find((l) => /gen-context --init/.test(l)) || '';
+    assert.match(help, /index strategy, locate MCP profile/, `--help line: ${help.trim()}`);
+    assert.match(read('README.md'), /`sigmap --init` starts on the `index` strategy and advertises only two of these tools, `query_context` and `get_lines`/);
+    const choosing = read('docs-vp/guide/choosing-a-setup.md');
+    assert.match(choosing, /^## What a new install starts on$/m);
+    assert.ok(choosing.includes('`sigmap --init` writes `{ "strategy": "index", "mcp": { "tools": "locate" } }` into a **new** project'), 'the guide states the exact config');
+    assert.match(read('docs-vp/guide/cli.md'), /\| `--init` \| Scaffold `gen-context\.config\.json` \(a new install starts on strategy `index` and the two-tool `locate` MCP profile\)/);
+    assert.match(read('docs-vp/guide/cli.md'), /A new config starts on the `index` strategy and the two-tool `locate` MCP profile/);
+    assert.match(read('docs-vp/guide/config.md'), /`sigmap --init` writes `"locate"` \(with `"strategy": "index"`\) into a new config/);
+    assert.match(read('docs-vp/guide/mcp.md'), /`sigmap --init` writes `"locate"` \(and `"strategy": "index"`\) into a \*\*new\*\* config/);
+    assert.match(read('docs-vp/guide/troubleshooting.md'), /`sigmap --init` writes `"locate"` \(two tools\) into a new config/);
+  });
+
+  await test('docs: no page says a new install starts on, or `--init` writes, the "core" profile or strategy "full" (the pre-#1071 wording)', () => {
+    const bad = [];
+    for (const rel of ['README.md', ...GUIDES]) {
+      // `--init`, then a verb, then core or full close behind it: "writes \`"core"\`", "starting on the lean \`core\`", "proposes strategy full".
+      // A line that merely mentions "core" elsewhere (the profile table, a sentence about opting in) is not the old claim.
+      read(rel).split('\n').forEach((line, i) => {
+        if (/--init[^\n]{0,80}(writes|starts? on|starting on|proposes)[^\n]{0,50}(["`]core["`]|lean `?core|strategy `?"?full)/i.test(line)) bad.push(`${rel}:${i + 1}`);
+      });
+    }
+    assert.deepStrictEqual(bad, [], `these lines still describe the old new-install default: ${bad.join(', ')}`);
+  });
+
+  await test('docs: the example config says in its own comments what a new install starts on, and lists the index strategy', () => {
+    const ex = JSON.parse(read('gen-context.config.json.example'));
+    assert.match(ex._mcp_tools_comment, /A NEW install starts on 'locate'/);
+    assert.match(ex._strategy_comment, /Options: 'index' \| 'full'/);
+    assert.match(ex._strategy_comment, /A NEW install starts on 'index'/);
+    assert.deepStrictEqual([ex.strategy, ex.mcp.tools], ['index', 'locate'], 'the example is what --init copies');
+    assert.ok(ex._strategy_index && /sig-index\.json/.test(ex._strategy_index));
+  });
+
   for (const d of tmp) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
-  console.log(`\nnew-install-default-guard: ${passed} passed, ${failed} failed, ${skipped} skipped (T1c waits for a flip)`);
+  console.log(`\nnew-install-default-guard: ${passed} passed, ${failed} failed, ${skipped} skipped`);
   process.exit(failed ? 1 : 0);
 })();
