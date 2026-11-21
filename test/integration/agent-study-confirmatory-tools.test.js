@@ -256,6 +256,58 @@ const git = (args, cwd) => { const r = spawnSync('git', args, { cwd, encoding: '
     assert.ok(mean('with', 'out') < mean('without', 'out') && mean('with', 'cacheWrite') < mean('without', 'cacheWrite') && mean('with', 'cacheRead') > mean('without', 'cacheRead'));
   });
 
+  // The same test on LARGE repositories (T7 of #1071): Haiku 5.5 in Claude Code on the third round's 16 repositories of 3,026 to 7,756 tracked
+  // files, one run per question per arm, run 2026-11-21 from the merge commit f341c54 of the PR that built the set. Pre-registered on #1071 first.
+  const T7 = () => fs.readFileSync(path.join(ROOT, 'benchmarks/agent-study/data/confirm-locate-claude-code-large.ndjson'), 'utf8').trim().split('\n').map(JSON.parse);
+  const DATA_DIR = path.join(ROOT, 'benchmarks/agent-study/data');
+
+  await test('the saved large-repository run is complete: 384 runs, the 16 pinned repositories and 192 pinned questions, both arms, all first asks, none failed or capped', () => {
+    const rows = T7();
+    assert.strictEqual(rows.length, 384);
+    assert.strictEqual(rows.filter((r) => r.arm === 'with').length, 192);
+    assert.strictEqual(rows.filter((r) => r.arm === 'without').length, 192);
+    assert.ok(rows.every((r) => r.ok && !r.limit && r.variant === 'locate' && r.set === 'heldout' && r.model === 'claude-haiku-5-5' && r.route === 'claude-code' && r.ask === 'first' && r.run === 1));
+    const pinned = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'heldout3-repos.json'), 'utf8')).repos.map((r) => r.name).sort();
+    assert.deepStrictEqual([...new Set(rows.map((r) => r.repo))].sort(), pinned, 'the repositories run are exactly the pinned set');
+    const qs = fs.readFileSync(path.join(DATA_DIR, 'heldout3-questions.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+    const want = qs.map((q) => `${q.repo}/${q.id}`).sort();
+    for (const arm of ['with', 'without']) {
+      assert.deepStrictEqual(rows.filter((r) => r.arm === arm).map((r) => `${r.repo}/${r.task}`).sort(), want, `${arm}: every pinned question once`);
+    }
+  });
+
+  await test('the saved large-repository run: the pre-registered bar is met (the numbers posted on #1071), and the repository spread is what was posted', () => {
+    const j = cb.judge(T7(), { variant: 'locate', set: 'heldout' });
+    assert.strictEqual(j.pairs, 192); assert.strictEqual(j.dropped, 0); assert.strictEqual(j.repositories, 16);
+    assert.strictEqual(j.foundWith, 167); assert.strictEqual(j.foundWithout, 175);
+    assert.ok(j.pooled.change > -0.19 && j.pooled.change < -0.18, `pooled ${j.pooled.change}`);   // -18.5%
+    assert.ok(j.pooled.lo > -0.23 && j.pooled.lo < -0.22, `lower ${j.pooled.lo}`);                 // -22.5%
+    assert.ok(j.pooled.hi > -0.145 && j.pooled.hi < -0.14, `upper ${j.pooled.hi}`);               // -14.3%
+    assert.ok(j.uptake > 0.96 && j.uptake < 0.97, `uptake ${j.uptake}`);
+    assert.deepStrictEqual(j.clauses.map((c) => c.ok), [true, true, true, true]);
+    assert.strictEqual(j.met, true);
+    const cls = {}; for (const r of j.repos) cls[r.cls] = (cls[r.cls] || 0) + 1;
+    assert.deepStrictEqual(cls, { saves: 11, none: 5 }, 'eleven repositories clearly save, five are indeterminate, none clearly costs more');
+    assert.deepStrictEqual(j.flaggedAbove15, [], 'no repository is above +15% on its point estimate');
+    assert.strictEqual(j.repos.filter((r) => r.change > 0).length, 1, 'one repository (contao) is above zero on its point estimate, by 0.2%');
+  });
+
+  await test('the saved large-repository run: B3 passes by under one point (13 questions found only without SigMap, 5 only with it), and cost and tokens fell together', () => {
+    const rows = T7();
+    const found = new Map();
+    for (const r of rows) { const k = `${r.repo}/${r.task}`; if (!found.has(k)) found.set(k, {}); found.get(k)[r.arm] = r.pass; }
+    let onlyWithout = 0; let onlyWith = 0;
+    for (const v of found.values()) { if (v.without && !v.with) onlyWithout++; else if (v.with && !v.without) onlyWith++; }
+    assert.strictEqual(onlyWithout, 13); assert.strictEqual(onlyWith, 5);
+    const j = cb.judge(rows, { variant: 'locate', set: 'heldout' });
+    assert.ok(j.foundDiffPoints > -4.3 && j.foundDiffPoints < -4.1, `found difference ${j.foundDiffPoints}`);
+    assert.ok(j.foundDiffPoints - cb.BAR.foundPointsAtLeast > 0 && j.foundDiffPoints - cb.BAR.foundPointsAtLeast < 1, 'the margin to the limit is under one point: the pass is real but thin');
+    const mean = (arm, k) => { const rs = rows.filter((r) => r.arm === arm); return rs.reduce((s, r) => s + r[k], 0) / rs.length; };
+    const tokens = (arm) => ['in', 'out', 'cacheRead', 'cacheWrite'].reduce((s, k) => s + mean(arm, k), 0);
+    assert.ok(mean('with', 'usd') / mean('without', 'usd') < 0.85, 'mean cost per run is more than 15% lower with SigMap');
+    assert.ok(tokens('with') / tokens('without') < 0.85, 'total tokens per run are more than 15% lower with SigMap (unlike Sonnet in T6, where tokens rose)');
+  });
+
   await test('the bar constants are the pre-registered ones', () => {
     assert.deepStrictEqual({ ...cb.BAR }, { poolHiBelow: 0.05, maxCostsShare: 0.15, foundPointsAtLeast: -5, uptakeAtLeast: 0.5, repoPointFlag: 0.15 });
   });
