@@ -160,7 +160,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --models` | List the accepted model names, their per-MTok input rates, and the date of the profile they come from |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
-| `--init` | Scaffold `gen-context.config.json` (starting on the lean `core` MCP tool profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
+| `--init` | Scaffold `gen-context.config.json` (a new install starts on strategy `index` and the two-tool `locate` MCP profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched. Measured against compiler-derived edges: plain `f()` calls are found 99% in Go, 56% in Python; calls through a receiver (`x.m()`) are not found outside Java — see [call-graph accuracy](/guide/callgraph-accuracy) |
@@ -3235,7 +3235,7 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 sigmap --init
 ```
 
-A new config starts on the lean MCP profile — `"mcp": { "tools": "core" }`, the retrieval + grounding loop at about a third of the tool-definition tokens (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps every tool.
+A new config starts on the `index` strategy and the two-tool `locate` MCP profile — `"strategy": "index"` and `"mcp": { "tools": "locate" }`: a short always-on map, with `query_context` and `get_lines` for where-is-it questions, under a third of the tool-definition tokens of `core` (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all) and [Choosing a setup](/guide/choosing-a-setup#what-a-new-install-starts-on) for what it was measured to do and what it drops). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps strategy `full` and every tool. To start from the previous profile, set `"mcp": { "tools": "core" }` (and `"strategy": "full"`).
 
 ::: tip `.context/` keeps itself out of git
 `--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.

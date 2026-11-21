@@ -3841,7 +3841,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
     { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-    { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+    { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
     { argv: '--help', desc: 'Show this message' },
     { argv: '--version', desc: 'Show version' },
   ];
@@ -46503,10 +46503,13 @@ function writeInitConfig(cwd) {
       fs.copyFileSync(example, dest);
     } else {
       // No example beside the script (a lone copy of the bundle, or the standalone binary):
-      // the defaults, with the one choice the example makes — a new install starts on the
-      // lean MCP profile (#966) — so `--init` means the same thing wherever it runs.
+      // the defaults, with the two choices the example makes — a new install starts on the
+      // `index` strategy and the two-tool `locate` MCP profile (#1071, Candidate A) — so
+      // `--init` means the same thing wherever it runs. DEFAULTS themselves are unchanged:
+      // a project with no config keeps `full` and every tool.
       const fresh = JSON.parse(JSON.stringify(DEFAULTS));
-      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'core' });
+      fresh.strategy = 'index';
+      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'locate' });
       fs.writeFileSync(dest, JSON.stringify(fresh, null, 2) + '\n');
     }
     console.warn('[sigmap] wrote gen-context.config.json');
