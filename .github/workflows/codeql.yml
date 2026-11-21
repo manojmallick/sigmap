@@ -1,0 +1,50 @@
+name: CodeQL
+
+# CodeQL as an explicit workflow, so it can leave test code out (.github/codeql/codeql-config.yml).
+# GitHub's "default setup" scans every path and has no way to exclude one.
+#
+# It scans what the default setup scanned, the same way: the two languages (`actions` and
+# `javascript-typescript`, no build), the default query suite, a push to main, a pull request into main,
+# and once a week. The job names are the default setup's ("Analyze (actions)",
+# "Analyze (javascript-typescript)") so a check that names them keeps meaning the same thing.
+#
+# GitHub refuses analyses from this workflow while the default setup is on, so the default setup is
+# switched off first (Settings > Advanced Security > CodeQL analysis, or
+# `gh api -X PATCH repos/manojmallick/sigmap/code-scanning/default-setup -f state=not-configured`).
+# Alerts already open under test/ should close at the first analysis of main after this runs, because
+# the files are no longer scanned; the default setup reports under a different analysis_key, so if they
+# stay open, delete its old analyses (code-scanning analyses API) or dismiss them.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 5 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload the results to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          config-file: ./.github/codeql/codeql-config.yml
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
