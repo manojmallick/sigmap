@@ -67,6 +67,20 @@ Second round (fifteen more repositories): `node scripts/select-heldout-repos.mjs
 --keep-per-language 2` builds the questions (`data/heldout2-*`). Shard a large set with `HELDOUT_REPOS=a,b`. `--sigmap-variant locate` is `index`
 with the tool list cut to `query_context` and `get_lines`.
 
+**Third round: large repositories** (16 repositories of 3,026 to 7,756 tracked files, 192 questions, `data/heldout3-*`). The first two rounds top out at
+about 2,400 files, so nothing in the study says what a new-install default does on a large repository. The rule is round 2's with two changes that
+`select-heldout-repos.mjs --size-kb 30000..400000` and `build-heldout-set.mjs --min-files 3000 --max-files 10000` make: a larger size window in the search,
+and a check on `git ls-files` at the pinned commit. GitHub's size filter is a weak proxy for file count: of the 93 candidates the builder tried, 72 were
+outside the window (71 under 3,000 files, one over 10,000), 3 failed to clone on the macOS machine that built the set, 2 had fewer than 8 qualifying
+questions and 16 were kept; 36 were not tried because their language already had two. Pass 1 (36 candidates) gave only 4 usable repositories, so pass 2 applied the same rule deeper in star order and in five more
+languages; that decision was made knowing file counts and no agent outcome. Nothing was chosen by hand: every repository is a candidate the rule
+printed (`data/heldout3-selected-repos.txt`, with stars and merged-PR counts in `data/heldout3-selection-log.txt`), and `data/heldout3-build-report.txt` has
+one line for every candidate. Rebuild it with no key:
+
+```bash
+node benchmarks/agent-study/rebuild-heldout-root.mjs --out ~/heldout3-root --pins heldout3-repos.json --questions heldout3-questions.jsonl   # about 2 GB
+```
+
 `data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
 study used; `data/closed-book.heldout.*.json` is its closed-book control.
 

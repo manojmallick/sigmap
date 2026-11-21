@@ -4,6 +4,7 @@
 //   node benchmarks/agent-study/rebuild-heldout-root.mjs --out <dir>                           # all 21 repositories of both rounds
 //   node benchmarks/agent-study/rebuild-heldout-root.mjs --out <dir> --exclude emilk__egui_plot  # the 20 of the Messages-API and hook series
 //   node benchmarks/agent-study/rebuild-heldout-root.mjs --out <dir> --dry-run                   # the plan, fetches nothing
+//   node benchmarks/agent-study/rebuild-heldout-root.mjs --out <dir> --pins heldout3-repos.json --questions heldout3-questions.jsonl   # another saved set (files in data/)
 //
 // scripts/build-heldout-set.mjs builds a set from each repository's CURRENT head, so running it again gives different questions. The study kept
 // what it used: data/heldout-repos.json and data/heldout2-repos.json (the pinned commits) and data/heldout-questions.jsonl and
@@ -94,10 +95,11 @@ export function rebuild(o) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const out = val('--out', null);
-  if (!out) { console.error('usage: rebuild-heldout-root.mjs --out <dir> [--exclude name,name] [--only name,name] [--dry-run]'); process.exit(2); }
+  if (!out) { console.error('usage: rebuild-heldout-root.mjs --out <dir> [--exclude name,name] [--only name,name] [--pins file,file --questions file,file] [--dry-run]'); process.exit(2); }
   let res;
   try {
-    res = rebuild({ out, exclude: (val('--exclude', '') || '').split(',').filter(Boolean), only: (val('--only', '') || '').split(',').filter(Boolean), dryRun: has('--dry-run'), log: (s) => console.log(s) });
+    const list = (n) => (val(n, '') || '').split(',').filter(Boolean);
+    res = rebuild({ out, exclude: list('--exclude'), only: list('--only'), dryRun: has('--dry-run'), pinFiles: list('--pins').length ? list('--pins') : undefined, questionFiles: list('--questions').length ? list('--questions') : undefined, log: (s) => console.log(s) });
   } catch (e) { console.error(`rebuild-heldout-root: ${e.message}`); process.exit(2); }
   if (has('--dry-run')) { console.log('dry run: nothing fetched or written'); process.exit(0); }
   console.log(`\n${res.fetched.length} fetched, ${res.kept.length} kept, ${res.failed.length} failed`);
