@@ -119,6 +119,15 @@ node benchmarks/agent-study/confirm-bar.mjs --runs benchmarks/agent-study/data/c
 
 With Sonnet the saving is in cost, not in tokens: the SigMap arm wrote less output and fewer cache tokens but read more from cache, so its total tokens per run were 9% higher while its reported cost was 12% lower (ratio of means; a test pins the direction). Two batches were run twice because the maintainer's laptop slept mid-run (wall times of 974 to 1,520 s against a 420 s timeout); the discarded attempt gives -8.2% [-14.9, -1.7] with the bar met, so the rerun does not decide the result. If a long run times out, compare the run's wall time with the timeout first: a figure far above it means the host was asleep, not that the agent hung.
 
+**The same test on large repositories (T7 of #1071) is saved as well:** `data/confirm-locate-claude-code-large.ndjson`, 384 runs (192 questions on the third round's 16 repositories of 3,026 to 7,756 tracked files, one run per question per arm, so every run is a first ask), Haiku 5.5, run 2026-11-21 from commit `f341c54` (the harness files are identical to `1c85b72`, the commit T5 and T6 ran from); the output of `to-runs.mjs`, unedited. It was pre-registered on #1071 before any run existed, and the bar is the same B1 to B4.
+
+```bash
+node benchmarks/agent-study/confirm-bar.mjs --runs benchmarks/agent-study/data/confirm-locate-claude-code-large.ndjson --variant locate --set heldout
+# BAR MET: cost -18.5% [-22.5, -14.3], file found 167 vs 175, uptake 96%; 11 repositories clearly save, 5 are indeterminate, none clearly costs more
+```
+
+What the bar's reading hides: B3 is read on the point estimate, and it passes by 0.8 points (-4.2 against a limit of -5): 13 questions were found only without SigMap and 5 only with it, and an interval from resampling repositories is [-7.8, -1.0] (computed afterwards, not part of the bar), so a loss of more than 5 points is not excluded. Here cost and tokens fell together (about -20% each, against Sonnet's +9% tokens and -12% cost in T6). The rank correlation of cost change with file count is, post hoc, +0.36 over these 16 repositories (3,026 to 7,756 files), -0.48 over T5's 20 (31 to 2,388) and -0.19 [-0.50, 0.16] over all 36: no trend with size in either direction. Two runs of one repository took 376 and 381 s against the 420 s timeout and completed. It says nothing beyond one model, `locate` only, `--bare` with an API key, 16 repositories of up to 7,756 files in eight languages (no Python or JavaScript qualified), and "file found", not answer quality.
+
 Three things the first live attempts taught, so they need not be learned again:
 
 - **`PROMPT_STYLE=question` does not work for `locate`.** The harness refuses it (`scripts/lib/agent-ab-claude.mjs`): the SigMap arm of a variant that is neither a hook nor prefetch needs the system-prompt slot the style also uses. Leave `PROMPT_STYLE` unset, which is why runs 2-4 of a question are `repeat` asks and the bar above is read on first asks.
