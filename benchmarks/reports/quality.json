@@ -1,6 +1,6 @@
 {
-  "version": "8.87.0",
-  "timestamp": "2026-11-14T23:32:33.564Z",
+  "version": "8.88.0",
+  "timestamp": "2026-11-21T17:15:55.392Z",
   "assumptions": {
     "callsPerDay": 10,
     "models": [
@@ -1124,5 +1124,5 @@
     "totalHiddenFilesSigMap": 4567,
     "gpt4oSavedPerMonth": 10062.73
   },
-  "generated": "2026-11-14T23:32:33.615Z"
+  "generated": "2026-11-21T17:15:55.395Z"
 }
