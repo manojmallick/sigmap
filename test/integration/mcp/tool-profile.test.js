@@ -241,6 +241,71 @@ test('"core" gates tools/call: a listed tool answers, an unlisted one is refused
   });
 });
 
+// ---------------------------------------------------------------------------
+// "locate": the two tools a where-is-it question uses (agent study, docs-vp/guide/agent-study)
+// ---------------------------------------------------------------------------
+
+test('LOCATE names real, distinct tools, is a subset of CORE, and "locate" resolves like "core" does (case, spacing, shipped order, no notes)', () => {
+  const have = new Set(names(TOOLS));
+  assert.deepStrictEqual([...profile.LOCATE], ['query_context', 'get_lines']);
+  for (const n of profile.LOCATE) { assert.ok(have.has(n), `${n} is not a shipped tool`); assert.ok(profile.CORE.includes(n), `${n} should be in CORE too`); }
+  for (const v of ['locate', 'LOCATE', ' Locate ']) {
+    const r = profile.resolveProfile({ mcp: { tools: v } });
+    assert.strictEqual(r.profile, 'locate', v);
+    assert.deepStrictEqual(r.names, names(TOOLS).filter((n) => profile.LOCATE.includes(n)));
+    assert.deepStrictEqual(r.notes, []);
+    assert.ok(r.locateTokens > 0 && r.locateTokens < r.coreTokens / 2, `locate (${r.locateTokens}) must be well under core (${r.coreTokens})`);
+  }
+  assert.strictEqual(profile.label(profile.resolveProfile({ mcp: { tools: 'locate' } })).split(' ')[0], 'locate');
+});
+
+test('"locate": exactly query_context and get_lines, under half a core profile\'s definitions, and nothing in them points at a tool it does not advertise', () => {
+  withProject({ mcp: { tools: 'locate' } }, (dir) => {
+    const got = listTools(dir);
+    assert.deepStrictEqual(names(got), ['query_context', 'get_lines']);
+    assert.ok(tokens(got) < 400, `locate is ${tokens(got)} tokens`);
+    const text = JSON.stringify(got);
+    for (const other of names(TOOLS).filter((n) => !profile.LOCATE.includes(n))) assert.ok(!text.includes(other), `a locate tool's definition mentions ${other}`);
+  });
+});
+
+test('"locate" gates tools/call: the two answer, any other tool is refused naming the profile and the setting', () => {
+  withProject({ mcp: { tools: 'locate' } }, (dir) => {
+    const ok = callTool(dir, 'query_context', { query: 'handle a request' });
+    assert.ok(ok.result && !ok.error, `query_context must answer: ${JSON.stringify(ok)}`);
+    for (const refusedName of ['read_context', 'get_impact', 'verify_suggestion', 'get_callee_signatures', 'get_map']) {
+      const r = callTool(dir, refusedName, {});
+      assert.ok(r.error && r.error.code === -32601, `${refusedName} must be refused: ${JSON.stringify(r)}`);
+      assert.ok(/"locate" profile/.test(r.error.message) && /mcp\.tools/.test(r.error.message), r.error.message);
+    }
+  });
+});
+
+test('server/discover under "locate" names only query_context', () => {
+  withProject({ mcp: { tools: 'locate' } }, (dir) => {
+    const text = discoverText(dir);
+    assert.ok(/query_context/.test(text) && !/search_signatures|read_context/.test(text), text);
+  });
+});
+
+test('doctor reports "locate" with its count and tokens, and a config on "all" is told what "locate" would cost', () => {
+  withProject({ mcp: { tools: 'locate' } }, (dir) => {
+    const row = doctorRow(dir);
+    assert.strictEqual(row.status, 'ok', JSON.stringify(row));
+    assert.ok(/locate \(2 of 22 tools, ~\d+ tokens of definitions\)/.test(row.detail), row.detail);
+  });
+  withProject(undefined, (dir) => {
+    const row = doctorRow(dir);
+    assert.ok(/"locate" 2 tools, ~\d+ tokens/.test(row.detail), row.detail);
+  });
+});
+
+test('a value that is not a profile name still falls back to "all", and the note now names "locate"', () => {
+  const r = profile.resolveProfile({ mcp: { tools: 'minimal' } });
+  assert.strictEqual(r.profile, 'all');
+  assert.ok(/"locate"/.test(r.notes.join(' ')), r.notes.join(' '));
+});
+
 test('a name that is not a tool still reads "Unknown tool", in every profile', () => {
   for (const cfg of [undefined, { mcp: { tools: 'core' } }, { mcp: { tools: ['get_lines'] } }]) {
     withProject(cfg, (dir) => {
@@ -382,12 +447,13 @@ test('doctor counts the capture tool when session.mcpCapture is on, exactly as t
 // New installs
 // ---------------------------------------------------------------------------
 
-test('--init writes "core" into a new config; an existing config is left alone', () => {
+test('--init writes the "locate" profile and strategy "index" into a new config (#1071); an existing config is left alone', () => {
   withProject(undefined, (dir) => {
     spawnSync(process.execPath, [GEN, '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
     const written = JSON.parse(fs.readFileSync(path.join(dir, 'gen-context.config.json'), 'utf8'));
-    assert.strictEqual(written.mcp.tools, 'core', 'a new install starts lean');
-    assert.strictEqual(listTools(dir).length, profile.CORE.length);
+    assert.strictEqual(written.mcp.tools, 'locate', 'a new install starts on the two-tool profile');
+    assert.strictEqual(written.strategy, 'index', 'and on the index strategy');
+    assert.deepStrictEqual(listTools(dir).map((t) => t.name).sort(), profile.LOCATE.slice().sort());
   });
   withProject({ maxTokens: 5000 }, (dir) => {
     spawnSync(process.execPath, [GEN, '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
@@ -397,7 +463,7 @@ test('--init writes "core" into a new config; an existing config is left alone',
   });
 });
 
-test('--init from a lone copy of the script (no example file beside it) writes "core" too', () => {
+test('--init from a lone copy of the script (no example file beside it) writes "locate" and "index" too', () => {
   // The standalone bundle / binary ships without gen-context.config.json.example; `--init` must
   // mean the same thing there, or the docs' "a new install starts lean" is true only for npm.
   withProject(undefined, (dir) => {
@@ -407,9 +473,10 @@ test('--init from a lone copy of the script (no example file beside it) writes "
       assert.ok(!fs.existsSync(path.join(lone, 'gen-context.config.json.example')), 'the premise: no example beside the script');
       spawnSync(process.execPath, [path.join(lone, 'gen-context.js'), '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
       const written = JSON.parse(fs.readFileSync(path.join(dir, 'gen-context.config.json'), 'utf8'));
-      assert.strictEqual(written.mcp.tools, 'core');
+      assert.strictEqual(written.mcp.tools, 'locate');
+      assert.strictEqual(written.strategy, 'index');
       assert.strictEqual(written.mcp.autoRegister, true, 'the rest of the block is the default, untouched');
-      assert.strictEqual(listTools(dir).length, profile.CORE.length);
+      assert.deepStrictEqual(listTools(dir).map((t) => t.name).sort(), profile.LOCATE.slice().sort());
     } finally { fs.rmSync(lone, { recursive: true, force: true }); }
   });
 });
@@ -508,6 +575,19 @@ test('mcp.md and config.md list exactly the core tools the code ships', () => {
   const example = JSON.parse(fs.readFileSync(path.join(ROOT, 'gen-context.config.json.example'), 'utf8'));
   assert.deepStrictEqual(toolNames(example._mcp_tools_comment), want,
     'the example config\'s comment names a different core set than profile.js');
+});
+
+test('mcp.md lists exactly the locate tools the code ships, and config.md and the example config name the profile', () => {
+  const toolNames = (text) => [...new Set((text.match(/[a-z]+(?:_[a-z]+)+/g) || []).filter((n) => names(TOOLS).includes(n)))].sort();
+  const mcp = fs.readFileSync(path.join(ROOT, 'docs-vp', 'guide', 'mcp.md'), 'utf8');
+  const row = mcp.split('\n').find((l) => l.startsWith('| `"locate"` |'));
+  assert.ok(row, 'mcp.md must have a `"locate"` row in its profile table');
+  assert.deepStrictEqual(toolNames(row.split('|')[2]), [...profile.LOCATE].sort());
+  assert.ok(new RegExp(`\\|\\s*${profile.LOCATE.length} —`).test(row), 'mcp.md must give the count');
+  const config = fs.readFileSync(path.join(ROOT, 'docs-vp', 'guide', 'config.md'), 'utf8');
+  assert.ok(/"locate"/.test(config.split('\n').find((l) => l.startsWith('| `mcp.tools` |'))), 'config.md must name the locate profile');
+  const example = JSON.parse(fs.readFileSync(path.join(ROOT, 'gen-context.config.json.example'), 'utf8'));
+  assert.ok(/'locate'/.test(example._mcp_tools_comment));
 });
 
 // ---------------------------------------------------------------------------

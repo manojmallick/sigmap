@@ -377,10 +377,10 @@ function diagnose(cwd, opts = {}) {
     const shown = profile.label(resolved, captureOn);
     if (resolved.notes.length > 0) {
       add('mcp-tools', 'MCP tool profile', 'warn', `${resolved.notes.join('; ')} · ${shown}`,
-        'set "mcp.tools" in gen-context.config.json to "all", "core" or a list of tool names (inside an "mcp" object)');
+        'set "mcp.tools" in gen-context.config.json to "all", "core", "locate" or a list of tool names (inside an "mcp" object)');
     } else if (resolved.profile === 'all') {
       add('mcp-tools', 'MCP tool profile', 'ok',
-        `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens`);
+        `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens; "locate" ${profile.LOCATE.length} tools, ~${resolved.locateTokens.toLocaleString('en-US')} tokens (where-is-it questions only)`);
     } else {
       add('mcp-tools', 'MCP tool profile', 'ok', shown);
     }

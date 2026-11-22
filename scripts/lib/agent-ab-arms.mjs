@@ -25,7 +25,8 @@ import { execFileSync, spawnSync } from 'child_process';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { git, repoDir, zeroConfigEnv } from './xrepo.mjs';
-import { SIGMAP_SERVER, SIGMAP_CLI } from './agent-ab.mjs';
+import { PLACEBO_SECTION } from './agent-ab-placebo.mjs';
+import { SIGMAP_SERVER, SIGMAP_CLI, SIGMAP_VARIANTS, SKILL_VARIANTS, LEAN_SECTION, LOCATE_SKILL, LOCATE_SKILL_ALWAYS, PREFETCH_HEADER, PREFETCH_MAX_BYTES, isHookVariant } from './agent-ab.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -60,6 +61,74 @@ export function mcpConfigFor(codeRoot) {
 }
 
 /**
+ * Take back everything `gen-context` wrote into the checkout other than its index (`.context/`, which git ignores) and the
+ * config the harness itself wrote: an untracked file is deleted, a tracked file it changed is restored. Before this, the
+ * generated `CLAUDE.md`, `AGENTS.md` and `.github/copilot-instructions.md` sat in the SigMap arm's checkout, where the agent's
+ * Grep found them on every repository whose .gitignore does not name them: a free copy of the signature map for the arm under
+ * test and not for the baseline.
+ */
+export function scrubGenerated(dest) {
+  const st = git(dest, ['status', '--porcelain', '--untracked-files=all']);
+  if (!st.ok) throw new Error(`cannot read the status of ${dest}: ${st.err}`);
+  for (const line of st.out.split('\n').filter(Boolean)) {
+    const code = line.slice(0, 2); const rel = line.slice(3).replace(/^"|"$/g, '');
+    if (rel === 'gen-context.config.json' || rel.startsWith('.context/')) continue;
+    if (code === '??') fs.rmSync(path.join(dest, rel), { recursive: true, force: true });
+    else git(dest, ['checkout', '--quiet', '--', rel]);
+  }
+}
+
+/** What a gitignore-respecting search can see in a checkout: tracked files plus untracked files git does not ignore. */
+export function searchableFiles(cwd) {
+  const r = git(cwd, ['ls-files', '--cached', '--others', '--exclude-standard']);
+  if (!r.ok) throw new Error(`cannot list ${cwd}: ${r.err}`);
+  return new Set(r.out.split('\n').filter(Boolean));
+}
+
+/** Differences between the arms an agent could search that are NOT the thing under test. */
+const HYGIENE_ALLOWED = [/^gen-context\.config\.json$/, /^\.claude\/skills\//, /^\.claude\/settings\.json$/];
+
+/**
+ * The two arms must differ in nothing the agent can find by searching, except the harness's own config and, for a skill variant,
+ * the skill files. Throws naming the files otherwise, before any paid run.
+ *
+ * @returns {{ onlyWith: string[], onlyWithout: string[] }}
+ */
+export function assertArmHygiene({ without, with: withArm, label = 'arms' }) {
+  const a = searchableFiles(without); const b = searchableFiles(withArm);
+  const onlyWith = [...b].filter((f) => !a.has(f) && !HYGIENE_ALLOWED.some((re) => re.test(f)));
+  const onlyWithout = [...a].filter((f) => !b.has(f));
+  if (onlyWith.length || onlyWithout.length) {
+    throw new Error(`${label}: the arms differ in files the agent can search (${[...onlyWith.map((f) => `+${f}`), ...onlyWithout.map((f) => `-${f}`)].slice(0, 8).join(', ')}): a difference there is a second treatment`);
+  }
+  return { onlyWith, onlyWithout };
+}
+
+/**
+ * The SigMap arm of a skill variant. The index is generated as in every other variant (`sigmap ask` answers from
+ * `.context/`), then the generated CLAUDE.md is removed (the agent would read it by itself) and the skills are
+ * written into the checkout's `.claude/skills/`, which the agent loads from `--setting-sources project`. `skill`
+ * and `skill-always` write the one SKILL.md the harness owns (the same procedure under two descriptions); `skill-shipped` runs the product's own installer, so it is exactly what
+ * `sigmap skills install --client claude` leaves in a repository. The arm gets the `sigmap` CLI on PATH and nothing
+ * else: no MCP server, no appended section.
+ */
+function prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot }) {
+  fs.rmSync(path.join(dest, 'CLAUDE.md'), { force: true });
+  if (variant === 'skill' || variant === 'skill-always') {
+    const dir = path.join(dest, '.claude', 'skills', 'sigmap-locate');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'SKILL.md'), variant === 'skill' ? LOCATE_SKILL : LOCATE_SKILL_ALWAYS);
+  } else {
+    execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), 'skills', 'install', '--client', 'claude'], {
+      cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
+    });
+  }
+  const missing = SKILL_VARIANTS[variant].filter((n) => !fs.existsSync(path.join(dest, '.claude', 'skills', n, 'SKILL.md')));
+  if (missing.length) throw new Error(`${path.basename(dest)}: the ${variant} arm is missing its skill file(s): ${missing.join(', ')}`);
+  return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), skills: [...SKILL_VARIANTS[variant]] });
+}
+
+/**
  * A directory holding a `sigmap` executable that runs THIS checkout's
  * gen-context.js. The SigMap arm puts it on PATH so `sigmap ask` is the code
  * under test, never whichever release happens to be installed globally.
@@ -83,9 +152,16 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @param {'without'|'with'} p.arm
  * @param {string} p.tmpRoot directory to build the copy in
  * @param {string} [p.codeRoot] checkout whose gen-context.js generates the SigMap arm
- * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
+ * @param {boolean} [p.sessionAuth] the agent will run without --bare, so it would auto-discover a CLAUDE.md in the checkout: the SigMap
+ *   arm's generated one is removed after its section is read, leaving the appended section as the only SigMap text
+ * @param {'current'|'lean'|'index'|'skill'|'skill-shipped'} [p.variant] what the SigMap arm is told (see SIGMAP_VARIANTS); the index is the same.
+ *   A skill variant hands SigMap over as skill files in the checkout and nothing else: no appended section, no MCP config.
+ * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string, skills?: string[] }}
  */
-export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
+export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT, variant = 'current', sessionAuth = false }) {
+  if (!Object.prototype.hasOwnProperty.call(SIGMAP_VARIANTS, variant)) {
+    throw new Error(`unknown SigMap variant "${variant}" (one of: ${Object.keys(SIGMAP_VARIANTS).join(', ')})`);
+  }
   // `benchmarks/repos/<name>` may be a symlink (a worktree that borrows the shared
   // clones). `cpSync` with `verbatimSymlinks` copies a link AS a link, so the arm
   // would BE the shared clone: reset and clean would run in it, and both arms
@@ -106,18 +182,52 @@ export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
 
   const prepared = { cwd: dest, cwds: aliases(dest) };
   if (arm === 'without') return prepared;
+  // The control: text in the system prompt and nothing in the checkout, so the arms are identical to everything the agent can search.
+  if (variant === 'placebo') return Object.assign(prepared, { sigmapContext: PLACEBO_SECTION });
 
   const cfg = path.join(dest, 'gen-context.config.json');
-  if (repo.srcDirs) fs.writeFileSync(cfg, JSON.stringify({ srcDirs: repo.srcDirs }, null, 2) + '\n');
+  const config = {};
+  if (repo.srcDirs) config.srcDirs = repo.srcDirs;
+  // The MCP server reads its tool profile from the config in the directory it runs in, so the
+  // lean arm's 7-tool profile is set here and nowhere else. The index it answers from is unchanged.
+  if (variant === 'lean' || variant === 'index') config.mcp = { tools: 'core' };
+  // `locate` is `index` with the `locate` MCP profile: the two tools a locate question uses. (The study's runs wrote the same two names as a list,
+  // before the named profile existed; the server advertises the identical tools either way.)
+  if (variant === 'locate') config.mcp = { tools: 'locate' };
+  // `index` is the docs' own setup for an agent that calls the tools: an always-on map instead of a
+  // signature dump. The index the tools answer from is written before the strategy split and is
+  // byte-identical (retrieval is the same under every strategy; checked on the pilot's questions).
+  if (variant === 'index' || variant === 'locate') config.strategy = 'index';
+  if (Object.keys(config).length) fs.writeFileSync(cfg, JSON.stringify(config, null, 2) + '\n');
   execFileSync(process.execPath, [path.join(codeRoot, 'gen-context.js'), '--adapter', 'claude'], {
     cwd: dest, env: zeroConfigEnv(), stdio: ['ignore', 'ignore', 'pipe'],
   });
-  const claudeMd = fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8');
+  // The generated section is read first, then every file `gen-context` wrote into the checkout is taken out again (see
+  // scrubGenerated): the agent's own Grep and Read must not be able to find the signature map in a file, only through the
+  // channel the variant under test gives it.
+  const claudeMd = fs.existsSync(path.join(dest, 'CLAUDE.md')) ? fs.readFileSync(path.join(dest, 'CLAUDE.md'), 'utf8') : '';
+  scrubGenerated(dest);
+  if (SKILL_VARIANTS[variant]) return prepareSkillArm({ dest, prepared, variant, codeRoot, tmpRoot });
+  if (isHookVariant(variant)) {
+    // The real hook, and only it: the index, and one UserPromptSubmit entry in the project's own settings file (the one a
+    // `--setting-sources project` run reads), written with the command line SigMap itself writes. No MCP server, no section, no
+    // skill, and nothing in the prompt: Claude Code runs the hook and adds what it prints.
+    writeHookSettings(dest, codeRoot, variant === 'prefetch-hook' ? null : variant.replace(/^hook-/, ''));
+    return Object.assign(prepared, { hook: true });
+  }
+  if (variant === 'prefetch') {
+    // The index is all this arm keeps: the ranking is computed per question (`prefetchContext`) and rides in the prompt.
+    return Object.assign(prepared, { binDir: sigmapShimDir(tmpRoot, codeRoot), prefetch: true });
+  }
   const section = findManagedSection(claudeMd);
   if (!section) throw new Error(`${repo.name}: \`gen-context --adapter claude\` wrote no SigMap section`);
+  // The section is already in `sigmapContext` and goes in through the system prompt; a file left in the checkout would hand
+  // it over twice and let the agent grep a signature map the baseline has no way to see.
   const shim = sigmapShimDir(tmpRoot, codeRoot);
   return Object.assign(prepared, {
-    sigmapContext: claudeMd.slice(section.index).trim(),
+    // The generated section is still produced and checked above (a run that cannot generate one
+    // is a broken arm); the lean arm just does not hand it to the agent.
+    sigmapContext: variant === 'lean' ? LEAN_SECTION : claudeMd.slice(section.index).trim(),
     mcpConfig: mcpConfigFor(codeRoot),
     binDir: shim,
   });
@@ -145,4 +255,101 @@ export function probeMcp({ cwd, codeRoot = CODE_ROOT, timeoutMs = 30000 }) {
     }
   }
   return { ok: false, tools: 0, error: 'the server did not answer tools/list' };
+}
+
+/**
+ * Prove the CLI a skill arm relies on answers in its prepared checkout: `sigmap ask` through the arm's own shim must
+ * exit 0 and name at least one file. Like `probeMcp` it costs no model call and fails before the first paid run.
+ *
+ * @returns {{ ok: boolean, error: string|null }}
+ */
+/**
+ * Merge the prefetch hook into `<dest>/.claude/settings.json` using the product's own command shape (src/session/hooks-install.js).
+ * Anything already in the file stays; an own entry already there is replaced, not duplicated.
+ */
+export function writeHookSettings(dest, codeRoot = CODE_ROOT, style = null) {
+  const hi = createRequire(import.meta.url)(path.join(codeRoot, 'src', 'session', 'hooks-install.js'));
+  const file = path.join(dest, '.claude', 'settings.json');
+  let settings = {};
+  try { settings = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { settings = {}; }
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) settings = {};
+  settings.hooks = settings.hooks && typeof settings.hooks === 'object' ? settings.hooks : {};
+  const groups = Array.isArray(settings.hooks.UserPromptSubmit) ? settings.hooks.UserPromptSubmit : [];
+  const kept = groups.map((g) => (g && Array.isArray(g.hooks) ? { ...g, hooks: g.hooks.filter((h) => !(h && hi.isOwnCommand(h.command))) } : g)).filter((g) => !(g && Array.isArray(g.hooks) && g.hooks.length === 0));
+  // The shipped hook, written with SigMap's own command line; a prototype style (stage B1) runs benchmarks/agent-study/hooks/prototype-hook.cjs,
+  // which calls the same prefetch() and changes only what is printed.
+  const command = style
+    ? `node ${hi.shellQuote(path.join(codeRoot, 'benchmarks', 'agent-study', 'hooks', 'prototype-hook.cjs'))} ${style} ${hi.shellQuote(path.join(codeRoot, 'gen-context.js'))}`
+    : hi.hookCommand(path.join(codeRoot, 'gen-context.js'), 'UserPromptSubmit');
+  kept.push({ hooks: [{ type: 'command', command, timeout: hi.TIMEOUT_S }] });
+  settings.hooks.UserPromptSubmit = kept;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
+  return file;
+}
+
+/**
+ * Prove the hook answers in the prepared checkout, with no model call: the registered command, fed a Claude Code payload, must print
+ * the JSON a host reads, with context in it. Leaves no state behind (the hook's own dedupe record is removed).
+ */
+export function probeHook({ cwd, codeRoot = CODE_ROOT, timeoutMs = 60000 }) {
+  let settings;
+  try { settings = JSON.parse(fs.readFileSync(path.join(cwd, '.claude', 'settings.json'), 'utf8')); } catch (e) { return { ok: false, error: `no readable .claude/settings.json: ${e.message}` }; }
+  const entry = ((settings.hooks || {}).UserPromptSubmit || []).flatMap((g) => (g && g.hooks) || []).find((h) => h && /session hook UserPromptSubmit|prototype-hook\.cjs/.test(h.command || ''));
+  if (!entry) return { ok: false, error: 'no UserPromptSubmit hook registered in .claude/settings.json' };
+  // A question about a file that is certainly indexed, so the ranking has something to say whatever the repository is.
+  let stem = 'main';
+  try {
+    const index = createRequire(import.meta.url)(path.join(codeRoot, 'src', 'retrieval', 'ranker.js')).buildSigIndex(cwd);
+    const first = [...index.keys()][0];
+    if (first) stem = path.basename(first).replace(/\.[^.]+$/, '') || stem;
+  } catch (_) { /* keep the fallback */ }
+  const payload = JSON.stringify({ session_id: 'probe', hook_event_name: 'UserPromptSubmit', cwd, prompt: `where is the code of ${stem} implemented in this repository` });
+  const r = spawnSync('sh', ['-c', entry.command], { cwd, input: payload, encoding: 'utf8', timeout: timeoutMs });
+  fs.rmSync(path.join(cwd, '.context', 'prefetch-state.json'), { force: true });
+  if (r.error) return { ok: false, error: r.error.message };
+  if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
+  let ctx = null;
+  try { ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext; }
+  catch (e) {
+    // A prototype that prints plain text is also context to Claude Code; the shipped hook must print the JSON.
+    if (/prototype-hook\.cjs \S*plain\b|prototype-hook\.cjs' plain/.test(entry.command) && (r.stdout || '').trim()) ctx = r.stdout.trim();
+    else return { ok: false, error: `the hook printed no JSON a host can read: ${(r.stdout || '').slice(0, 120)}` };
+  }
+  return typeof ctx === 'string' && ctx.length > 0 ? { ok: true, error: null, bytes: Buffer.byteLength(ctx) } : { ok: false, error: 'the hook printed no context' };
+}
+
+export function probeCli({ cwd, binDir, timeoutMs = 60000 }) {
+  const r = spawnSync(path.join(binDir, SIGMAP_CLI), ['ask', 'where is the main entry point defined'], { cwd, encoding: 'utf8', timeout: timeoutMs });
+  if (r.error) return { ok: false, error: r.error.message };
+  if (r.status !== 0) return { ok: false, error: `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}` };
+  return /\S/.test(r.stdout || '') ? { ok: true, error: null } : { ok: false, error: 'sigmap ask printed nothing' };
+}
+
+/**
+ * What a prompt hook would put in front of the agent for one question: `sigmap ask "<question>"` run in the arm's checkout
+ * through the arm's own shim, before any model call. The ranking it prints, then the signatures and line anchors it writes
+ * to `.context/query-context.md`, under PREFETCH_HEADER, cut at a section boundary to stay under PREFETCH_MAX_BYTES.
+ * Deterministic for a given checkout and question, so both repetitions of a question carry the same text.
+ *
+ * @returns {string}
+ */
+export function prefetchContext({ cwd, binDir, query, timeoutMs = 60000, maxBytes = PREFETCH_MAX_BYTES }) {
+  const out = path.join(cwd, '.context', 'query-context.md');
+  fs.rmSync(out, { force: true });
+  const r = spawnSync(path.join(binDir, SIGMAP_CLI), ['ask', String(query)], { cwd, encoding: 'utf8', timeout: timeoutMs });
+  if (r.error || r.status !== 0) throw new Error(`sigmap ask failed for the prefetch arm: ${r.error ? r.error.message : `exit ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}`}`);
+  const ranking = (r.stdout || '').trim();
+  if (!ranking) throw new Error('sigmap ask printed no ranking for the prefetch arm');
+  let body = fs.existsSync(out) ? fs.readFileSync(out, 'utf8').replace(/^# SigMap Query Context\n(?:Generated: .*\n)?/, '').trim() : '';
+  const head = `${PREFETCH_HEADER}\n\n${ranking}\n`;
+  const room = maxBytes - Buffer.byteLength(head) - 2;
+  if (Buffer.byteLength(body) > room) {
+    // Keep whole file sections, best-ranked first; say what was left out so the agent knows the list above is longer.
+    const sections = body.split(/\n(?=## )/);
+    let kept = '';
+    for (const s of sections) { if (Buffer.byteLength(kept) + Buffer.byteLength(s) + 1 > room - 60) break; kept += (kept ? '\n' : '') + s; }
+    body = `${kept}\n\n(signatures of the lower-ranked files left out to keep this short)`.trim();
+  }
+  return body ? `${head}\n${body}\n` : head;
 }

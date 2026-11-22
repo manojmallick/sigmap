@@ -49,14 +49,17 @@ function extract(src) {
     return [line, line];
   };
 
-  // Classes and interfaces
-  const typeRe = /^(?:abstract\s+)?(?:class|interface|trait)\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w, ]+)?\s*\{/gm;
+  // Classes, interfaces, traits and enums. A modifier (`abstract`, `final`, `readonly`, in any order and any number)
+  // may lead the declaration; a parent or an interface may be namespaced (`\Foo\Bar`), an interface may extend
+  // several, a class implement several across lines, and an enum carry a backing type (`enum Suit: string`).
+  // The previous pattern took `abstract` alone and `\w+` for a parent, so `final class X extends \Foo\Y` and every
+  // `readonly` class or `enum` listed nothing, and a file made of them was not in the index at all.
+  const typeRe = /^(?:(?:abstract|final|readonly)\s+)*(class|interface|trait|enum)\s+(\w+)(?:\s*:\s*\w+)?(?:\s+extends\s+[\w\\]+(?:\s*,\s*[\w\\]+)*)?(?:\s+implements\s+[\w\\,\s]+?)?\s*\{/gm;
   for (const m of stripped.matchAll(typeRe)) {
-    const kind = m[0].trimStart().startsWith('interface') ? 'interface' :
-      m[0].trimStart().startsWith('trait') ? 'trait' : 'class';
+    const kind = m[1];
     const bodyStart = m.index + m[0].length;
     const block = extractBlock(stripped, bodyStart);
-    sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+    sigs.push(withAnchor(`${kind} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
     for (const meth of extractMembers(block, masked.slice(bodyStart, bodyStart + block.length))) {
       // The disclosure marker carries no offsets; anchor it at the class body.
       sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));

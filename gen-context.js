@@ -968,6 +968,591 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
   
 };
 
+// ── ./src/advise/advise ──
+__factories["./src/advise/advise"] = function(module, exports) {
+  
+  /**
+   * advise.js — `sigmap advise`: what SigMap can tell you about a project, offline, before you pick how an agent gets it.
+   *
+   * It reports FACTS and makes NO CALL. The agent study asked whether anything computable for free on a repository predicts how much a setup
+   * saves there, with the test and its bar written first (docs-vp/guide/agent-study-protocol.md, Stage I). The test did not pass
+   * (rho -0.13, 95% interval -0.57 to +0.36 over twenty repositories), so this command prints what each setup adds to a turn in the project,
+   * how often SigMap's first five files hold the file a recent change of the project touched, against a single-shot grep, and whether the
+   * project's prompts are readable by the hook, and says that these numbers did not predict the saving. It prints no percentage as a forecast.
+   *
+   * Read-only on the project: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing there (it never generates an
+   * index; without one it says so).
+   *
+   * Zero-dependency.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { mineQuestions, DEFAULT_SINCE, DEFAULT_MAX } = __require('./src/advise/mine');
+  const { grepRank, sigmapOutputs } = __require('./src/advise/grep-scan');
+
+  // Fewer than this many questions and the interval is too wide to read: the numbers are still printed, with that said.
+  const MIN_QUESTIONS = 8;
+
+  /**
+   * What the agent study measured, copied from benchmarks/agent-study/data/setup-signal-eval.txt (test/integration/advise.test.js fails if it drifts).
+   * Messages-API agent, Haiku 5.5, the twenty held-out repositories, the typical-task change against each repository's own baseline.
+   */
+  const STUDY = {
+    repositories: 20,
+    primary: { feature: 'headroom', setup: 'prefetch', measure: 'cost', rho: -0.13, lo: -0.57, hi: 0.36, bar: -0.5 },
+    byGoal: {
+      cost:   { index: { saves: 3, none: 15, costs: 2, pooled: -1 },  prefetch: { saves: 7, none: 8, costs: 5, pooled: -7 },  locate: { saves: 4, none: 16, costs: 0, pooled: -7 } },
+      time:   { index: { saves: 1, none: 15, costs: 4, pooled: 2 },   prefetch: { saves: 19, none: 1, costs: 0, pooled: -18 }, locate: { saves: 1, none: 16, costs: 3, pooled: 1 } },
+      tokens: { index: { saves: 0, none: 3, costs: 17, pooled: 51 },  prefetch: { saves: 9, none: 11, costs: 0, pooled: -26 }, locate: { saves: 1, none: 8, costs: 11, pooled: 18 } },
+    },
+  };
+
+  const tokensOf = (bytes) => Math.ceil(bytes / 4); // chars/4, as everywhere in SigMap
+
+  /** "In the first five": the cut the agent study and the honest benchmark both use. */
+  const TOP = 5;
+  /** 1-based position of the first of `files` in `list`, or 0 when none is there. */
+  const rankOf = (list, files) => list.findIndex((f) => files.includes(f)) + 1;
+  const inTop = (rank) => rank >= 1 && rank <= TOP;
+  /** SigMap's share minus grep's, in whole points of the questions; null when grep was not scored. */
+  const headroomPoints = (lead, grep, n) => (grep === null || !n ? null : Math.round((100 * (lead - grep)) / n));
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+
+  /** Wilson score interval for k of n at 95%, in [0, 1]. */
+  function wilson(k, n) {
+    if (!n) return { lo: 0, hi: 1 };
+    const z = 1.96, p = k / n, d = 1 + (z * z) / n;
+    const c = p + (z * z) / (2 * n);
+    const w = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+    return { lo: Math.max(0, (c - w) / d), hi: Math.min(1, (c + w) / d) };
+  }
+
+  function _toolFacts() {
+    const profile = __require('./src/mcp/profile');
+    const one = (tools) => { const r = profile.resolveProfile({ mcp: tools === null ? undefined : { tools } }); return { tools: r.names.length, tokens: r.tokens }; };
+    return { locate: one('locate'), core: one('core'), all: one(null) };
+  }
+
+  function _alwaysOn(cwd) {
+    const out = [];
+    for (const rel of ['CLAUDE.md', 'AGENTS.md', path.join('.github', 'copilot-instructions.md')]) {
+      try {
+        const st = fs.statSync(path.join(cwd, rel));
+        if (st.isFile()) out.push({ file: rel.replace(/\\/g, '/'), tokens: tokensOf(st.size) });
+      } catch (_) { /* absent */ }
+    }
+    return out;
+  }
+
+  /** Ranks of each question's expected file, by the MCP `query_context` tool an agent calls, and by the single-shot grep. */
+  function _signals(cwd, questions, opts) {
+    const handlers = __require('./src/mcp/handlers');
+    let lead = 0;
+    let firstBlockTokens = null;
+    questions.forEach((q, i) => {
+      const txt = String(handlers.queryContext({ query: q.title, topK: 10 }, cwd));
+      if (i === 0) firstBlockTokens = tokensOf(Buffer.byteLength(txt));
+      const got = [...txt.matchAll(/^\| (\d+) \| (\S+) \| ([\d.]+) \|/gm)].map((m) => m[2]);
+      if (inTop(rankOf(got, q.files))) lead++;
+    });
+    let grep = null, filesScanned = null, truncated = false;
+    if (!opts.noGrep) {
+      const g = grepRank(cwd, questions.map((q, i) => ({ id: String(i), query: q.title })), { skipFile: sigmapOutputs(cwd), maxFiles: opts.maxGrepFiles });
+      grep = 0;
+      questions.forEach((q, i) => {
+        if (inTop(rankOf(g.ranked.get(String(i)) || [], q.files))) grep++;
+      });
+      filesScanned = g.filesScanned; truncated = g.truncated;
+    }
+    return { lead, grep, firstBlockTokens, filesScanned, truncated };
+  }
+
+  /**
+   * @param {string} cwd
+   * @param {{ since?: string, max?: number, noGrep?: boolean, maxGrepFiles?: number }} [opts]
+   * @returns {object} the facts; `call` and `forecast` are always null
+   */
+  function buildAdvice(cwd, opts = {}) {
+    let config = {};
+    try { config = __require('./src/config/loader').loadConfig(cwd) || {}; } catch (_) { config = {}; }
+    const prefetch = __require('./src/session/prefetch');
+    const tools = _toolFacts();
+    const advice = {
+      project: path.basename(cwd),
+      call: null,
+      forecast: null,
+      standing: {
+        strategy: config.strategy || 'full',
+        mcpTools: (config.mcp && config.mcp.tools) || 'all',
+        tools,
+        alwaysOn: _alwaysOn(cwd),
+        hook: { standingTokens: 0, perPromptMaxTokens: tokensOf(prefetch.MAX_BYTES), perPromptFirstQuestionTokens: null },
+      },
+      questions: { ok: false },
+      lead: null,
+      readability: null,
+      notes: [],
+      study: STUDY,
+    };
+
+    const mined = mineQuestions(cwd, { since: opts.since, max: opts.max });
+    advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ sha: q.sha, title: q.title, files: q.files })) };
+    if (!mined.ok) { advice.notes.push(`no questions mined: ${mined.reason}`); return advice; }
+    if (mined.questions.length === 0) { advice.notes.push(`no change since ${mined.since} qualified as a question (1 to 3 source files, a title that describes behaviour); try a longer --since`); return advice; }
+
+    // The hook's own screen, on each question as a prompt: how many would it stay silent for, and why.
+    const silent = {};
+    let fires = 0;
+    for (const q of mined.questions) {
+      const s = prefetch.screen(q.title);
+      if (s.ok) fires++; else silent[s.reason] = (silent[s.reason] || 0) + 1;
+    }
+    advice.readability = { fires, silent: mined.questions.length - fires, reasons: silent };
+
+    const indexFile = __require('./src/retrieval/sig-index-store').indexPath(cwd);
+    if (!fs.existsSync(indexFile)) { advice.notes.push('no index: run `sigmap` first (advise reads the index and never generates one), so SigMap\'s ranking was not scored'); return advice; }
+
+    const n = mined.questions.length;
+    const sig = _signals(cwd, mined.questions, opts);
+    const w = (k) => { const i = wilson(k, n); return { count: k, of: n, share: k / n, lo: i.lo, hi: i.hi }; };
+    advice.lead = { n, enough: n >= MIN_QUESTIONS, sigmap: w(sig.lead), grep: sig.grep === null ? null : w(sig.grep), headroomPoints: headroomPoints(sig.lead, sig.grep, n), filesScanned: sig.filesScanned, grepTruncated: sig.truncated };
+    advice.standing.hook.perPromptFirstQuestionTokens = sig.firstBlockTokens;
+    if (n < MIN_QUESTIONS) advice.notes.push(`only ${n} question(s) qualified (fewer than ${MIN_QUESTIONS}): the intervals are too wide to read; a longer --since finds more`);
+    if (sig.truncated) advice.notes.push('the grep scan stopped at its file limit, so its share is for the files it reached');
+    return advice;
+  }
+
+  const pc = (x) => `${Math.round(x * 100)}%`;
+  const sgn = (v) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
+
+  /** The human-readable report. */
+  function formatAdvice(a) {
+    const L = [];
+    const s = a.standing;
+    L.push(`sigmap advise — ${a.project}: what SigMap can tell you offline (no model call, nothing written)`);
+    L.push('');
+    L.push('What each setup adds to a turn (tokens, estimated as chars/4; the API\'s own counter read the study\'s locate profile at 426 and core at 1,505):');
+    L.push(`  tools, locate profile   ${fmt(s.tools.locate.tokens).padStart(6)}   (${s.tools.locate.tools} tools: query_context, get_lines)`);
+    L.push(`  tools, core profile     ${fmt(s.tools.core.tokens).padStart(6)}   (${s.tools.core.tools} tools)`);
+    L.push(`  tools, all              ${fmt(s.tools.all.tokens).padStart(6)}   (${s.tools.all.tools} tools)`);
+    L.push(`  prefetch hook           ${String(0).padStart(6)}   standing; one block per prompt, at most ~${fmt(s.hook.perPromptMaxTokens)}${s.hook.perPromptFirstQuestionTokens !== null ? `; on your first question below, the search result is ~${fmt(s.hook.perPromptFirstQuestionTokens)}` : ''}`);
+    L.push(`  now: strategy "${s.strategy}", mcp.tools "${s.mcpTools}"`);
+    for (const f of s.alwaysOn) L.push(`  ${f.file.padEnd(30)} ${fmt(f.tokens).padStart(6)}   the whole file (which one your agent loads depends on the client)`);
+    L.push('  the map `strategy: "index"` writes was 761 tokens on the API\'s counter for the study\'s snapshot of SigMap\'s own repository; it is not measured for yours here');
+    L.push('');
+
+    if (!a.questions.ok) {
+      L.push(`Questions from your git history: none (${a.questions.reason}).`);
+    } else if (a.questions.used === 0) {
+      L.push(`Questions from your git history: none qualified since ${a.questions.since} (${a.questions.examined} commit(s) examined).`);
+    } else {
+      L.push(`Questions mined from your git history since ${a.questions.since}: ${a.questions.used} (${a.questions.examined} commit(s) examined; the title is the question, the source files it touched are the answer).`);
+    }
+    if (a.lead) {
+      const l = a.lead;
+      const band = (c) => `${c.count} of ${c.of} (${pc(c.share)}, 95% interval ${pc(c.lo)} to ${pc(c.hi)})`;
+      L.push(`  the file is in SigMap's first five   ${band(l.sigmap)}`);
+      if (l.grep) {
+        L.push(`  the file is in a single-shot grep's  ${band(l.grep)}`);
+        L.push(`  headroom (SigMap minus grep)         ${sgn(l.headroomPoints)} points`);
+      }
+    }
+    if (a.readability) {
+      const r = a.readability;
+      L.push(`  the prefetch hook would fire for     ${r.fires} of ${r.fires + r.silent} of those titles as prompts${r.silent ? ` (silent for ${r.silent}: ${Object.entries(r.reasons).map(([k, v]) => `${v} ${k}`).join(', ')})` : ''}`);
+    }
+    for (const n of a.notes) L.push(`  note: ${n}`);
+    L.push('');
+    L.push('What this does NOT do: it makes no call and prints no saving. In the agent study these numbers did not predict which repositories save');
+    L.push(`  (headroom against the cost of prefetch over ${STUDY.repositories} repositories: rho ${STUDY.primary.rho} [${STUDY.primary.lo}, +${STUDY.primary.hi}]; the bar was ${STUDY.primary.bar} with the interval below zero).`);
+    L.push('');
+    const g = STUDY.byGoal;
+    L.push(`What the study measured, by goal (${STUDY.repositories} repositories, Messages-API agent, Haiku 5.5; repositories that save / cost more):`);
+    L.push(`  time    prefetch ${sgn(g.time.prefetch.pooled)}% (${g.time.prefetch.saves} save, ${g.time.prefetch.costs} slower)   index ${sgn(g.time.index.pooled)}%   locate ${sgn(g.time.locate.pooled)}%`);
+    L.push(`  tokens  prefetch ${sgn(g.tokens.prefetch.pooled)}% (${g.tokens.prefetch.saves} save, ${g.tokens.prefetch.costs} more)   index ${sgn(g.tokens.index.pooled)}%   locate ${sgn(g.tokens.locate.pooled)}%`);
+    L.push(`  cost    prefetch ${sgn(g.cost.prefetch.pooled)}% (${g.cost.prefetch.saves} save, ${g.cost.prefetch.costs} more)   locate ${sgn(g.cost.locate.pooled)}% (${g.cost.locate.saves} save, ${g.cost.locate.costs} more)   index ${sgn(g.cost.index.pooled)}%`);
+    L.push('');
+    if (a.emitted) {
+      const e = a.emitted;
+      const q = (p) => `'${String(p).replace(/'/g, "'\\''")}'`;
+      const per = Math.min(e.questions, 8);
+      const base = `SIGMAP_XREPO_DATA=${q(e.root)} node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo ${per} --runs 4`;
+      L.push(`Harness inputs written under ${e.root} (nothing in your project): ${e.questions} question(s), pinned to ${e.commit.slice(0, 10)}, checkout linked to this project.`);
+      if (e.dirty) L.push('  note: the working tree has uncommitted changes; every arm is a copy reset to the pinned commit, so the harness measures the committed state.');
+      L.push('  1. preview the plan and the worst-case spend (spawns nothing); scripts/run-agent-ab.mjs is in the SigMap repository, not in the npm package:');
+      L.push(`       ${base} --sigmap-variant prefetch --dry-run`);
+      L.push('  2. run it (ANTHROPIC_API_KEY, each run capped by --max-budget-usd), once per setup; compare with the interval, not the point:');
+      L.push(`       ${base} --sigmap-variant prefetch --save   # then --sigmap-variant index, then locate`);
+      L.push('');
+    }
+    L.push('To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup');
+    return L.join('\n');
+  }
+
+  module.exports = { buildAdvice, formatAdvice, wilson, rankOf, inTop, headroomPoints, TOP, STUDY, MIN_QUESTIONS, DEFAULT_SINCE, DEFAULT_MAX };
+  
+};
+
+// ── ./src/advise/emit ──
+__factories["./src/advise/emit"] = function(module, exports) {
+  
+  /**
+   * emit.js — `sigmap advise --emit-root <dir>`: the inputs the paired agent harness reads, for THIS project.
+   *
+   * The harness (scripts/run-agent-ab.mjs, in the SigMap repository, not in the npm package) runs the same questions with and without a setup
+   * against a real agent and pairs them. It reads a "data root": benchmarks/xrepo-repos.json (a manifest of repositories, each pinned to a
+   * commit), benchmarks/tasks/retrieval-xrepo.jsonl (the questions) and a checkout under benchmarks/repos/<name>. The study built those from public
+   * GitHub repositories (scripts/build-heldout-set.mjs); this builds them from the project in the current directory, private or not, out of the
+   * questions `advise` already mined from its own git history.
+   *
+   * It writes ONLY under the directory it is given, never in the project: the checkout is a symlink to the project (the harness resolves a link
+   * before it copies anything, so the project is never reset, cleaned or written; each arm is a throwaway copy that is hard-reset to the pin).
+   * It will not write inside the project, and will not overwrite a directory that is not a root it wrote.
+   *
+   * Zero-dependency.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+  const { CODE } = __require('./src/advise/mine');
+
+  const MARK = 'written by sigmap advise --emit-root';
+
+  function _git(cwd, args) {
+    return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 1 << 26, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+  }
+
+  /** A directory name the harness and a shell can both hold: letters, digits, dot, underscore, hyphen. */
+  function repoNameOf(dir) {
+    const n = path.basename(dir).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[.-]+/, '').replace(/-+$/, '');
+    return n || 'project';
+  }
+
+  /** The language most of the questions' files are in (by extension), as the study's builder names it. */
+  function languageOf(questions) {
+    const tally = {};
+    for (const q of questions) for (const f of q.files) { const l = CODE[(f.split('.').pop() || '').toLowerCase()]; if (l) tally[l] = (tally[l] || 0) + 1; }
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    return top ? top[0] : 'unknown';
+  }
+
+  const pad = (n, w) => String(n).padStart(w, '0');
+
+  /**
+   * @param {string} cwd the project (a git work tree)
+   * @param {string} outDir where to write the data root
+   * @param {Array<{sha: string, title: string, files: string[]}>} questions as mined, oldest first
+   * @returns {{ root: string, name: string, commit: string, dirty: boolean, questions: number, language: string, link: string, manifest: string, tasks: string }}
+   * @throws {Error} with a message that says what to change
+   */
+  function emitRoot(cwd, outDir, questions) {
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('no question qualified, so there is nothing to write (try a longer --since)');
+    const project = fs.realpathSync(cwd);
+    const out = path.resolve(outDir);
+    const rel = path.relative(project, out);
+    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) throw new Error(`--emit-root ${outDir} is inside the project; give a directory outside it (the harness copies the project, and a copy of its own inputs would be searchable by the agent)`);
+
+    const manifestPath = path.join(out, 'benchmarks', 'xrepo-repos.json');
+    if (fs.existsSync(out) && fs.readdirSync(out).length > 0) {
+      let ours = false;
+      try { ours = String(JSON.parse(fs.readFileSync(manifestPath, 'utf8'))._comment || '').includes(MARK); } catch (_) { /* not a root of ours */ }
+      if (!ours) throw new Error(`${outDir} is not empty and is not a root this command wrote; use a new directory`);
+    }
+
+    let dotGit = null;
+    try { dotGit = fs.lstatSync(path.join(project, '.git')); } catch (_) { /* absent: reported below */ }
+    if (!dotGit || dotGit.isSymbolicLink() || !dotGit.isDirectory()) {
+      throw new Error('this project\'s .git is not a directory of its own (a linked worktree or a submodule keeps it elsewhere), and the harness copies the project and resets the copy, which would write into that other repository; run advise in a plain clone (git clone <path> <dir>)');
+    }
+
+    const head = _git(project, ['rev-parse', 'HEAD']);
+    if (head.error || head.status !== 0) throw new Error('not a git work tree with a commit: the harness pins every repository to one');
+    const commit = head.stdout.trim();
+    const st = _git(project, ['status', '--porcelain', '--untracked-files=no']);
+    const dirty = st.status === 0 && st.stdout.trim().length > 0;
+
+    const name = repoNameOf(project);
+    const language = languageOf(questions);
+    const tasks = questions.map((q, i) => ({ id: `p${pad(i + 1, 3)}`, split: 'local', source: 'merged-commit', repo: name, project: name, query: q.title, expected_files: q.files, goldCommit: q.sha }));
+    const manifest = { _comment: `${MARK}: questions mined from this project's own git history`, repos: [{ name, url: 'local', commit, language, layout: 'local' }] };
+
+    const tasksPath = path.join(out, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl');
+    const link = path.join(out, 'benchmarks', 'repos', name);
+    fs.mkdirSync(path.dirname(tasksPath), { recursive: true });
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    fs.writeFileSync(tasksPath, `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n`);
+    let existing = null;
+    try { existing = fs.lstatSync(link); } catch (_) { /* nothing there */ }
+    if (existing) {
+      if (!existing.isSymbolicLink()) throw new Error(`${link} exists and is not a link this command made; remove it or use a new directory`);
+      fs.unlinkSync(link); // our own link from an earlier run
+    }
+    fs.symlinkSync(project, link, 'dir');
+    return { root: out, name, commit, dirty, questions: tasks.length, language, link, manifest: manifestPath, tasks: tasksPath };
+  }
+
+  module.exports = { emitRoot, repoNameOf, languageOf, MARK };
+  
+};
+
+// ── ./src/advise/grep-scan ──
+__factories["./src/advise/grep-scan"] = function(module, exports) {
+  
+  /**
+   * grep-scan.js — the single-shot grep the honest benchmark compares SigMap with, for `sigmap advise`.
+   *
+   * The same scan as scripts/lib/grep-baseline.mjs (`grepRank`), which is not in the published package, so `advise` cannot import it. Pure Node
+   * fs, no ripgrep and no child process, deterministic: it ranks files by how many distinct query terms they hold, then by occurrences.
+   * test/integration/advise.test.js pins that the two give identical rankings on a fixture, so a change to one that is not made to the other
+   * fails there.
+   *
+   * It leaves out every file SigMap itself wrote (`sigmapOutputs`): a person grepping their code does not see them, and they hold every
+   * identifier in the project, so counting them would hand grep an answer key it never had.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { STOP } = __require('./src/retrieval/bm25');
+
+  // Dirs a grep agent never scans (ripgrep skips VCS + honors .gitignore).
+  const SKIP_DIRS = new Set(['.git', '.hg', '.svn', 'node_modules', 'vendor', 'dist', 'build', 'target', 'out', 'coverage', '.next', '__pycache__', '.venv', 'venv', '.tox']);
+  const MAX_FILE_BYTES = 1024 * 1024; // grep-realistic cap; skips lockfile giants
+
+  const norm = (p) => String(p).replace(/\\/g, '/').replace(/^\.\//, '');
+
+  /** Significant literal query terms: no stemming; grep matches literals. */
+  function terms(query) {
+    return [...new Set(String(query).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w)))];
+  }
+
+  /** Top-level directory patterns from a repo's .gitignore (simple names only). */
+  function gitignoreDirs(repoPath) {
+    const dirs = new Set();
+    try {
+      const src = fs.readFileSync(path.join(repoPath, '.gitignore'), 'utf8');
+      for (const raw of src.split('\n')) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#') || line.startsWith('!')) continue;
+        const m = line.match(/^\/?([A-Za-z0-9._-]+)\/?$/);
+        if (m) dirs.add(m[1]);
+      }
+    } catch (_) { /* no .gitignore: nothing to skip */ }
+    return dirs;
+  }
+
+  function countOccurrences(haystack, needle) {
+    let n = 0;
+    let i = haystack.indexOf(needle);
+    while (i !== -1) { n++; i = haystack.indexOf(needle, i + needle.length); }
+    return n;
+  }
+
+  /**
+   * Every file SigMap itself writes into a repository: each adapter's output and the `.context/` directory.
+   * @param {string} repoPath
+   * @returns {(relPath:string)=>boolean} true for a file SigMap wrote
+   */
+  function sigmapOutputs(repoPath) {
+    const written = new Set();
+    try {
+      const adapters = __require('./packages/adapters');
+      for (const name of adapters.listAdapters()) {
+        try {
+          const out = adapters.getAdapter(name).outputPath(repoPath);
+          if (typeof out === 'string') written.add(String(path.isAbsolute(out) ? path.relative(repoPath, out) : out).replace(/\\/g, '/'));
+        } catch (_) { /* an adapter without a file output writes nothing here */ }
+      }
+    } catch (_) { /* adapters unavailable: only .context/ is skipped */ }
+    return (rel) => rel === '.context' || rel.startsWith('.context/') || written.has(rel);
+  }
+
+  /**
+   * Scan a repo once and rank files for every task's term set.
+   * @param {string} repoPath
+   * @param {Array<{id: string, query: string}>} tasks
+   * @param {{ skipFile?: ((rel: string) => boolean) | null, maxFiles?: number }} [opts]
+   *   `skipFile(relPath)` leaves a file out of the scan; `maxFiles` stops a scan of an enormous tree (the result then says it was truncated)
+   * @returns {{ ranked: Map<string, string[]>, filesScanned: number, truncated: boolean }} id to its top-10 relative paths
+   */
+  function grepRank(repoPath, tasks, opts = {}) {
+    const skipFile = opts.skipFile || null;
+    const maxFiles = Number.isInteger(opts.maxFiles) && opts.maxFiles > 0 ? opts.maxFiles : Infinity;
+    const perTask = new Map(tasks.map((t) => [t.id, new Map()])); // id to file to {cover, occ}
+    const termSets = tasks.map((t) => ({ id: t.id, terms: terms(t.query) }));
+    const ignored = gitignoreDirs(repoPath);
+    let filesScanned = 0;
+    let truncated = false;
+
+    const walk = (dir) => {
+      if (truncated) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      entries.sort((a, b) => a.name.localeCompare(b.name)); // deterministic order
+      for (const e of entries) {
+        if (truncated) return;
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          if (SKIP_DIRS.has(e.name) || ignored.has(e.name)) continue;
+          walk(full);
+          continue;
+        }
+        if (!e.isFile()) continue;
+        const rel = norm(path.relative(repoPath, full));
+        if (rel === '.context/extract-cache.json') continue;
+        if (skipFile && skipFile(rel)) continue;
+        if (filesScanned >= maxFiles) { truncated = true; return; }
+        filesScanned++;
+        let buf;
+        try {
+          if (fs.statSync(full).size > MAX_FILE_BYTES) continue;
+          buf = fs.readFileSync(full);
+        } catch (_) { continue; }
+        if (buf.subarray(0, 8192).includes(0)) continue; // binary
+        const text = buf.toString('utf8').toLowerCase();
+
+        const termCount = new Map(); // term to occurrences in this file (shared across tasks)
+        for (const { id, terms: ts } of termSets) {
+          let cover = 0, occ = 0;
+          for (const t of ts) {
+            if (!termCount.has(t)) termCount.set(t, countOccurrences(text, t));
+            const c = termCount.get(t);
+            if (c > 0) { cover++; occ += c; }
+          }
+          if (cover > 0) perTask.get(id).set(rel, { cover, occ });
+        }
+      }
+    };
+    walk(repoPath);
+
+    const ranked = new Map();
+    for (const [id, fileScores] of perTask) {
+      ranked.set(id, [...fileScores.entries()]
+        .sort((a, b) => b[1].cover - a[1].cover || b[1].occ - a[1].occ || a[0].localeCompare(b[0]))
+        .slice(0, 10)
+        .map(([file]) => file));
+    }
+    return { ranked, filesScanned, truncated };
+  }
+
+  module.exports = { grepRank, sigmapOutputs, terms, SKIP_DIRS, MAX_FILE_BYTES };
+  
+};
+
+// ── ./src/advise/mine ──
+__factories["./src/advise/mine"] = function(module, exports) {
+  
+  /**
+   * mine.js — questions from a project's own git history, for `sigmap advise`.
+   *
+   * The rule is the one that built the agent study's held-out questions (scripts/build-heldout-set.mjs), so a number measured on them means the
+   * same thing here. It is mechanical, reads the project's git history and nothing else, and does not depend on how a question might score:
+   *   - the first-parent commits since a date: a squash-merged pull request is one commit, a merge-commit pull request is its merge commit, whose
+   *     title is the first line of its message body; the oldest come first;
+   *   - the title has its trailing "(#123)" and its conventional-commit type ("fix(parser):" becomes "parser:") taken off, and is 25 to 160
+   *     characters; bots, dependency bumps, releases, reverts and merges are left out;
+   *   - a title of fewer than 4 words, or one about lint, formatting, tests, docs, refactoring, renames or CI, is left out;
+   *   - the commit changes 1 to 3 source files (a code extension that is not a test, fixture, example, demo, doc, config, generated or minified
+   *     file), every one of which still exists, and the title names none of them;
+   *   - the questions are the oldest qualifying commits up to `max`.
+   * A question is the title; its label is the source file(s) the change touched.
+   *
+   * Zero-dependency, read-only: it runs `git log` and `git diff --name-only` and writes nothing.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+
+  const CODE = { py: 'python', js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript', ts: 'typescript', tsx: 'typescript', go: 'go', rs: 'rust', java: 'java', kt: 'kotlin', scala: 'scala', rb: 'ruby', php: 'php', c: 'c', h: 'c', cc: 'cpp', cpp: 'cpp', hpp: 'cpp', cs: 'csharp', swift: 'swift' };
+  const NOT_SOURCE = [/(^|\/)(tests?|spec|specs|__tests__|e2e|integration-tests?|fixtures?|testdata|test-data|examples?|samples?|docs?|documentation|benchmarks?|scripts?|demos?|website|playground|\.github|vendor|node_modules)\//i, /\.config\.\w+$/i, /[._-](test|spec|tests)\.\w+$/i, /(^|\/)(tests?|testing|spec|conftest)\.\w+$/i, /(^|\/)test_[^/]*$/i, /_tests?\.\w+$/, /(Test|Tests|IT|Spec)\.(java|kt|scala)$/, /\.d\.ts$/, /generated|\.pb\.go$|_pb2|\.min\.|\.gen\./i, /(^|\/)setup\.py$/];
+  const NOT_A_FEATURE = /^(bump|chore\(deps|chore: bump|update dependency|build\(deps|release|prepare release|merge|revert|version|v?\d+\.\d+|\[?release|ci:|docs?:|style:|test:|tests:)/i;
+  const VAGUE = /\b(lint|linter|clippy|typos?|formatt?(ing|er)?|style|clean ?up|refactor(ing)?|rename[sd]?|readiness|wip|docs?|readme|tests?|dependenc(y|ies)|ci|workflow)\b/i;
+  const BOT = /\[bot\]|dependabot|renovate|github-actions|noreply@github\.com.*bot|bot@/i;
+
+  const DEFAULT_SINCE = '365d';
+  const DEFAULT_MAX = 12;
+  const MAX_COMMITS_EXAMINED = 3000; // a bound on work, not on the rule: the oldest 3,000 commits of the window
+
+  const isSource = (f) => !!CODE[(f.split('.').pop() || '').toLowerCase()] && !NOT_SOURCE.some((re) => re.test(f));
+
+  function cleanTitle(s) {
+    let t = String(s).replace(/\s*\(#\d+\)\s*$/, '').replace(/^[\s\p{Extended_Pictographic}\u{FE0F}]+/u, '').trim();
+    const m = /^([a-z]+)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(t);
+    if (m && /^(fix|feat|feature|perf|refactor|chore|build|improve|add|update)$/i.test(m[1])) t = m[2] ? `${m[2]}: ${m[3]}` : m[3];
+    return t.trim();
+  }
+
+  /**
+   * `--since` as a date git understands: an ISO date passes through, `<n>d`, `<n>m` and `<n>y` count back from `now`.
+   * @returns {string|null} YYYY-MM-DD, or null when the value cannot be read
+   */
+  function resolveSince(value, now = Date.now()) {
+    const v = String(value == null ? DEFAULT_SINCE : value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const m = /^(\d+)([dmy])$/.exec(v);
+    if (!m) return null;
+    const n = Number(m[1]);
+    const days = m[2] === 'd' ? n : m[2] === 'm' ? n * 30 : n * 365;
+    return new Date(now - days * 86400000).toISOString().slice(0, 10);
+  }
+
+  function git(cwd, args) {
+    return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0' } });
+  }
+
+  /**
+   * @param {string} cwd the project root (a git work tree)
+   * @param {{ since?: string, max?: number, now?: number }} [opts]
+   * @returns {{ ok: boolean, reason?: string, since?: string, examined?: number, qualifying?: number,
+   *             questions: Array<{ sha: string, title: string, files: string[] }>, skipped: Object<string, number> }}
+   */
+  function mineQuestions(cwd, opts = {}) {
+    const none = (reason) => ({ ok: false, reason, questions: [], skipped: {} });
+    const since = resolveSince(opts.since, opts.now);
+    if (!since) return none(`cannot read --since "${opts.since}" (use 2026-01-01, 90d, 6m or 1y)`);
+    const max = Number.isInteger(opts.max) && opts.max > 0 ? opts.max : DEFAULT_MAX;
+
+    const inside = git(cwd, ['rev-parse', '--is-inside-work-tree']);
+    if (inside.error || inside.status !== 0) return none('not a git work tree');
+    const raw = git(cwd, ['log', '--first-parent', `--since=${since}`, '--format=%H%x1f%P%x1f%s%x1f%an <%ae>%x1f%b%x1e']);
+    if (raw.status !== 0) return none('git log failed');
+    const log = raw.stdout.split('\x1e').map((s) => s.replace(/^\n/, '')).filter(Boolean).reverse().slice(0, MAX_COMMITS_EXAMINED);
+
+    const skipped = {};
+    const skip = (r) => { skipped[r] = (skipped[r] || 0) + 1; };
+    const picks = [];
+    let examined = 0;
+    for (const rec of log) {
+      examined++;
+      const [sha, parents, subject, author, body] = rec.split('\x1f');
+      const parent = (parents || '').split(' ')[0];
+      if (!parent || BOT.test(author)) { skip('a bot, or no parent in the history'); continue; }
+      let title = subject;
+      if (/^Merge pull request #\d+/.test(subject)) title = (body || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
+      title = cleanTitle(title);
+      if (title.length < 25 || title.length > 160) { skip('title length'); continue; }
+      if (title.split(/\s+/).length < 4 || VAGUE.test(title)) { skip('title is vague, about tooling, tests or docs'); continue; }
+      if (NOT_A_FEATURE.test(title) || /dependabot|bump .* from .* to/i.test(title)) { skip('dependency bump, release, revert, merge or docs'); continue; }
+      const diff = git(cwd, ['diff', '--name-only', parent, sha]);
+      if (diff.status !== 0) { skip('git diff failed'); continue; }
+      const src = diff.stdout.split('\n').filter(Boolean).filter(isSource);
+      if (src.length < 1 || src.length > 3) { skip('not 1 to 3 source files'); continue; }
+      if (src.some((f) => !fs.existsSync(path.join(cwd, f)))) { skip('a changed source file no longer exists'); continue; }
+      const low = title.toLowerCase();
+      if (src.some((f) => { const b = path.basename(f); const stem = b.replace(/\.[^.]+$/, ''); return low.includes(b.toLowerCase()) || (stem.length >= 6 && low.includes(stem.toLowerCase())); })) { skip('the title names a changed file'); continue; }
+      picks.push({ sha, title, files: src });
+      if (picks.length >= max) break; // the oldest `max` qualifying commits: stopping here selects the same ones the full pass would
+    }
+    return { ok: true, since, examined, qualifying: picks.length, questions: picks, skipped };
+  }
+
+  module.exports = { mineQuestions, resolveSince, cleanTitle, isSource, CODE, DEFAULT_SINCE, DEFAULT_MAX };
+  
+};
+
 // ── ./src/analysis/coverage-score ──
 __factories["./src/analysis/coverage-score"] = function(module, exports) {
   
@@ -1574,6 +2159,8 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     '.next', 'coverage', 'target', 'vendor', '.context',
   ]);
 
+  const { isVendoredName, isEnvironmentRoot } = __require('./src/util/vendored-dir');
+
   function _norm(p) {
     return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '');
   }
@@ -1813,8 +2400,9 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
       if (depth > 8 || seen > 5000) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (isEnvironmentRoot(entries)) return; // not indexed, so a change in it is not a stale index
       for (const e of entries) {
-        if (exclude.has(e.name)) continue;
+        if (exclude.has(e.name) || isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) walk(full, depth + 1);
         else if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) {
@@ -2593,6 +3181,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   const { langFor } = __require('./src/extractors/dispatch');
   const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
   const { resolveGraphDirs } = __require('./src/graph/src-dirs');
+  const { isVendoredName, isEnvironmentRoot } = __require('./src/util/vendored-dir');
 
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
   const DEFAULT_EXCLUDE = [
@@ -2629,8 +3218,9 @@ __factories["./src/cache/freshen"] = function(module, exports) {
     if (depth > maxDepth) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (isEnvironmentRoot(entries)) return; // a virtualenv: the generator never indexed it
     for (const e of entries) {
-      if (exclude.has(e.name)) continue;
+      if (exclude.has(e.name) || isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) _walk(full, exclude, out, depth + 1, maxDepth);
       else if (e.isFile() && langFor(e.name)) out.push(full);
@@ -3222,6 +3812,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'redact [file]', desc: 'Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)' },
     { argv: 'tune', desc: 'Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)' },
     { argv: 'tune --apply', desc: 'Write the recommendations into gen-context.config.json (merges; your keys preserved)' },
+    { argv: 'advise', desc: 'Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --emit-root <dir>, --json)' },
     { argv: 'skills list', desc: 'List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)' },
     { argv: 'skills install', desc: 'Install the SigMap agent playbooks for detected clients (--client <name> | --all)' },
     { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
@@ -3243,14 +3834,14 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'session log --ci', desc: 'Append an agent:"ci" record for this pipeline run (usage is unavailable — a CI job has no transcript)' },
     { argv: 'session summary', desc: 'Warm-start summary of the last session — deterministic, no LLM, ≤400 tokens (--json; `summary --last` is the same call)' },
     { argv: 'session compact', desc: 'Fold sessions older than session.retention.days into monthly rollups (--json)' },
-    { argv: 'hooks install claude', desc: 'Wire session capture into Claude Code (--stop adds the per-turn hook; --shared writes the committed settings file)' },
+    { argv: 'hooks install claude', desc: 'Wire session capture into Claude Code (--stop adds the per-turn hook; --prefetch adds the UserPromptSubmit hook that hands the model a ranking of files before each prompt; --shared writes the committed settings file)' },
     { argv: 'hooks status', desc: 'Which session hooks are wired, and whether the script they run still exists (--json)' },
-    { argv: 'hooks remove claude', desc: 'Remove SigMap\'s session hooks from Claude Code settings' },
+    { argv: 'hooks remove claude', desc: 'Remove SigMap\'s session hooks from Claude Code settings (--prefetch removes only the prefetch hook)' },
     { argv: 'status', desc: 'Show repo state — branch, dirty files, index freshness, notes' },
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
     { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-    { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+    { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
     { argv: '--help', desc: 'Show this message' },
     { argv: '--version', desc: 'Show version' },
   ];
@@ -3626,7 +4217,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       autoRegister: true,
       // Which tools the server advertises and answers (#878): "all" (every shipped
       // tool; also what an absent key means), "core" (the retrieval + grounding loop,
-      // about a third of the definition tokens) or an array of tool names.
+      // about a third of the definition tokens), "locate" (query_context and get_lines
+      // only, for where-is-it questions) or an array of tool names.
       tools: 'all',
     },
 
@@ -8358,10 +8950,10 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       const shown = profile.label(resolved, captureOn);
       if (resolved.notes.length > 0) {
         add('mcp-tools', 'MCP tool profile', 'warn', `${resolved.notes.join('; ')} · ${shown}`,
-          'set "mcp.tools" in gen-context.config.json to "all", "core" or a list of tool names (inside an "mcp" object)');
+          'set "mcp.tools" in gen-context.config.json to "all", "core", "locate" or a list of tool names (inside an "mcp" object)');
       } else if (resolved.profile === 'all') {
         add('mcp-tools', 'MCP tool profile', 'ok',
-          `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens`);
+          `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens; "locate" ${profile.LOCATE.length} tools, ~${resolved.locateTokens.toLocaleString('en-US')} tokens (where-is-it questions only)`);
       } else {
         add('mcp-tools', 'MCP tool profile', 'ok', shown);
       }
@@ -9005,7 +9597,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
     // that saw only the token-BUDGETED view, ignored the other adapters, the
     // hot-cold/per-module strategy splits, and the complete retrieval index. The
     // corpus therefore scored a smaller index than `sigmap ask` actually uses.
-    return __require('./src/retrieval/ranker').buildSigIndex(cwd);
+    return __require('./src/retrieval/ranker').buildSigIndex(cwd, { bare: true });
   }
 
   // ---------------------------------------------------------------------------
@@ -14390,14 +14982,17 @@ __factories["./src/extractors/php"] = function(module, exports) {
       return [line, line];
     };
 
-    // Classes and interfaces
-    const typeRe = /^(?:abstract\s+)?(?:class|interface|trait)\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w, ]+)?\s*\{/gm;
+    // Classes, interfaces, traits and enums. A modifier (`abstract`, `final`, `readonly`, in any order and any number)
+    // may lead the declaration; a parent or an interface may be namespaced (`\Foo\Bar`), an interface may extend
+    // several, a class implement several across lines, and an enum carry a backing type (`enum Suit: string`).
+    // The previous pattern took `abstract` alone and `\w+` for a parent, so `final class X extends \Foo\Y` and every
+    // `readonly` class or `enum` listed nothing, and a file made of them was not in the index at all.
+    const typeRe = /^(?:(?:abstract|final|readonly)\s+)*(class|interface|trait|enum)\s+(\w+)(?:\s*:\s*\w+)?(?:\s+extends\s+[\w\\]+(?:\s*,\s*[\w\\]+)*)?(?:\s+implements\s+[\w\\,\s]+?)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
-      const kind = m[0].trimStart().startsWith('interface') ? 'interface' :
-        m[0].trimStart().startsWith('trait') ? 'trait' : 'class';
+      const kind = m[1];
       const bodyStart = m.index + m[0].length;
       const block = extractBlock(stripped, bodyStart);
-      sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      sigs.push(withAnchor(`${kind} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block, masked.slice(bodyStart, bodyStart + block.length))) {
         // The disclosure marker carries no offsets; anchor it at the class body.
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
@@ -22893,8 +23488,9 @@ __factories["./src/graph/builder"] = function(module, exports) {
       if (depth > maxDepth) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
       for (const e of entries) {
-        if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+        if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) {
           walkDir(full, depth + 1, out);
@@ -23480,8 +24076,9 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
     for (const e of entries) {
-      if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+      if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1, maxDepth);
       else if (e.isFile()) {
@@ -23928,15 +24525,21 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       return lines.join('\n');
     }
     const qualifier = _scopeClause(result.scope);
+    // Calls through a receiver (`x.m()`) draw no edge outside Java, so an empty or short
+    // list for a symbol in TypeScript, Python or Go is not a safe answer (#1074).
+    const { receiverCalls, receiverNote } = __require('./src/graph/language-support');
+    const rc = receiverCalls(result.resolved);
+    const rcLine = rc.length ? [`_${receiverNote(rc, kind)}_`] : [];
     if (result.total === 0) {
       lines.push(kind === 'callees'
         ? `_no repo-defined callee found (${qualifier})._`
-        : `_no caller found (${qualifier})._`);
+        : `_no caller found (${qualifier})._`, ...(rcLine.length ? ['', ...rcLine] : []));
       return lines.join('\n');
     }
     lines.push(`**Total ${verb}:** ${result.total} _(${qualifier})_`, '');
     if (result.direct.length) { lines.push(`### Direct`); for (const id of result.direct) lines.push(`- \`${id}\``); lines.push(''); }
     if (result.transitive.length) { lines.push(`### Transitive`); for (const id of result.transitive) lines.push(`- \`${id}\``); lines.push(''); }
+    if (rcLine.length) lines.push(...rcLine, '');
     return lines.join('\n');
   }
 
@@ -23963,6 +24566,10 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     // A symbol the call graph does not know, in roots that hold files it cannot read.
     if (result.unsearched) out.unsearched = result.unsearched;
+    // Present only for a symbol in a language whose receiver calls (`x.m()`) the graph
+    // does not fully resolve, so every other result keeps its shape (#1074).
+    const rc = __require('./src/graph/language-support').receiverCalls(result.resolved);
+    if (rc.length) out.receiverCalls = rc.map(({ language, resolved }) => ({ language, resolved }));
     return out;
   }
 
@@ -25335,6 +25942,78 @@ __factories["./src/graph/language-support"] = function(module, exports) {
   }
 
   /**
+   * Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) and what the
+   * call graph does with them (#1074, the phase-2 branch of #976).
+   *
+   * `buildCallGraph` resolves a `.name(` call through a receiver's type only for
+   * Java, and only where a declared type shows the class. Everywhere else such a
+   * call draws no edge, so `--callers m` on a method that is called as `x.m()`
+   * printed "no caller found": an answer a developer reads as "safe to change".
+   * Measured against compiler indexes (SCIP, benchmarks/reports/callgraph-accuracy.json),
+   * recall of receiver edges is 0.0% in TypeScript, 0.1% in Python, 0.0% in Go and
+   * 43.8% in Java, against the registered threshold of 70%. The graph was not made
+   * to resolve receivers (that needs a type checker); it says so instead.
+   *
+   * `none`: the report's interval for receiver recall is entirely below 5%.
+   * `partial`: below the 70% threshold, not below 5%. A language is listed only if
+   * the report measured at least 100 receiver edges in it (JavaScript has two, so
+   * nothing is claimed). The test `callgraph-receiver-caveat` derives this table
+   * from the saved report and fails if the two disagree, so it cannot go stale.
+   */
+  const RECEIVER_CALLS = Object.freeze({
+    typescript: 'none', python: 'none', go: 'none', java: 'partial',
+  });
+  const RECEIVER_LABELS = Object.freeze({ typescript: 'TypeScript', python: 'Python', go: 'Go', java: 'Java' });
+  // Only the extensions the call graph itself reads (CALL_GRAPH_EXTS); a test keeps the two in step.
+  const RECEIVER_EXT = Object.freeze({
+    '.ts': 'typescript', '.tsx': 'typescript',
+    '.py': 'python', '.pyw': 'python', '.go': 'go', '.java': 'java',
+  });
+
+  /**
+   * Which of these symbols are declared in a language whose receiver calls the
+   * graph does not (fully) resolve.
+   *
+   * @param {string[]} ids  call-graph ids, `file#name`
+   * @returns {Array<{ language: string, label: string, resolved: 'none'|'partial' }>} one entry per language, in first-seen order; empty when none applies
+   */
+  function receiverCalls(ids) {
+    const out = [];
+    const seen = new Set();
+    for (const id of ids || []) {
+      const file = String(id).split('#')[0];
+      const language = RECEIVER_EXT[path.extname(file).toLowerCase()];
+      if (!language || seen.has(language)) continue;
+      seen.add(language);
+      out.push({ language, label: RECEIVER_LABELS[language], resolved: RECEIVER_CALLS[language] });
+    }
+    return out;
+  }
+
+  /** "TypeScript", "TypeScript and Go", "TypeScript, Python and Go". */
+  function _list(labels) {
+    if (labels.length <= 1) return labels.join('');
+    return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  }
+
+  /**
+   * The one-paragraph answer that goes under a callers or callees list for
+   * those symbols. `kind` is `callers` or `callees`.
+   */
+  function receiverNote(entries, kind) {
+    const none = entries.filter((e) => e.resolved === 'none').map((e) => e.label);
+    const part = entries.filter((e) => e.resolved === 'partial').map((e) => e.label);
+    const s = [];
+    if (none.length) s.push(`Calls made through a receiver (\`x.m()\`, \`this.m()\`, \`self.m()\`) are not resolved for ${_list(none)}: checked against a compiler index, the graph found none of them.`);
+    if (part.length) s.push(`For ${_list(part)} they are resolved only where a declared type names the receiver's class, and only in part.`);
+    s.push(kind === 'callees'
+      ? 'This list leaves out the calls this symbol makes through a receiver.'
+      : 'A short or empty list is not evidence that nothing calls this.');
+    s.push('See https://sigmap.io/guide/callgraph-accuracy');
+    return s.join(' ');
+  }
+
+  /**
    * Mark an impact result whose target the import graph cannot read.
    *
    * Only an empty result for an unreadable file is marked: a file with importers
@@ -25388,8 +26067,9 @@ __factories["./src/graph/language-support"] = function(module, exports) {
       if (depth > maxDepth) return;
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      if (__require('./src/util/vendored-dir').isEnvironmentRoot(entries)) return;
       for (const e of entries) {
-        if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+        if (excludeSet.has(e.name) || e.name.startsWith('.') || __require('./src/util/vendored-dir').isVendoredName(e.name)) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) { walk(full, depth + 1); continue; }
         if (!e.isFile() || seen.has(full)) continue;
@@ -25417,6 +26097,7 @@ __factories["./src/graph/language-support"] = function(module, exports) {
     UNSUPPORTED, LABELS, NOT_EXPECTED,
     graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
     importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
+    RECEIVER_CALLS, RECEIVER_EXT, receiverCalls, receiverNote,
   };
   
 };
@@ -27954,7 +28635,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
    */
   function architectureView(map) {
     const files = map.nodes.filter((n) => n.kind === 'file');
-    const groups = {};
+    const groups = Object.create(null); // no prototype: a directory may be called `constructor`
     let totalTokens = 0;
     for (const n of files) {
       const rel = n.id.slice(5);
@@ -28685,7 +29366,11 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (sigs && sigs.length > 0) {
         lines.push(...sigs);
       } else {
-        lines.push(_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_');
+        let pathOnly = false;
+        try { pathOnly = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd).bare.includes(targetRel); } catch (_) { /* no index */ }
+        lines.push(pathOnly
+          ? '_No signatures to list: the extractor reads nothing from this file, so it is ranked by its path only (query_context can return it)._'
+          : (_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_'));
       }
       indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
     } catch (_) {
@@ -28760,7 +29445,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         return 'No context file found. Run: node gen-context.js';
       }
 
-      const groups = {};
+      const groups = Object.create(null); // no prototype: a directory may be called `constructor`
       for (const [rel, sigs] of index.entries()) {
         const parts = rel.replace(/\\/g, '/').split('/');
         const mod = parts.length > 1 ? parts[0] : '.';
@@ -28805,7 +29490,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     try {
       const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
       const { buildRankingGraph } = __require('./src/graph/builder');
-      const index = buildSigIndex(cwd);
+      const index = buildSigIndex(cwd, { bare: true }); // a file with no signatures can still be ranked on its path
       if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
       const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
@@ -29821,6 +30506,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
    *
    *   "all"      every shipped tool — the default, and what an absent key means
    *   "core"     the retrieval + grounding loop only (CORE below)
+   *   "locate"   the two tools a "where is it?" question uses (LOCATE below)
    *   [names]    exactly those tools
    *
    * One function resolves it for the server and for `sigmap doctor`, so the tool
@@ -29853,6 +30539,15 @@ __factories["./src/mcp/profile"] = function(module, exports) {
     'verify_suggestion',
   ]);
 
+  /**
+   * "Where is it implemented?" needs a ranking and the lines it points at, and nothing else. In the agent study
+   * (docs-vp/guide/agent-study) agents given the seven CORE tools called only these two, 0.46 and 0.30 times a run, and
+   * the other five were about 860 of the 1,197 tokens of definitions every turn paid for. This is a profile for locate
+   * questions: it deliberately drops the impact, callee and verification tools that editing and checking need, so it is
+   * opt-in and never the default.
+   */
+  const LOCATE = Object.freeze(['query_context', 'get_lines']);
+
   const MAX_LISTED = 5;
 
   /** Estimated tokens for a tool list as a client receives it (chars/4, as everywhere in SigMap). */
@@ -29870,8 +30565,8 @@ __factories["./src/mcp/profile"] = function(module, exports) {
    *
    * @param {object} config  a loaded SigMap config; only `config.mcp` is read
    * @param {object[]} [tools]  the tools on offer (tests pass a subset); defaults to the shipped TOOLS
-   * @returns {{ profile: 'all'|'core'|'custom', requested: *, tools: object[], names: string[],
-   *             total: number, tokens: number, allTokens: number, coreTokens: number, notes: string[] }}
+   * @returns {{ profile: 'all'|'core'|'locate'|'custom', requested: *, tools: object[], names: string[],
+   *             total: number, tokens: number, allTokens: number, coreTokens: number, locateTokens: number, notes: string[] }}
    */
   function resolveProfile(config, tools = TOOLS) {
     const block = config ? config.mcp : undefined;
@@ -29904,8 +30599,11 @@ __factories["./src/mcp/profile"] = function(module, exports) {
       if (v === 'core') {
         profile = 'core';
         selected = tools.filter((t) => CORE.includes(t.name));
+      } else if (v === 'locate') {
+        profile = 'locate';
+        selected = tools.filter((t) => LOCATE.includes(t.name));
       } else if (v !== 'all') {
-        fallBack(`mcp.tools is "${requested}"; expected "all", "core" or a list of tool names`);
+        fallBack(`mcp.tools is "${requested}"; expected "all", "core", "locate" or a list of tool names`);
       }
     } else if (Array.isArray(requested)) {
       const wanted = new Set();
@@ -29928,7 +30626,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
         selected = tools.filter((t) => wanted.has(t.name));
       }
     } else {
-      fallBack(`mcp.tools must be "all", "core" or a list of tool names (got ${JSON.stringify(requested)})`);
+      fallBack(`mcp.tools must be "all", "core", "locate" or a list of tool names (got ${JSON.stringify(requested)})`);
     }
 
     return {
@@ -29940,6 +30638,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
       tokens: definitionTokens(selected),
       allTokens: definitionTokens(tools),
       coreTokens: definitionTokens(tools.filter((t) => CORE.includes(t.name))),
+      locateTokens: definitionTokens(tools.filter((t) => LOCATE.includes(t.name))),
       notes,
     };
   }
@@ -29992,7 +30691,7 @@ __factories["./src/mcp/profile"] = function(module, exports) {
     return `SigMap serves code signatures for the working directory. ${how}`;
   }
 
-  module.exports = { CORE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
+  module.exports = { CORE, LOCATE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
   
 };
 
@@ -30022,7 +30721,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.85.1',
+    version: '8.88.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -31175,6 +31874,78 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
   
 };
 
+// ── ./src/retrieval/bare-files ──
+__factories["./src/retrieval/bare-files"] = function(module, exports) {
+  
+  /**
+   * Path-only entries for source files the extractors read nothing from.
+   *
+   * The retrieval index lists what a file declares and exports. A file whose extractor finds
+   * nothing (`export default new Plugin()`, a script with no exports, a Rust binary with no `pub`
+   * item, a module of constants) has no line in it, so the ranker cannot return it at all, not even
+   * for a question that names it: the path, which the ranker weighs three times as much as a word
+   * in a signature, never gets a chance. In the 222 held-out questions of the agent study, 18 had
+   * an expected file that was in this state (docs-vp/guide/agent-study-protocol.md, Stage H).
+   *
+   * `generate` records such a file under `bare` in `.context/sig-index.json` (src/retrieval/
+   * sig-index-store.js), and `buildSigIndex(cwd, { bare: true })` returns it as an entry with no
+   * signatures. Only the callers that rank ask for it. The context file handed to an agent is not
+   * changed by it, and neither is any tool that lists or counts what the index holds.
+   *
+   * What counts is decided here and nowhere else, and is fixed, not tuned:
+   *   - a programming language (not data or markup: no YAML, TOML, XML, HTML, CSS, Markdown, SQL);
+   *   - not a test, a mock, generated, minified or a declaration file (these are ranked down or
+   *     kept out of the context already);
+   *   - at least MIN_LINES non-blank lines, so an empty `__init__.py` or a one-line shim is not an entry.
+   *
+   * Zero dependencies. Pure: the same path and text give the same answer.
+   */
+
+  const { langFor } = __require('./src/extractors/dispatch');
+  const { isTestFile, isMockFile, isGeneratedFile } = __require('./src/util/file-class');
+
+  const MIN_LINES = 5;
+
+  /** The extractor names of EXTRACTORS/EXT_MAP (src/extractors/dispatch.js) that are programming languages. */
+  const PROGRAMMING = new Set([
+    'typescript', 'typescript_react', 'javascript', 'python', 'java', 'kotlin', 'go', 'rust', 'csharp', 'cpp',
+    'objc', 'ruby', 'php', 'swift', 'dart', 'scala', 'elixir', 'lua', 'gdscript', 'r', 'astro', 'vue_sfc', 'svelte',
+    'shell', 'powershell',
+  ]);
+
+  const DECLARATION_OR_MINIFIED = /\.d\.[cm]?ts$|\.min\.[cm]?js$/;
+
+  /**
+   * Whether a path could be a path-only entry. Cheap and free of I/O, so a caller can test it before
+   * reading the file.
+   * @param {string} rel path relative to the project root
+   * @returns {boolean}
+   */
+  function isBareLanguage(rel) {
+    const p = String(rel || '').replace(/\\/g, '/');
+    if (!PROGRAMMING.has(langFor(p))) return false;
+    if (DECLARATION_OR_MINIFIED.test(p)) return false;
+    return !(isTestFile(p) || isMockFile(p) || isGeneratedFile(p));
+  }
+
+  /**
+   * @param {string} rel path relative to the project root
+   * @param {string} content the file's text
+   * @returns {boolean} true when the file should be recorded as a path-only entry
+   */
+  function isBareCandidate(rel, content) {
+    if (typeof content !== 'string' || !isBareLanguage(rel)) return false;
+    let lines = 0;
+    for (const line of content.split('\n')) {
+      if (/\S/.test(line) && ++lines >= MIN_LINES) return true;
+    }
+    return false;
+  }
+
+  module.exports = { isBareCandidate, isBareLanguage, MIN_LINES, PROGRAMMING };
+  
+};
+
 // ── ./src/retrieval/bm25 ──
 __factories["./src/retrieval/bm25"] = function(module, exports) {
   
@@ -31695,7 +32466,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     const df = new Map();
     let files = 0;
     const readable = [];
-    for (const file of index.keys()) {
+    for (const [file, sigs] of index) {
+      // A path-only entry (src/retrieval/bare-files.js) has no signatures and no words of its own: leaving it out of
+      // the count as well keeps every other file's words what they were, whoever built the cache.
+      if (Array.isArray(sigs) && sigs.length === 0) continue;
       let source = null;
       try { source = readSource(file); } catch (_) { source = null; }
       if (typeof source !== 'string') continue;
@@ -33022,6 +33796,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       }
     } catch (_) { /* absent → budgeted view is still served */ }
 
+    // Source files the extractors read nothing from (src/retrieval/bare-files.js): an entry with no
+    // signatures, so the ranker can match them on their path. Only for a caller that ranks and asks;
+    // before the overlay, so a file that was deleted or has been edited since is handled like any other.
+    if (opts && opts.bare && full && full.bare && full.bare.length > 0) {
+      for (const rel of full.bare) if (!merged.has(rel)) merged.set(rel, []);
+    }
+
     const live = _applyLiveOverlay(cwd, merged, baseMs, more);
     if (!more || more.size === 0) return live;
     const out = new Map();
@@ -33074,7 +33855,8 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * the tools that list a file's signatures read the default, which is what they always read.
    *
    * @param {string} cwd
-   * @param {{ contextPath?: string, full?: boolean }} [opts]
+   * @param {{ contextPath?: string, full?: boolean, bare?: boolean }} [opts] `bare`: also return the
+   *        source files that have no signatures, as entries with an empty list, for a caller that ranks
    * @returns {Map<string, string[]>}
    */
   function buildSigIndex(cwd, opts) {
@@ -33478,7 +34260,9 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * @param {string} cwd
    * @param {Array<{filePath: string, sigs: string[]}>} fileEntries - every
    *        extracted entry, BEFORE applyTokenBudget has dropped or collapsed any.
-   * @param {{ version?: string }} [opts]
+   * @param {{ version?: string, bare?: string[] }} [opts] `bare`: project-relative paths of
+   *        source files the extractors read nothing from (src/retrieval/bare-files.js). They are
+   *        kept in a field of their own, so `files` stays exactly what it was.
    * @returns {{ path: string, files: number }}
    */
   function writeFullIndex(cwd, fileEntries, opts = {}) {
@@ -33496,6 +34280,8 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       count++;
     }
 
+    const bare = [...new Set((Array.isArray(opts.bare) ? opts.bare : []).filter((rel) => typeof rel === 'string' && rel && !rel.startsWith('..') && !(rel in files)))].sort();
+
     const out = indexPath(cwd);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     // Write-then-rename so a concurrent `ask` never observes a half-written index.
@@ -33510,6 +34296,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
       files,
       ...(Object.keys(more).length > 0 ? { more } : {}),
+      ...(bare.length > 0 ? { bare } : {}),
     }), 'utf8');
     fs.renameSync(tmp, out);
     return { path: out, files: count };
@@ -33542,15 +34329,19 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * that point (#982). `index` alone is what the ranker, `ask` and the listing tools read.
    *
    * @param {string} cwd
-   * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]> }}
+   * `bare` lists the source files the extractors read nothing from (src/retrieval/bare-files.js):
+   * not in `index`, and added to it only by a caller that ranks and asks for them.
+   *
+   * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]>, bare: string[] }}
    */
   function readFullIndexMeta(cwd) {
     const index = new Map();
     const more = new Map();
+    const bare = [];
     let baseMs = null;
     try {
       const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more };
+      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more, bare };
       for (const [rel, sigs] of Object.entries(data.files)) {
         if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
       }
@@ -33559,10 +34350,13 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
           if (Array.isArray(sigs) && sigs.length > 0 && index.has(rel)) more.set(rel, sigs);
         }
       }
+      if (Array.isArray(data.bare)) {
+        for (const rel of data.bare) if (typeof rel === 'string' && rel && !index.has(rel)) bare.push(rel);
+      }
       if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
       else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
     } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-    return { index, baseMs, more };
+    return { index, baseMs, more, bare };
   }
 
   /**
@@ -35135,7 +35929,8 @@ __factories["./src/session/capture"] = function(module, exports) {
   const { parseTranscript } = __require('./src/session/claude-transcript');
   const { tryGit } = __require('./src/util/git');
 
-  const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
+  // UserPromptSubmit is the opt-in prefetch hook (src/session/prefetch.js); the other three capture a session.
+  const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd', 'UserPromptSubmit'];
 
   function _branch(cwd) {
     return store.cleanStr(tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }), 120);
@@ -35348,6 +36143,15 @@ __factories["./src/session/capture"] = function(module, exports) {
       out.id = id;
       const env = opts.env || process.env;
       const config = opts.config || {};
+
+      // The prefetch hook records nothing about the session: it answers one prompt with a ranking, or with nothing.
+      if (event === 'UserPromptSubmit') {
+        _attempt(out, 'prefetch', () => {
+          const r = __require('./src/session/prefetch').prefetch(payload, cwd, { script: opts.script, env, now: opts.now, maxBytes: opts.maxBytes, timeoutMs: opts.timeoutMs });
+          if (r.stdout) { out.stdout = r.stdout; out.actions.push('prefetch'); } else out.actions.push(`skip: ${r.skipped}`);
+        });
+        return out;
+      }
 
       if (event === 'SessionStart') {
         _attempt(out, 'start', () => {
@@ -35624,7 +36428,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
    * file that is not valid JSON is refused, not overwritten.
    *
    * An entry is SigMap's when its command has the shape SigMap writes:
-   * `node <entry> session hook <SessionStart|Stop|SessionEnd>`.
+   * `node <entry> session hook <SessionStart|Stop|SessionEnd|UserPromptSubmit>`.
    *
    * Zero dependencies.
    */
@@ -35633,7 +36437,8 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
   const path = require('path');
 
   const EVENTS = ['SessionStart', 'SessionEnd'];
-  const OPTIONAL_EVENTS = ['Stop'];
+  // Stop is the per-turn capture hook (--stop); UserPromptSubmit is the prefetch hook (--prefetch, src/session/prefetch.js).
+  const OPTIONAL_EVENTS = ['Stop', 'UserPromptSubmit'];
   // Documented SessionStart sources; the hook is useful on all of them.
   const START_MATCHER = 'startup|resume|clear|compact';
   // Seconds. The handler bounds its own work well inside this; it is the host's backstop.
@@ -35641,7 +36446,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   // The script path token: single-quoted (what we write; an embedded quote is `'\''`),
   // double-quoted, or bare.
-  const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd)\s*$/;
+  const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd|UserPromptSubmit)\s*$/;
 
   /**
    * POSIX single-quoting: nothing inside is expanded by the shell, so an install
@@ -35706,7 +36511,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
    * Add (or bring up to date) SigMap's hooks.
    * @param {string} cwd
    * @param {string} scriptPath entry script the hooks should run
-   * @param {{ stop?: boolean, shared?: boolean }} [opts]
+   * @param {{ stop?: boolean, prefetch?: boolean, shared?: boolean }} [opts]
    * @returns {{ path: string, changes: Array<{event:string, action:'added'|'updated'|'unchanged'}>, error?: string }}
    */
   function installClaudeHooks(cwd, scriptPath, opts = {}) {
@@ -35715,7 +36520,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
     if (read.error) return { path: file, changes: [], error: read.error };
     const settings = read.settings;
     if (!settings.hooks) settings.hooks = {};
-    const events = opts.stop ? EVENTS.concat(OPTIONAL_EVENTS) : EVENTS;
+    const events = EVENTS.concat(opts.stop ? ['Stop'] : [], opts.prefetch ? ['UserPromptSubmit'] : []);
     const changes = [];
     for (const event of events) {
       const want = hookCommand(scriptPath, event);
@@ -35743,9 +36548,12 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   /**
    * Remove SigMap's hooks from both settings files, pruning only what becomes empty.
+   * @param {string} cwd
+   * @param {{ events?: string[] }} [opts] only the hooks of these events (default: all of SigMap's)
    * @returns {{ files: Array<{ path: string, removed: number }>, error?: string }}
    */
-  function removeClaudeHooks(cwd) {
+  function removeClaudeHooks(cwd, opts = {}) {
+    const only = Array.isArray(opts.events) && opts.events.length ? new Set(opts.events) : null;
     const files = [];
     for (const shared of [false, true]) {
       const file = targetFile(cwd, shared);
@@ -35756,7 +36564,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
       let removed = 0;
       for (const event of Object.keys(settings.hooks)) {
         const groups = settings.hooks[event];
-        if (!Array.isArray(groups)) continue;
+        if (!Array.isArray(groups) || (only && !only.has(event))) continue;
         for (const group of groups) {
           if (!group || !Array.isArray(group.hooks)) continue;
           const before = group.hooks.length;
@@ -35777,7 +36585,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
 
   /**
    * What is wired, for `hooks status` and `doctor`.
-   * @returns {{ wired: boolean, events: string[], files: object[], missingScript: string[] }}
+   * @returns {{ wired: boolean, prefetch: boolean, events: string[], files: object[], missingScript: string[] }}
    */
   function inspectClaudeHooks(cwd) {
     const files = [];
@@ -35801,6 +36609,7 @@ __factories["./src/session/hooks-install"] = function(module, exports) {
     }
     return {
       wired: events.has('SessionEnd') && events.has('SessionStart'),
+      prefetch: events.has('UserPromptSubmit'),
       events: [...events], files, missingScript: [...new Set(missingScript)],
     };
   }
@@ -36250,6 +37059,338 @@ __factories["./src/session/notes"] = function(module, exports) {
   }
 
   module.exports = { notesPath, addNote, readNotes, formatNotes, clearNotes };
+  
+};
+
+// ── ./src/session/prefetch ──
+__factories["./src/session/prefetch"] = function(module, exports) {
+  
+  /**
+   * The prefetch hook (`sigmap hooks install claude --prefetch`).
+   *
+   * On every prompt Claude Code is about to send (the `UserPromptSubmit` hook), SigMap ranks the repository's files against the
+   * prompt from its offline index and returns the top five, with their signatures and `:start-end` line anchors, as additional
+   * context. The model starts the turn already holding a list of leads instead of having to ask for one. It is what `sigmap ask`
+   * prints and writes to `.context/query-context.md`, run for you: this module calls the CLI, so there is one ranking implementation.
+   *
+   * Measured in the agent study (docs-vp/guide/agent-study), and the saving is small. On a clean comparison (Claude Code, Haiku 5.5, eight
+   * repositories, first asks) this hook took real cost -4% [-7%, -1%], tool calls -41%, time -11%, total tokens -23%; the same ranking
+   * placed in the prompt itself took cost -12%. A hook cannot write into the user's own turn: Claude Code adds its output as a separate
+   * reminder, and the agent re-checks that list more. Three variants (plain stdout, a firmer header, a shorter block) did no better.
+   * A long prompt is focused before it is ranked (src/session/query-focus.js), because a ranking over a whole prompt is only as good as the
+   * prompt is focused. It is opt-in.
+   *
+   * What it does NOT do, and why:
+   *   - It does not inject on every prompt. A prompt is skipped when it is a slash command, a shell escape or a note, has fewer than
+   *     four words ("yes", "continue", "run the tests"), or when the project has no index (it never generates one: a hook must stay fast
+   *     and write nothing but its own state).
+   *   - It does not guess. A prompt less than 90% of whose letters are ASCII (the ranker reads only those) is not ranked: what is left of it
+   *     is a few identifiers, and the list built from them was wrong for 18 of 22 such questions. On twelve repositories the guarded hook found
+   *     the file in 485 runs of 540 against 492 without a hook (unguarded: 483 against 497), at no measurable cost to its saving. It does not
+   *     catch an English prompt whose ranking is wrong: none of the signals tried predicts that.
+   *   - It does not rank conversation. A prompt of more than two dozen words is reduced to the sentences that say something before it is
+   *     ranked; a short one is ranked exactly as written.
+   *   - It does not repeat itself. If the ranking for this prompt names the same files as the last one injected in the same session, it
+   *     adds nothing: the earlier block is already in the conversation, and a long session would otherwise carry the same text on every turn.
+   *   - It is bounded. The block is capped at 8 KiB (whole file sections, best-ranked first), the work at 8 seconds, and every failure
+   *     is silent: no output, exit 0. A hook must never fail or stall someone's session.
+   *
+   * `SIGMAP_PREFETCH=0` in the environment turns it off without touching the settings file. `SIGMAP_PREFETCH_FOCUS=0` keeps the hook but
+   * ranks the whole prompt as it was written, instead of the sentences of a long prompt that say something (src/session/query-focus.js).
+   * `SIGMAP_PREFETCH_GUARD=0` ranks a prompt even when less than 90% of its letters are ASCII, which the guard otherwise leaves alone.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const { spawnSync } = require('child_process');
+  const { focusQuery } = __require('./src/session/query-focus');
+
+  const EVENT = 'UserPromptSubmit';
+  const MIN_WORDS = 4;
+  const READABLE_MIN = 0.9;
+  const MAX_QUERY_CHARS = 2000;
+  const MAX_BYTES = 8 * 1024;
+  const TIMEOUT_MS = 8000;
+  const STATE_FILE = 'prefetch-state.json';
+  const STATE_KEEP = 20;
+  const STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+  /**
+   * What the block says above the ranking. It is not an instruction to do anything extra: the agent study found that "ask SigMap
+   * first, then confirm" becomes a step added to the agent's own search. This only says what the list is and how far to trust it.
+   * (scripts/lib/agent-ab.mjs holds the same text for the benchmark; a test keeps the two equal.)
+   */
+  const HEADER = [
+    '## Files SigMap ranked for this question',
+    'Before you started, SigMap ranked this repository\'s files against the question from its offline index (no model call). These are leads, not an answer: the right file is often but not always among them. Each signature carries a `:start-end` line anchor you can Read directly. If none fits, search as you normally would.',
+  ].join('\n');
+
+  /**
+   * The share of a query's letters that are ASCII: what the ranker can read. Its tokenizer splits on anything that is not A-Z, a-z or 0-9, so
+   * the words of a Chinese, Russian or Greek prompt never reach the ranking and only the identifiers inside it do. A query with no letters
+   * counts as fully readable.
+   */
+  function readableShare(text) {
+    const letters = String(text).match(/\p{L}/gu) || [];
+    if (letters.length === 0) return 1;
+    return letters.filter((c) => /[A-Za-z]/.test(c)).length / letters.length;
+  }
+
+  /**
+   * Whether a prompt is worth a ranking, and what to rank.
+   *
+   * A prompt of more than a couple of dozen words is focused first (src/session/query-focus.js): the sentences that are only conversation,
+   * instructions about the answer, or pasted tool output are left out of the query. A short prompt is ranked exactly as it was written.
+   *
+   * @param {*} prompt
+   * @param {{ focus?: boolean, guard?: boolean }} [opts] `focus: false` ranks the whole prompt; `guard: false` ranks it even when the ranker cannot read most of it
+   * @returns {{ ok: boolean, reason: string|null, query?: string, focused?: boolean, readable?: number }}
+   */
+  function screen(prompt, opts) {
+    if (typeof prompt !== 'string') return { ok: false, reason: 'no prompt' };
+    const text = prompt.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim();
+    if (!text) return { ok: false, reason: 'empty prompt' };
+    if (/^[/!#]/.test(text)) return { ok: false, reason: 'a slash command, shell escape or note' };
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < MIN_WORDS) return { ok: false, reason: `fewer than ${MIN_WORDS} words` };
+    const f = opts && opts.focus === false ? { query: text, focused: false } : focusQuery(text);
+    // One line, bounded; a leading dash would be read by `ask` as a flag.
+    let query = f.query.replace(/\s+/g, ' ');
+    if (query.length > MAX_QUERY_CHARS) query = query.slice(0, MAX_QUERY_CHARS).replace(/\s+\S*$/, '');
+    query = query.replace(/^[-\s]+/, '');
+    if (!query) return { ok: false, reason: 'empty prompt' };
+    // The confidence guard. Over 222 held-out questions the ranking was wrong for 18 of the 22 whose query was less than 90% ASCII letters, and the
+    // agent that trusted it found the file less often than one with no hook: a ranking built from a few identifiers in a prompt written in
+    // another script is a guess, so nothing is injected and the agent works as it would without the hook.
+    const readable = readableShare(query);
+    if (!(opts && opts.guard === false) && readable < READABLE_MIN) {
+      return { ok: false, reason: `mostly text the ranker cannot read (${Math.round(100 * readable)}% of the letters are ASCII)`, query, focused: f.focused, readable };
+    }
+    return { ok: true, reason: null, query, focused: f.focused, readable };
+  }
+
+  /** The file paths of the ranking `sigmap ask` prints: `1  path/to/file.js   8.290  299 tok`. */
+  function rankedFiles(ranking) {
+    const out = [];
+    for (const line of String(ranking).split('\n')) {
+      const m = /^\s*\d+\s+(\S+)\s+-?[\d.]+\s+\d+\s*tok\b/.exec(line);
+      if (m) out.push(m[1]);
+    }
+    return out;
+  }
+
+  /** header + ranking + signature sections, capped: whole file sections, best-ranked first, and a note saying so. */
+  function compose(ranking, body, maxBytes = MAX_BYTES) {
+    const head = `${HEADER}\n\n${ranking}\n`;
+    const room = maxBytes - Buffer.byteLength(head) - 2;
+    let text = body;
+    if (Buffer.byteLength(text) > room) {
+      const sections = text.split(/\n(?=## )/);
+      let kept = '';
+      for (const s of sections) {
+        if (Buffer.byteLength(kept) + Buffer.byteLength(s) + 1 > room - 60) break;
+        kept += (kept ? '\n' : '') + s;
+      }
+      text = `${kept}\n\n(signatures of the lower-ranked files left out to keep this short)`.trim();
+    }
+    return text ? `${head}\n${text}\n` : head;
+  }
+
+  function _readState(file) {
+    try {
+      const s = JSON.parse(fs.readFileSync(file, 'utf8'));
+      return s && typeof s === 'object' && s.sessions && typeof s.sessions === 'object' ? s : { sessions: {} };
+    } catch (_) { return { sessions: {} }; }
+  }
+
+  function _writeState(file, state, now) {
+    try {
+      const entries = Object.entries(state.sessions)
+        .filter(([, v]) => v && now - (v.at || 0) < STATE_MAX_AGE_MS)
+        .sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, STATE_KEEP);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      const tmp = `${file}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify({ sessions: Object.fromEntries(entries) }), 'utf8');
+      fs.renameSync(tmp, file);
+    } catch (_) { /* a state file that cannot be written only means a repeat may be injected */ }
+  }
+
+  /**
+   * Build the hook's output for one prompt.
+   *
+   * @param {object} payload the UserPromptSubmit payload (`prompt`, `session_id`)
+   * @param {string} cwd the project root
+   * @param {{ script?: string, env?: object, now?: number, maxBytes?: number, timeoutMs?: number }} [opts]
+   *   `script` is the SigMap entry to run `ask` with (default: the one running now)
+   * @returns {{ stdout: string|null, skipped: string|null, files: string[], bytes: number, query?: string, focused?: boolean }}
+   */
+  function prefetch(payload, cwd, opts = {}) {
+    const none = (skipped) => ({ stdout: null, skipped, files: [], bytes: 0 });
+    try {
+      const env = opts.env || process.env;
+      if (String(env.SIGMAP_PREFETCH).trim() === '0') return none('SIGMAP_PREFETCH=0');
+      const s = screen(payload && payload.prompt, { focus: String(env.SIGMAP_PREFETCH_FOCUS).trim() !== '0', guard: String(env.SIGMAP_PREFETCH_GUARD).trim() !== '0' });
+      if (!s.ok) return none(s.reason);
+      const indexFile = __require('./src/retrieval/sig-index-store').indexPath(cwd);
+      if (!fs.existsSync(indexFile)) return none('no index (run sigmap first)');
+
+      const script = opts.script || process.argv[1];
+      if (!script) return none('no sigmap entry to run');
+      const outFile = path.join(cwd, '.context', 'query-context.md');
+      fs.rmSync(outFile, { force: true }); // never read a file an earlier prompt left behind
+      const r = spawnSync(process.execPath, [script, 'ask', s.query], {
+        cwd, encoding: 'utf8', timeout: opts.timeoutMs || TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024,
+        env: { ...env, SIGMAP_NO_UPDATE_CHECK: '1', NO_COLOR: '1' },
+      });
+      if (r.error || r.status !== 0) return none('ask failed');
+      const ranking = String(r.stdout || '').trim();
+      const files = rankedFiles(ranking);
+      if (!ranking || files.length === 0) return none('nothing ranked');
+
+      // The same files as the last block injected in this session: it is already in the conversation.
+      const now = opts.now || Date.now();
+      const sid = payload && typeof payload.session_id === 'string' ? payload.session_id : '';
+      const sig = crypto.createHash('sha1').update(files.join('\n')).digest('hex');
+      const stateFile = path.join(cwd, '.context', STATE_FILE);
+      const state = sid ? _readState(stateFile) : { sessions: {} };
+      if (sid && state.sessions[sid] && state.sessions[sid].sig === sig) return { ...none('same files as the last prompt'), files };
+
+      let body = '';
+      try { body = fs.readFileSync(outFile, 'utf8').replace(/^# SigMap Query Context\n(?:Generated: .*\n)?/, '').trim(); } catch (_) { body = ''; }
+      const block = compose(ranking, body, opts.maxBytes || MAX_BYTES);
+      if (sid) { state.sessions[sid] = { sig, at: now }; _writeState(stateFile, state, now); }
+      return {
+        stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: EVENT, additionalContext: block } }),
+        skipped: null, files, bytes: Buffer.byteLength(block), query: s.query, focused: s.focused,
+      };
+    } catch (e) {
+      return none(`error: ${e && e.message ? e.message : e}`);
+    }
+  }
+
+  module.exports = { EVENT, HEADER, MIN_WORDS, READABLE_MIN, MAX_BYTES, TIMEOUT_MS, screen, readableShare, rankedFiles, compose, prefetch };
+  
+};
+
+// ── ./src/session/query-focus ──
+__factories["./src/session/query-focus"] = function(module, exports) {
+  
+  /**
+   * Query focus for the prefetch hook (src/session/prefetch.js).
+   *
+   * The hook ranks the repository's files against the prompt it is handed, and a BM25 ranking over a whole prompt is only as good as the
+   * prompt is focused. A question wrapped in greetings, instructions about the answer, background and pasted output ranks worse than the
+   * question alone: in the agent study the expected file was in the top five for 47 of 87 questions when the question sat inside about
+   * fifty words of instructions, against 61 of 87 for the bare question (docs-vp/guide/agent-study-protocol.md, "The hook ranked the
+   * whole prompt").
+   *
+   * This keeps the sentences of a long prompt that say something and drops the ones that are only conversation. It is lexical and fixed:
+   *
+   *   - a prompt of MIN_WORDS words or fewer is returned exactly as it is, so a plain question is ranked as it always was;
+   *   - fenced code blocks, and lines that look like pasted tool output (a shell prompt, a traceback frame, a dated log line, a test
+   *     runner's PASS/FAIL), are dropped;
+   *   - the rest is split into sentences (at . ? ! followed by a space, and at newlines, but NOT at a colon: `goproxmox: make ...` and
+   *     `Task: ...` are labels that belong to the sentence), and a sentence is kept when at least MIN_CONTENT of its words, and at least TAU
+   *     of all its words, are neither function words nor conversation/instruction words, or when it contains something that looks like an
+   *     identifier (camelCase, snake_case, a dotted or slashed path, a backticked span);
+   *   - if that leaves nothing, the prompt is used as it is.
+   *
+   * What it cannot do, measured: a sentence made of ordinary software words ("keep the public API unchanged", "add tests for any new
+   * behaviour") is not told from a question, a pasted traceback loses its frames, and chatter in ordinary words ("I've been going back
+   * and forth on it all week") is kept. Offline over 222 held-out questions in thirteen kinds of wrapper (benchmarks/agent-study/
+   * query-focus-eval.mjs, result in data/query-focus-eval.txt) the expected file was in the top five for 59% of the raw wrapped prompts,
+   * 66% after this, and 72% for the bare question; first for 28%, 36% and 45%. Bare questions come back unchanged. In an agent with the
+   * benchmark's wrapped prompt the hook's real cost against its own baseline was -3% [-6, 0] with this and +3% [0, +6] without it on eight
+   * repositories, and -7% [-10, -5] and 0% [-3, +2] on twelve others, where the file was also found in 14 fewer runs of 540 than without the hook
+   * (the guard in prefetch.js, which withholds the injection for a prompt the ranker cannot read, halves that).
+   *
+   * Zero dependencies. Pure: the same prompt gives the same query.
+   */
+
+  const MIN_WORDS = 24;
+  const TAU = 0.5;
+  const MIN_CONTENT = 2;
+  const MAX_WORDS = 80;
+  const LEAD_IN_WORDS = 8;
+  const MAX_INPUT = 40000; // chars read: the head and the tail of anything longer, so a pasted megabyte costs nothing
+
+  const FUNCTION_WORDS = new Set((
+    'a an the and or but if so as of to in on at by for from with without about into onto over under than then there here this that these those '
+    + 'is are was were be been being am do does did done have has had having not no yes can could would should will shall may might must '
+    + 'i me my mine we us our ours you your yours it its they them their he she him her who whom whose which what when where why how '
+    + 'any some each every all both either neither more most less least many much one two per out up down off again also too very just only own same such other another'
+  ).split(' '));
+
+  /** Conversation and instruction vocabulary: words that say how to answer or who is asking, not what the code is about. */
+  const META_WORDS = new Set((
+    'hi hello hey thanks thank please sorry ok okay well really honestly basically actually anyway '
+    + 'help helping helped try trying tried want wanted need needed like looking look figure understand explain tell show give name mention respond answer answering reply provide include know wondering wonder think guess '
+    + 'concise brief short detailed bullet bullets points sentence sentences paragraph line lines backticks format exhaustive '
+    + 'ensure make sure keep follow avoid remember note consider '
+    + 'thing things stuff something anything everything someone anyone '
+    + 'today yesterday earlier now while lately recently quarter week weekly '
+    + 'new team joined getting familiar pointers great lot bit lost together '
+    + 'context background question questions task tasks follow-up first relevant'
+  ).split(' '));
+
+  const PASTED_LINE = /^\s*(\$ |#!\s|at [\w.$<>]+ ?\(|File "|Traceback|\d{4}-\d\d-\d\d|\[\d|[A-Z][a-z]+Error:|PASS |FAIL |Tests?:|Time:)/;
+  const IDENTIFIER = /[A-Za-z]+[A-Z][a-z]|[a-z]+_[a-z]+|\w+\.\w+|\w+\/\w+|`[^`]+`/;
+
+  const wordCount = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+
+  function bounded(text) {
+    if (text.length <= MAX_INPUT) return text;
+    const half = MAX_INPUT / 2;
+    return `${text.slice(0, half)}\n${text.slice(-half)}`;
+  }
+
+  function sentences(text) {
+    return text.split(/(?<=[.?!])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  /**
+   * A sentence led by a short label ("Task: ...", "What I'm trying to do: ...", "One question about the code: ...") is judged on what follows
+   * the label, so a chatty lead-in cannot dilute a question that follows it. The sentence is kept whole.
+   */
+  function leadInSplit(sentence) {
+    const m = /^([^:]{1,60}):\s+(\S[\s\S]*)$/.exec(sentence);
+    return m && wordCount(m[1]) <= LEAD_IN_WORDS ? m[2] : sentence;
+  }
+
+  function carriesContent(sentence) {
+    if (IDENTIFIER.test(sentence)) return true;
+    const all = leadInSplit(sentence).toLowerCase().match(/[a-z][a-z0-9_]*/g) || [];
+    const content = all.filter((w) => w.length > 1 && !FUNCTION_WORDS.has(w) && !META_WORDS.has(w));
+    return content.length >= MIN_CONTENT && content.length / Math.max(1, all.length) >= TAU;
+  }
+
+  /**
+   * @param {string} prompt the submitted prompt, newlines intact
+   * @returns {{ query: string, focused: boolean }} `focused` is true when sentences were dropped
+   */
+  function focusQuery(prompt) {
+    const text = typeof prompt === 'string' ? prompt : '';
+    if (wordCount(text) <= MIN_WORDS) return { query: text, focused: false };
+
+    const body = bounded(text)
+      .replace(/```[\s\S]*?```/g, ' ')
+      .split('\n')
+      .filter((line) => !PASTED_LINE.test(line))
+      .join('\n');
+
+    const all = sentences(body);
+    const kept = all.filter(carriesContent);
+    if (kept.length === 0 || kept.length === all.length && body.length === text.length) {
+      return { query: text, focused: false };
+    }
+    const words = kept.join(' ').split(/\s+/).slice(0, MAX_WORDS);
+    return { query: words.join(' '), focused: true };
+  }
+
+  module.exports = { focusQuery, MIN_WORDS, TAU, MIN_CONTENT, MAX_WORDS, MAX_INPUT, FUNCTION_WORDS, META_WORDS };
   
 };
 
@@ -40007,6 +41148,63 @@ __factories["./src/util/truncate"] = function(module, exports) {
   
 };
 
+// ── ./src/util/vendored-dir ──
+__factories["./src/util/vendored-dir"] = function(module, exports) {
+  
+  /**
+   * vendored-dir.js — directories that are never the project's own source, whatever `exclude` says.
+   *
+   * `exclude` is a list of NAMES, and a config file that sets it replaces the default list. So a project
+   * whose `gen-context.config.json` was copied from the example (which names `node_modules`, `dist`, ...
+   * but no Python environment) indexed every package installed in a virtualenv below its source root,
+   * so the generated context file and the retrieval index filled with third-party library signatures
+   * from `<dir>/.venv/lib/python3.x/site-packages`, a directory git ignores. A name list cannot fix
+   * that either, because an environment can be called anything (`.venv`, `venv`, `env`,
+   * `.direnv/python-3.11`).
+   *
+   * Two rules that need no name and no configuration:
+   *   - a directory that holds `pyvenv.cfg` IS a Python virtual environment (PEP 405 defines it by that
+   *     file), and one that holds `conda-meta/` is a conda environment. Neither is ever project source.
+   *   - a directory NAMED for installed third-party packages or a tool's cache is never source either.
+   *     The list is kept to names that mean one thing only; `vendor`, `venv`, `env` and `build` are not
+   *     on it, because projects do keep their own code under those names. They stay in `exclude`.
+   *
+   * Both are read from a listing the walker already has, so the check costs no filesystem call.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const VENDORED_NAMES = new Set([
+    'node_modules', 'bower_components', 'jspm_packages',          // installed JS packages
+    'site-packages', 'dist-packages',                             // installed Python packages
+    '__pycache__', '.tox', '.nox', '.mypy_cache', '.pytest_cache', '.ruff_cache', // Python tool output
+  ]);
+
+  /** True for a directory name that only ever holds installed packages or tool caches. */
+  function isVendoredName(name) {
+    return VENDORED_NAMES.has(String(name));
+  }
+
+  /**
+   * True when a directory's own listing marks it as a Python environment root: it holds a `pyvenv.cfg`
+   * file (venv / virtualenv) or a `conda-meta` directory (conda).
+   *
+   * @param {Array<{name:string, isFile:Function, isDirectory:Function}>} entries - the directory's entries
+   */
+  function isEnvironmentRoot(entries) {
+    if (!Array.isArray(entries)) return false;
+    for (const e of entries) {
+      if (!e || typeof e.name !== 'string') continue;
+      if (e.name === 'pyvenv.cfg' && typeof e.isFile === 'function' && e.isFile()) return true;
+      if (e.name === 'conda-meta' && typeof e.isDirectory === 'function' && e.isDirectory()) return true;
+    }
+    return false;
+  }
+
+  module.exports = { isVendoredName, isEnvironmentRoot, VENDORED_NAMES };
+  
+};
+
 // ── ./src/verify/arity ──
 __factories["./src/verify/arity"] = function(module, exports) {
   
@@ -43205,7 +44403,7 @@ function writeAll(fd, text) {
   }
 }
 
-const VERSION = '8.85.1';
+const VERSION = '8.88.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();
@@ -43271,9 +44469,13 @@ function walkDir(dir, exclude, maxDepth, depth = 0) {
   // Sort by name so the collected file list — and therefore the output section
   // order — is deterministic. Raw readdir order is filesystem-dependent and can
   // vary run to run, making the generated context non-byte-stable.
+  // A Python environment (it holds pyvenv.cfg or conda-meta/) and a directory of installed packages are never
+  // the project's source, whatever `exclude` lists and whatever the directory is called (src/util/vendored-dir.js).
+  const vendored = requireSourceOrBundled('./src/util/vendored-dir');
+  if (vendored.isEnvironmentRoot(entries)) return [];
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
-    if (exclude.includes(entry.name)) continue;
+    if (exclude.includes(entry.name) || vendored.isVendoredName(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results = results.concat(walkDir(full, exclude, maxDepth, depth + 1));
@@ -44467,8 +45669,8 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
 
   const impactMap = resolveImpactRadius(fileEntries, cwd, config || {});
 
-  // Group by top-level src dir
-  const groups = {};
+  // Group by top-level src dir. No prototype: a directory called `constructor`, `toString` or `hasOwnProperty` is a key like any other.
+  const groups = Object.create(null);
   for (const entry of fileEntries) {
     const rel = path.relative(cwd, entry.filePath);
     const parts = rel.split(path.sep);
@@ -45301,10 +46503,13 @@ function writeInitConfig(cwd) {
       fs.copyFileSync(example, dest);
     } else {
       // No example beside the script (a lone copy of the bundle, or the standalone binary):
-      // the defaults, with the one choice the example makes — a new install starts on the
-      // lean MCP profile (#966) — so `--init` means the same thing wherever it runs.
+      // the defaults, with the two choices the example makes — a new install starts on the
+      // `index` strategy and the two-tool `locate` MCP profile (#1071, Candidate A) — so
+      // `--init` means the same thing wherever it runs. DEFAULTS themselves are unchanged:
+      // a project with no config keeps `full` and every tool.
       const fresh = JSON.parse(JSON.stringify(DEFAULTS));
-      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'core' });
+      fresh.strategy = 'index';
+      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'locate' });
       fs.writeFileSync(dest, JSON.stringify(fresh, null, 2) + '\n');
     }
     console.warn('[sigmap] wrote gen-context.config.json');
@@ -45821,6 +47026,20 @@ function noteUnreadExporter(list, filePath, content, cwd) {
 }
 
 /**
+ * Remember a source file that yielded no signature, so the retrieval index can rank it on its path (Stage H of the agent
+ * study; the rule is src/retrieval/bare-files.js). The index records it in a `bare` list and the context file is not touched.
+ */
+function noteBareSource(list, filePath, content, cwd) {
+  const bare = requireSourceOrBundled('./src/retrieval/bare-files');
+  const rel = path.relative(cwd, filePath).split(path.sep).join('/');
+  if (!bare.isBareLanguage(rel)) return;
+  let text = content;
+  // A file served from the extraction cache is not read; this one produced nothing, so read it now.
+  if (!text) { try { text = fs.readFileSync(filePath, 'utf8'); } catch (_) { return; } }
+  if (bare.isBareCandidate(rel, text)) list.push(rel);
+}
+
+/**
  * The same file as the retrieval index stores it: a leading module-doc line and,
  * with `terse`, the compact encoding (src/cache/entry.js).
  *
@@ -45939,6 +47158,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
   let inputTokenTotal = 0;
   let fileEntries = [];
   const unreadExporters = []; // files that declare exports and yielded no signature (#996)
+  const bareSources = []; // source files that yielded no signature, indexed by path alone (agent-study Stage H)
   let testIndex = null;
   if (config.testCoverage) {
     try {
@@ -46053,7 +47273,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     } else {
       sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
-    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); continue; }
+    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); noteBareSource(bareSources, filePath, content, cwd); continue; }
 
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
@@ -46191,7 +47411,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       try {
         __entries = __entries.concat(collectPipelineEntries(cwd, config, __entries));
       } catch (_) { /* best-effort */ }
-      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0 });
+      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0, bare: bareSources });
       __indexWritten = __w.files > 0;
       if (__indexWritten) {
         // The same test writeFullIndex applies to an entry, over the source files only.
@@ -47206,7 +48426,7 @@ function main() {
     let intent = detectIntent(query);
     let intentWeights = getIntentWeights(intent);
 
-    const sigIndex = buildSigIndex(cwd);
+    const sigIndex = buildSigIndex(cwd, { bare: true });
     if (sigIndex.size === 0) {
       console.error('[sigmap] no context file found. Run: sigmap  (to generate first)');
       process.exit(1);
@@ -48500,7 +49720,7 @@ function main() {
       if (q && !q.startsWith('--')) {
         try {
           const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-          const valIndex = buildSigIndex(cwd);
+          const valIndex = buildSigIndex(cwd, { bare: true });
           // the words `ask` ranks with, so `validate` and `ask` cannot disagree about a query
           const valWords = requireSourceOrBundled('./src/retrieval/body-words').forRepo(cwd, valIndex, config);
           const ranked = rank(q, valIndex, { topK: 5, cwd, bodyWords: valWords });
@@ -48974,6 +50194,46 @@ function main() {
     process.exit(0);
   }
 
+  // `sigmap advise [--since <date|90d|6m|1y>] [--max <n>] [--no-grep] [--emit-root <dir>] [--json]` — offline facts for choosing how an
+  // agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file a recent change
+  // touched (vs a single-shot grep), whether the hook would fire. Read-only; it makes no call and prints no forecast,
+  // because those numbers did not predict the saving in the agent study (Stage I).
+  if (args[0] === 'advise') {
+    const { buildAdvice, formatAdvice } = requireSourceOrBundled('./src/advise/advise');
+    const flag = (name) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : undefined; };
+    const maxArg = flag('--max');
+    const emitDir = flag('--emit-root');
+    if (args.includes('--emit-root') && !emitDir) {
+      console.error('[sigmap] advise: --emit-root takes a directory');
+      process.exit(2);
+    }
+    if (maxArg !== undefined && !(Number.isInteger(Number(maxArg)) && Number(maxArg) > 0)) {
+      console.error('[sigmap] advise: --max takes a positive whole number');
+      process.exit(2);
+    }
+    let advice;
+    try {
+      advice = buildAdvice(cwd, { since: flag('--since'), max: maxArg === undefined ? undefined : Number(maxArg), noGrep: args.includes('--no-grep') });
+    } catch (err) {
+      console.error(`[sigmap] advise failed: ${err.message}`);
+      process.exit(1);
+    }
+    if (emitDir) {
+      try {
+        advice.emitted = requireSourceOrBundled('./src/advise/emit').emitRoot(cwd, emitDir, advice.questions.list || []);
+      } catch (err) {
+        console.error(`[sigmap] advise --emit-root: ${err.message}`);
+        process.exit(1);
+      }
+    }
+    if (args.includes('--json')) {
+      writeAll(1, JSON.stringify(advice) + '\n');
+    } else {
+      console.log(formatAdvice(advice));
+    }
+    process.exit(0);
+  }
+
   // `sigmap skills list|install [--client <name>|--all] [--json]` — install the
   // agent playbooks (usage-maximizer, config-optimizer) in each client's native
   // skill/rules format. Plain `install` touches only clients whose parent
@@ -49370,20 +50630,22 @@ function main() {
       const st = hi.inspectClaudeHooks(cwd);
       if (jsonOut) { writeAll(1, JSON.stringify(st) + '\n'); process.exit(0); }
       console.log(st.wired ? '[sigmap] Claude Code session hooks: wired' : '[sigmap] Claude Code session hooks: not wired (install: sigmap hooks install claude)');
+      console.log(st.prefetch ? '[sigmap] Claude Code prefetch hook (ranking before each prompt): wired' : '[sigmap] Claude Code prefetch hook (ranking before each prompt): not wired (install: sigmap hooks install claude --prefetch)');
       for (const f of st.files) console.log(`  ${rel(f.path)}  ${f.error ? 'unreadable: ' + f.error : f.events.join(', ')}`);
       for (const s of st.missingScript) console.log(`  ⚠ a hook runs ${s}, which no longer exists — re-run: sigmap hooks install claude`);
       process.exit(0);
     }
     if ((sub === 'install' || sub === 'remove') && args[2] === 'claude') {
       if (sub === 'remove') {
-        const res = hi.removeClaudeHooks(cwd);
+        // `--prefetch` removes only the prefetch hook and leaves session capture wired.
+        const res = hi.removeClaudeHooks(cwd, args.includes('--prefetch') ? { events: ['UserPromptSubmit'] } : {});
         if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
         if (jsonOut) writeAll(1, JSON.stringify(res) + '\n');
-        else if (res.files.length === 0) console.log('[sigmap] no SigMap session hooks to remove');
+        else if (res.files.length === 0) console.log(args.includes('--prefetch') ? '[sigmap] no SigMap prefetch hook to remove' : '[sigmap] no SigMap session hooks to remove');
         else for (const f of res.files) console.log(`[sigmap] removed ${f.removed} hook(s) from ${rel(f.path)}`);
         process.exit(0);
       }
-      const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), shared: args.includes('--shared') });
+      const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), prefetch: args.includes('--prefetch'), shared: args.includes('--shared') });
       if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
       if (jsonOut) { writeAll(1, JSON.stringify(res) + '\n'); process.exit(0); }
       console.log(`[sigmap] Claude Code hooks → ${rel(res.path)}`);
@@ -49391,10 +50653,11 @@ function main() {
       if (/[\\/]_npx[\\/]/.test(path.resolve(scriptPath))) {
         console.warn('[sigmap] ⚠ this ran from an npx cache, which is temporary — the hooks would point at a path that disappears. Install sigmap (global or devDependency) and re-run.');
       }
+      if (args.includes('--prefetch')) console.log('  Prefetch: each substantive prompt gets SigMap\'s ranking of the repository\'s files as extra context (not slash commands, not prompts under four words, not a repeat of the last block). It needs an index (run sigmap first). Turn it off with SIGMAP_PREFETCH=0 or: sigmap hooks remove claude --prefetch');
       console.log('  Restart Claude Code sessions to load them. Each hook exits 0 whatever happens.');
       process.exit(0);
     }
-    console.error('[sigmap] usage: sigmap hooks install claude [--stop] [--shared] | hooks status | hooks remove claude');
+    console.error('[sigmap] usage: sigmap hooks install claude [--stop] [--prefetch] [--shared] | hooks status | hooks remove claude [--prefetch]');
     process.exit(1);
   }
 
@@ -50373,24 +51636,32 @@ function main() {
       // A file that declares exports and still extracts as nothing is an extractor gap, not a
       // configuration problem: say what was there instead of advice that cannot apply (#996).
       let seen = [];
-      try { seen = exportLinesOf(fs.readFileSync(absPath, 'utf8')); } catch (_) { /* unreadable: the generic answer */ }
+      let pathOnly = false; // the retrieval index ranks such a file on its path (src/retrieval/bare-files.js)
+      try {
+        const text = fs.readFileSync(absPath, 'utf8');
+        seen = exportLinesOf(text);
+        pathOnly = requireSourceOrBundled('./src/retrieval/bare-files').isBareCandidate(rel, text);
+      } catch (_) { /* unreadable: the generic answer */ }
+      const pathNote = 'ranked by its path only: it lists no signatures, so `sigmap ask` can return it for a question that names it but shows nothing of its contents';
       if (seen.length > 0) {
         const fix = 'no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path';
         if (jsonOut) {
-          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), fix }) + '\n');
+          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), pathOnly, fix }) + '\n');
         } else {
           console.log(`[sigmap] ${rel} — EXCLUDED`);
           console.log(`  Reason: no extractable signatures (extractor: ${extractorName}) — ${seen.length} export line${seen.length === 1 ? '' : 's'}, none of a shape it reads`);
           for (const l of seen.slice(0, 3)) console.log(`  Saw:    ${l.length > 110 ? l.slice(0, 107) + '...' : l}`);
+          if (pathOnly) console.log(`  Index:  ${pathNote}`);
           console.log(`  Fix:    ${fix}`);
         }
         process.exit(0);
       }
       if (jsonOut) {
-        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, pathOnly, fix: 'check that the file contains function/class definitions' }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — EXCLUDED`);
         console.log(`  Reason: no extractable signatures (extractor: ${extractorName})`);
+        if (pathOnly) console.log(`  Index:  ${pathNote}`);
         console.log(`  Fix:    check that the file contains function/class definitions`);
       }
       process.exit(0);
@@ -50775,7 +52046,7 @@ function main() {
         }
       }
 
-      const index = buildSigIndex(cwd, queryOpts);
+      const index = buildSigIndex(cwd, Object.assign({ bare: true }, queryOpts));
       if (index.size === 0) {
         console.error('[sigmap] no context file found. Run: node gen-context.js');
         if (adpIdx >= 0) {

@@ -60,6 +60,8 @@ export default defineConfig({
           { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
           { text: 'Task benchmark', link: '/guide/task-benchmark' },
           { text: 'Generalization', link: '/guide/generalization' },
+          { text: 'Agent study: results', link: '/guide/agent-study' },
+          { text: 'Agent study: protocol', link: '/guide/agent-study-protocol' },
         ],
       },
       {
@@ -87,6 +89,7 @@ export default defineConfig({
         text: 'Guides',
         items: [
           { text: 'When to use what', link: '/guide/when-to-use' },
+          { text: 'Choosing a setup', link: '/guide/choosing-a-setup' },
           { text: 'End-to-end walkthrough', link: '/guide/walkthrough' },
           { text: 'Compare alternatives', link: '/guide/compare-alternatives' },
           { text: 'Measure AI credits', link: '/guide/measure-ai-credits' },

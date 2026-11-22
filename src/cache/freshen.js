@@ -27,6 +27,7 @@ const { entryConfig, entryParts } = require('./entry');
 const { langFor } = require('../extractors/dispatch');
 const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
 const { resolveGraphDirs } = require('../graph/src-dirs');
+const { isVendoredName, isEnvironmentRoot } = require('../util/vendored-dir');
 
 const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
 const DEFAULT_EXCLUDE = [
@@ -63,8 +64,9 @@ function _walk(dir, exclude, out, depth, maxDepth) {
   if (depth > maxDepth) return;
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+  if (isEnvironmentRoot(entries)) return; // a virtualenv: the generator never indexed it
   for (const e of entries) {
-    if (exclude.has(e.name)) continue;
+    if (exclude.has(e.name) || isVendoredName(e.name)) continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) _walk(full, exclude, out, depth + 1, maxDepth);
     else if (e.isFile() && langFor(e.name)) out.push(full);

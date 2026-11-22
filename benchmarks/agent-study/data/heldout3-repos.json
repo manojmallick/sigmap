@@ -1,0 +1,117 @@
+{
+  "_comment": "held-out questions: merged changes since 2026-07-01 in repositories SigMap was not tuned on (scripts/build-heldout-set.mjs)",
+  "repos": [
+    {
+      "name": "bucketeer-io__bucketeer",
+      "url": "https://github.com/bucketeer-io/bucketeer.git",
+      "commit": "16e3d1b61202ed19288c99b0ed11dd2a98d91483",
+      "language": "go",
+      "layout": "heldout"
+    },
+    {
+      "name": "iota-uz__iota-sdk",
+      "url": "https://github.com/iota-uz/iota-sdk.git",
+      "commit": "69835763479cb1494308640cf2f87aece9cc3671",
+      "language": "go",
+      "layout": "heldout"
+    },
+    {
+      "name": "pentaho__pentaho-platform",
+      "url": "https://github.com/pentaho/pentaho-platform.git",
+      "commit": "3f8caf730537a8c00ddf5ef53a77e9614829f963",
+      "language": "java",
+      "layout": "heldout"
+    },
+    {
+      "name": "citrusframework__citrus",
+      "url": "https://github.com/citrusframework/citrus.git",
+      "commit": "137d02de8f815129eedb96e400434ade319b19fb",
+      "language": "java",
+      "layout": "heldout"
+    },
+    {
+      "name": "cortex-js__compute-engine",
+      "url": "https://github.com/cortex-js/compute-engine.git",
+      "commit": "1044ec18c9ad488c3864919c5505f8401e538255",
+      "language": "typescript",
+      "layout": "heldout"
+    },
+    {
+      "name": "instructure__instructure-ui",
+      "url": "https://github.com/instructure/instructure-ui.git",
+      "commit": "9c5d56eadc27abd333d475ffdb40494f6c46ec40",
+      "language": "typescript",
+      "layout": "heldout"
+    },
+    {
+      "name": "fluree__db",
+      "url": "https://github.com/fluree/db.git",
+      "commit": "b5aee2c0f06b8c8d914e0bf0cc0c87829fe2eeea",
+      "language": "rust",
+      "layout": "heldout"
+    },
+    {
+      "name": "open-telemetry__otel-arrow",
+      "url": "https://github.com/open-telemetry/otel-arrow.git",
+      "commit": "137d2cfe23bd2ed18cd7b8a910b3554502a8ead8",
+      "language": "rust",
+      "layout": "heldout"
+    },
+    {
+      "name": "LANCommander__LANCommander",
+      "url": "https://github.com/LANCommander/LANCommander.git",
+      "commit": "e41d80f990bb7afef511f4ac011135312e37b294",
+      "language": "csharp",
+      "layout": "heldout"
+    },
+    {
+      "name": "AAEmu__AAEmu",
+      "url": "https://github.com/AAEmu/AAEmu.git",
+      "commit": "4cb1119d7879bdeece289f90f08b79d992524c56",
+      "language": "csharp",
+      "layout": "heldout"
+    },
+    {
+      "name": "contao__contao",
+      "url": "https://github.com/contao/contao.git",
+      "commit": "24bd85b3405e9629b382b6b8c3747a516fcabf19",
+      "language": "php",
+      "layout": "heldout"
+    },
+    {
+      "name": "RetroAchievements__RAWeb",
+      "url": "https://github.com/RetroAchievements/RAWeb.git",
+      "commit": "f1a4b1768d340591f8c371747e7d9036c51ff5bb",
+      "language": "php",
+      "layout": "heldout"
+    },
+    {
+      "name": "hitobito__hitobito",
+      "url": "https://github.com/hitobito/hitobito.git",
+      "commit": "8ead977bfb4d0d78590cc5d93ef9d65db1d2c48b",
+      "language": "ruby",
+      "layout": "heldout"
+    },
+    {
+      "name": "openai__openai-ruby",
+      "url": "https://github.com/openai/openai-ruby.git",
+      "commit": "681e6a990fd7b1714edbc007d9f7103be6fc7027",
+      "language": "ruby",
+      "layout": "heldout"
+    },
+    {
+      "name": "fluffos__fluffos",
+      "url": "https://github.com/fluffos/fluffos.git",
+      "commit": "93f1ea843d4e9417eab3dbac89242d91a2229a8b",
+      "language": "cpp",
+      "layout": "heldout"
+    },
+    {
+      "name": "XCSoar__XCSoar",
+      "url": "https://github.com/XCSoar/XCSoar.git",
+      "commit": "3f4ef180d91cade75422181e2a8c73a03d8e6c00",
+      "language": "cpp",
+      "layout": "heldout"
+    }
+  ]
+}

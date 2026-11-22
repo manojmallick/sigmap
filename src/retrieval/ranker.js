@@ -841,6 +841,13 @@ function _enrichSigIndexFromStrategy(cwd, index, opts) {
     }
   } catch (_) { /* absent → budgeted view is still served */ }
 
+  // Source files the extractors read nothing from (src/retrieval/bare-files.js): an entry with no
+  // signatures, so the ranker can match them on their path. Only for a caller that ranks and asks;
+  // before the overlay, so a file that was deleted or has been edited since is handled like any other.
+  if (opts && opts.bare && full && full.bare && full.bare.length > 0) {
+    for (const rel of full.bare) if (!merged.has(rel)) merged.set(rel, []);
+  }
+
   const live = _applyLiveOverlay(cwd, merged, baseMs, more);
   if (!more || more.size === 0) return live;
   const out = new Map();
@@ -893,7 +900,8 @@ function _applyLiveOverlay(cwd, index, baseMs, more) {
  * the tools that list a file's signatures read the default, which is what they always read.
  *
  * @param {string} cwd
- * @param {{ contextPath?: string, full?: boolean }} [opts]
+ * @param {{ contextPath?: string, full?: boolean, bare?: boolean }} [opts] `bare`: also return the
+ *        source files that have no signatures, as entries with an empty list, for a caller that ranks
  * @returns {Map<string, string[]>}
  */
 function buildSigIndex(cwd, opts) {

@@ -1,0 +1,583 @@
+{
+ "no-config": {
+  "config": {
+   "output": ".github/copilot-instructions.md",
+   "outputs": [
+    "copilot"
+   ],
+   "codexMaxBytes": null,
+   "claudeMaxLines": null,
+   "adapters": null,
+   "srcDirs": [
+    "lib",
+    "src"
+   ],
+   "exclude": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    "__pycache__",
+    ".next",
+    "coverage",
+    "target",
+    "vendor",
+    ".context",
+    "playwright-tmp",
+    "playwright-report",
+    "test-results",
+    ".turbo",
+    "storybook-static",
+    ".docusaurus"
+   ],
+   "maxDepth": 6,
+   "maxSigsPerFile": 25,
+   "maxIndexSigsPerFile": 200,
+   "maxTokens": 6000,
+   "autoMaxTokens": true,
+   "coverageTarget": 0.8,
+   "modelContextLimit": 128000,
+   "models": {
+    "asOf": null,
+    "roster": [],
+    "prices": {},
+    "windows": {},
+    "cacheMin": {},
+    "charsPerToken": {},
+    "tiers": {}
+   },
+   "maxTokensHeadroom": 0.2,
+   "secretScan": true,
+   "monorepo": false,
+   "diffPriority": true,
+   "strategy": "full",
+   "hotCommits": 10,
+   "watchDebounce": 300,
+   "watchIncremental": true,
+   "watchSettleMs": 5000,
+   "routing": false,
+   "judge": {
+    "threshold": 0.25,
+    "learnBoostAbove": 0.75,
+    "learnPenalizeBelow": 0.4
+   },
+   "format": "default",
+   "cacheLayout": "stable-prefix",
+   "cacheTtl": "5m",
+   "tracking": false,
+   "sessionBudgetTokens": null,
+   "contextTtlDays": null,
+   "session": {
+    "retention": {
+     "days": 90,
+     "compact": "monthly"
+    },
+    "logQueries": "hashed",
+    "injectSummary": false,
+    "mcpCapture": false
+   },
+   "mcp": {
+    "autoRegister": true,
+    "tools": "all"
+   },
+   "depMap": true,
+   "versionPins": true,
+   "terse": false,
+   "todos": true,
+   "changes": true,
+   "changesCommits": 10,
+   "testCoverage": false,
+   "testDirs": [
+    "tests",
+    "test",
+    "__tests__",
+    "spec"
+   ],
+   "sigCache": false,
+   "extractCache": true,
+   "impactRadius": false,
+   "retrieval": {
+    "topK": 10,
+    "recencyBoost": 1.5,
+    "callGraphBoost": false,
+    "centralityBlend": false,
+    "surfaceEnrichment": false,
+    "minedExpansions": false,
+    "bodyWords": true
+   },
+   "exactness": {
+    "typescript": false,
+    "lsp": false,
+    "lspServers": {},
+    "scip": false
+   },
+   "impact": {
+    "depth": 3,
+    "includeSigs": true
+   },
+   "_userKeys": []
+  },
+  "profile": {
+   "profile": "all",
+   "names": [
+    "create_checkpoint",
+    "explain_file",
+    "get_architecture_overview",
+    "get_budget",
+    "get_callee_signatures",
+    "get_diff_context",
+    "get_impact",
+    "get_lines",
+    "get_map",
+    "get_method_impact",
+    "get_routing",
+    "list_modules",
+    "query_context",
+    "query_knowledge_map",
+    "read_context",
+    "read_memory",
+    "search_signatures",
+    "sigmap_notify_file_created",
+    "sigmap_notify_file_deleted",
+    "sigmap_notify_symbol_added",
+    "squeeze_output",
+    "verify_suggestion"
+   ]
+  }
+ },
+ "minimal": {
+  "config": {
+   "output": ".github/copilot-instructions.md",
+   "outputs": [
+    "copilot"
+   ],
+   "codexMaxBytes": null,
+   "claudeMaxLines": null,
+   "adapters": [
+    "copilot"
+   ],
+   "srcDirs": [
+    "src"
+   ],
+   "exclude": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    "__pycache__",
+    ".next",
+    "coverage",
+    "target",
+    "vendor",
+    ".context",
+    "playwright-tmp",
+    "playwright-report",
+    "test-results",
+    ".turbo",
+    "storybook-static",
+    ".docusaurus"
+   ],
+   "maxDepth": 6,
+   "maxSigsPerFile": 25,
+   "maxIndexSigsPerFile": 200,
+   "maxTokens": 6000,
+   "autoMaxTokens": true,
+   "coverageTarget": 0.8,
+   "modelContextLimit": 128000,
+   "models": {
+    "asOf": null,
+    "roster": [],
+    "prices": {},
+    "windows": {},
+    "cacheMin": {},
+    "charsPerToken": {},
+    "tiers": {}
+   },
+   "maxTokensHeadroom": 0.2,
+   "secretScan": true,
+   "monorepo": false,
+   "diffPriority": true,
+   "strategy": "full",
+   "hotCommits": 10,
+   "watchDebounce": 300,
+   "watchIncremental": true,
+   "watchSettleMs": 5000,
+   "routing": false,
+   "judge": {
+    "threshold": 0.25,
+    "learnBoostAbove": 0.75,
+    "learnPenalizeBelow": 0.4
+   },
+   "format": "default",
+   "cacheLayout": "stable-prefix",
+   "cacheTtl": "5m",
+   "tracking": false,
+   "sessionBudgetTokens": null,
+   "contextTtlDays": null,
+   "session": {
+    "retention": {
+     "days": 90,
+     "compact": "monthly"
+    },
+    "logQueries": "hashed",
+    "injectSummary": false,
+    "mcpCapture": false
+   },
+   "mcp": {
+    "autoRegister": true,
+    "tools": "all"
+   },
+   "depMap": true,
+   "versionPins": true,
+   "terse": false,
+   "todos": true,
+   "changes": true,
+   "changesCommits": 10,
+   "testCoverage": false,
+   "testDirs": [
+    "tests",
+    "test",
+    "__tests__",
+    "spec"
+   ],
+   "sigCache": false,
+   "extractCache": true,
+   "impactRadius": false,
+   "retrieval": {
+    "topK": 10,
+    "recencyBoost": 1.5,
+    "callGraphBoost": false,
+    "centralityBlend": false,
+    "surfaceEnrichment": false,
+    "minedExpansions": false,
+    "bodyWords": true
+   },
+   "exactness": {
+    "typescript": false,
+    "lsp": false,
+    "lspServers": {},
+    "scip": false
+   },
+   "impact": {
+    "depth": 3,
+    "includeSigs": true
+   },
+   "_userKeys": [
+    "srcDirs"
+   ]
+  },
+  "profile": {
+   "profile": "all",
+   "names": [
+    "create_checkpoint",
+    "explain_file",
+    "get_architecture_overview",
+    "get_budget",
+    "get_callee_signatures",
+    "get_diff_context",
+    "get_impact",
+    "get_lines",
+    "get_map",
+    "get_method_impact",
+    "get_routing",
+    "list_modules",
+    "query_context",
+    "query_knowledge_map",
+    "read_context",
+    "read_memory",
+    "search_signatures",
+    "sigmap_notify_file_created",
+    "sigmap_notify_file_deleted",
+    "sigmap_notify_symbol_added",
+    "squeeze_output",
+    "verify_suggestion"
+   ]
+  }
+ },
+ "full-custom": {
+  "config": {
+   "output": ".github/copilot-instructions.md",
+   "outputs": [
+    "claude",
+    "cursor"
+   ],
+   "codexMaxBytes": 16384,
+   "claudeMaxLines": 120,
+   "adapters": [
+    "claude",
+    "cursor"
+   ],
+   "srcDirs": [
+    "src",
+    "lib"
+   ],
+   "exclude": [
+    "vendor",
+    "dist"
+   ],
+   "maxDepth": 6,
+   "maxSigsPerFile": 25,
+   "maxIndexSigsPerFile": 200,
+   "maxTokens": 4000,
+   "autoMaxTokens": true,
+   "coverageTarget": 0.8,
+   "modelContextLimit": 128000,
+   "models": {
+    "asOf": null,
+    "roster": [],
+    "prices": {},
+    "windows": {},
+    "cacheMin": {},
+    "charsPerToken": {},
+    "tiers": {}
+   },
+   "maxTokensHeadroom": 0.2,
+   "secretScan": true,
+   "monorepo": false,
+   "diffPriority": true,
+   "strategy": "hot-cold",
+   "hotCommits": 10,
+   "watchDebounce": 300,
+   "watchIncremental": true,
+   "watchSettleMs": 5000,
+   "routing": false,
+   "judge": {
+    "threshold": 0.25,
+    "learnBoostAbove": 0.75,
+    "learnPenalizeBelow": 0.4
+   },
+   "format": "default",
+   "cacheLayout": "stable-prefix",
+   "cacheTtl": "5m",
+   "tracking": false,
+   "sessionBudgetTokens": null,
+   "contextTtlDays": null,
+   "session": {
+    "retention": {
+     "days": 90,
+     "compact": "monthly"
+    },
+    "logQueries": "hashed",
+    "injectSummary": false,
+    "mcpCapture": false
+   },
+   "mcp": {
+    "autoRegister": true,
+    "tools": "core"
+   },
+   "depMap": true,
+   "versionPins": true,
+   "terse": false,
+   "todos": true,
+   "changes": true,
+   "changesCommits": 10,
+   "testCoverage": false,
+   "testDirs": [
+    "tests",
+    "test",
+    "__tests__",
+    "spec"
+   ],
+   "sigCache": false,
+   "extractCache": true,
+   "impactRadius": false,
+   "retrieval": {
+    "topK": 10,
+    "recencyBoost": 1.5,
+    "callGraphBoost": false,
+    "centralityBlend": false,
+    "surfaceEnrichment": false,
+    "minedExpansions": false,
+    "bodyWords": true
+   },
+   "exactness": {
+    "typescript": false,
+    "lsp": false,
+    "lspServers": {},
+    "scip": false
+   },
+   "impact": {
+    "depth": 3,
+    "includeSigs": true
+   },
+   "_userKeys": [
+    "srcDirs",
+    "exclude",
+    "maxTokens",
+    "strategy",
+    "outputs",
+    "mcp",
+    "codexMaxBytes",
+    "claudeMaxLines"
+   ]
+  },
+  "profile": {
+   "profile": "core",
+   "names": [
+    "get_callee_signatures",
+    "get_impact",
+    "get_lines",
+    "get_method_impact",
+    "query_context",
+    "read_context",
+    "verify_suggestion"
+   ]
+  }
+ },
+ "legacy-outputs": {
+  "config": {
+   "output": ".github/copilot-instructions.md",
+   "outputs": [
+    "copilot",
+    "claude"
+   ],
+   "codexMaxBytes": null,
+   "claudeMaxLines": null,
+   "adapters": [
+    "copilot",
+    "claude"
+   ],
+   "srcDirs": [
+    "lib",
+    "src"
+   ],
+   "exclude": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    "__pycache__",
+    ".next",
+    "coverage",
+    "target",
+    "vendor",
+    ".context",
+    "playwright-tmp",
+    "playwright-report",
+    "test-results",
+    ".turbo",
+    "storybook-static",
+    ".docusaurus"
+   ],
+   "maxDepth": 6,
+   "maxSigsPerFile": 25,
+   "maxIndexSigsPerFile": 200,
+   "maxTokens": 6000,
+   "autoMaxTokens": true,
+   "coverageTarget": 0.8,
+   "modelContextLimit": 128000,
+   "models": {
+    "asOf": null,
+    "roster": [],
+    "prices": {},
+    "windows": {},
+    "cacheMin": {},
+    "charsPerToken": {},
+    "tiers": {}
+   },
+   "maxTokensHeadroom": 0.2,
+   "secretScan": true,
+   "monorepo": false,
+   "diffPriority": true,
+   "strategy": "full",
+   "hotCommits": 10,
+   "watchDebounce": 300,
+   "watchIncremental": true,
+   "watchSettleMs": 5000,
+   "routing": false,
+   "judge": {
+    "threshold": 0.25,
+    "learnBoostAbove": 0.75,
+    "learnPenalizeBelow": 0.4
+   },
+   "format": "default",
+   "cacheLayout": "stable-prefix",
+   "cacheTtl": "5m",
+   "tracking": false,
+   "sessionBudgetTokens": null,
+   "contextTtlDays": null,
+   "session": {
+    "retention": {
+     "days": 90,
+     "compact": "monthly"
+    },
+    "logQueries": "hashed",
+    "injectSummary": false,
+    "mcpCapture": false
+   },
+   "mcp": {
+    "autoRegister": true,
+    "tools": "all"
+   },
+   "depMap": true,
+   "versionPins": true,
+   "terse": false,
+   "todos": true,
+   "changes": true,
+   "changesCommits": 10,
+   "testCoverage": false,
+   "testDirs": [
+    "tests",
+    "test",
+    "__tests__",
+    "spec"
+   ],
+   "sigCache": false,
+   "extractCache": true,
+   "impactRadius": false,
+   "retrieval": {
+    "topK": 10,
+    "recencyBoost": 1.5,
+    "callGraphBoost": false,
+    "centralityBlend": false,
+    "surfaceEnrichment": false,
+    "minedExpansions": false,
+    "bodyWords": true
+   },
+   "exactness": {
+    "typescript": false,
+    "lsp": false,
+    "lspServers": {},
+    "scip": false
+   },
+   "impact": {
+    "depth": 3,
+    "includeSigs": true
+   },
+   "_userKeys": [
+    "outputs",
+    "output"
+   ]
+  },
+  "profile": {
+   "profile": "all",
+   "names": [
+    "create_checkpoint",
+    "explain_file",
+    "get_architecture_overview",
+    "get_budget",
+    "get_callee_signatures",
+    "get_diff_context",
+    "get_impact",
+    "get_lines",
+    "get_map",
+    "get_method_impact",
+    "get_routing",
+    "list_modules",
+    "query_context",
+    "query_knowledge_map",
+    "read_context",
+    "read_memory",
+    "search_signatures",
+    "sigmap_notify_file_created",
+    "sigmap_notify_file_deleted",
+    "sigmap_notify_symbol_added",
+    "squeeze_output",
+    "verify_suggestion"
+   ]
+  }
+ }
+}
