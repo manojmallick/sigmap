@@ -217,7 +217,8 @@ const DEFAULTS = {
     autoRegister: true,
     // Which tools the server advertises and answers (#878): "all" (every shipped
     // tool; also what an absent key means), "core" (the retrieval + grounding loop,
-    // about a third of the definition tokens) or an array of tool names.
+    // about a third of the definition tokens), "locate" (query_context and get_lines
+    // only, for where-is-it questions) or an array of tool names.
     tools: 'all',
   },
 

@@ -92,6 +92,8 @@ const EXCLUDE_DIRS = new Set([
   '.next', 'coverage', 'target', 'vendor', '.context',
 ]);
 
+const { isVendoredName, isEnvironmentRoot } = require('../util/vendored-dir');
+
 function _norm(p) {
   return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '');
 }
@@ -331,8 +333,9 @@ function changedSince(cwd, config, sinceMs, covered) {
     if (depth > 8 || seen > 5000) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (isEnvironmentRoot(entries)) return; // not indexed, so a change in it is not a stale index
     for (const e of entries) {
-      if (exclude.has(e.name)) continue;
+      if (exclude.has(e.name) || isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) walk(full, depth + 1);
       else if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) {

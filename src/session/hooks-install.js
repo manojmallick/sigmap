@@ -15,7 +15,7 @@
  * file that is not valid JSON is refused, not overwritten.
  *
  * An entry is SigMap's when its command has the shape SigMap writes:
- * `node <entry> session hook <SessionStart|Stop|SessionEnd>`.
+ * `node <entry> session hook <SessionStart|Stop|SessionEnd|UserPromptSubmit>`.
  *
  * Zero dependencies.
  */
@@ -24,7 +24,8 @@ const fs = require('fs');
 const path = require('path');
 
 const EVENTS = ['SessionStart', 'SessionEnd'];
-const OPTIONAL_EVENTS = ['Stop'];
+// Stop is the per-turn capture hook (--stop); UserPromptSubmit is the prefetch hook (--prefetch, src/session/prefetch.js).
+const OPTIONAL_EVENTS = ['Stop', 'UserPromptSubmit'];
 // Documented SessionStart sources; the hook is useful on all of them.
 const START_MATCHER = 'startup|resume|clear|compact';
 // Seconds. The handler bounds its own work well inside this; it is the host's backstop.
@@ -32,7 +33,7 @@ const TIMEOUT_S = 10;
 
 // The script path token: single-quoted (what we write; an embedded quote is `'\''`),
 // double-quoted, or bare.
-const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd)\s*$/;
+const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd|UserPromptSubmit)\s*$/;
 
 /**
  * POSIX single-quoting: nothing inside is expanded by the shell, so an install
@@ -97,7 +98,7 @@ function _ownEntries(settings, event) {
  * Add (or bring up to date) SigMap's hooks.
  * @param {string} cwd
  * @param {string} scriptPath entry script the hooks should run
- * @param {{ stop?: boolean, shared?: boolean }} [opts]
+ * @param {{ stop?: boolean, prefetch?: boolean, shared?: boolean }} [opts]
  * @returns {{ path: string, changes: Array<{event:string, action:'added'|'updated'|'unchanged'}>, error?: string }}
  */
 function installClaudeHooks(cwd, scriptPath, opts = {}) {
@@ -106,7 +107,7 @@ function installClaudeHooks(cwd, scriptPath, opts = {}) {
   if (read.error) return { path: file, changes: [], error: read.error };
   const settings = read.settings;
   if (!settings.hooks) settings.hooks = {};
-  const events = opts.stop ? EVENTS.concat(OPTIONAL_EVENTS) : EVENTS;
+  const events = EVENTS.concat(opts.stop ? ['Stop'] : [], opts.prefetch ? ['UserPromptSubmit'] : []);
   const changes = [];
   for (const event of events) {
     const want = hookCommand(scriptPath, event);
@@ -134,9 +135,12 @@ function installClaudeHooks(cwd, scriptPath, opts = {}) {
 
 /**
  * Remove SigMap's hooks from both settings files, pruning only what becomes empty.
+ * @param {string} cwd
+ * @param {{ events?: string[] }} [opts] only the hooks of these events (default: all of SigMap's)
  * @returns {{ files: Array<{ path: string, removed: number }>, error?: string }}
  */
-function removeClaudeHooks(cwd) {
+function removeClaudeHooks(cwd, opts = {}) {
+  const only = Array.isArray(opts.events) && opts.events.length ? new Set(opts.events) : null;
   const files = [];
   for (const shared of [false, true]) {
     const file = targetFile(cwd, shared);
@@ -147,7 +151,7 @@ function removeClaudeHooks(cwd) {
     let removed = 0;
     for (const event of Object.keys(settings.hooks)) {
       const groups = settings.hooks[event];
-      if (!Array.isArray(groups)) continue;
+      if (!Array.isArray(groups) || (only && !only.has(event))) continue;
       for (const group of groups) {
         if (!group || !Array.isArray(group.hooks)) continue;
         const before = group.hooks.length;
@@ -168,7 +172,7 @@ function removeClaudeHooks(cwd) {
 
 /**
  * What is wired, for `hooks status` and `doctor`.
- * @returns {{ wired: boolean, events: string[], files: object[], missingScript: string[] }}
+ * @returns {{ wired: boolean, prefetch: boolean, events: string[], files: object[], missingScript: string[] }}
  */
 function inspectClaudeHooks(cwd) {
   const files = [];
@@ -192,6 +196,7 @@ function inspectClaudeHooks(cwd) {
   }
   return {
     wired: events.has('SessionEnd') && events.has('SessionStart'),
+    prefetch: events.has('UserPromptSubmit'),
     events: [...events], files, missingScript: [...new Set(missingScript)],
   };
 }

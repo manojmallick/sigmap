@@ -41,7 +41,9 @@ function indexPath(cwd) {
  * @param {string} cwd
  * @param {Array<{filePath: string, sigs: string[]}>} fileEntries - every
  *        extracted entry, BEFORE applyTokenBudget has dropped or collapsed any.
- * @param {{ version?: string }} [opts]
+ * @param {{ version?: string, bare?: string[] }} [opts] `bare`: project-relative paths of
+ *        source files the extractors read nothing from (src/retrieval/bare-files.js). They are
+ *        kept in a field of their own, so `files` stays exactly what it was.
  * @returns {{ path: string, files: number }}
  */
 function writeFullIndex(cwd, fileEntries, opts = {}) {
@@ -59,6 +61,8 @@ function writeFullIndex(cwd, fileEntries, opts = {}) {
     count++;
   }
 
+  const bare = [...new Set((Array.isArray(opts.bare) ? opts.bare : []).filter((rel) => typeof rel === 'string' && rel && !rel.startsWith('..') && !(rel in files)))].sort();
+
   const out = indexPath(cwd);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   // Write-then-rename so a concurrent `ask` never observes a half-written index.
@@ -73,6 +77,7 @@ function writeFullIndex(cwd, fileEntries, opts = {}) {
     startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
     files,
     ...(Object.keys(more).length > 0 ? { more } : {}),
+    ...(bare.length > 0 ? { bare } : {}),
   }), 'utf8');
   fs.renameSync(tmp, out);
   return { path: out, files: count };
@@ -105,15 +110,19 @@ function readFullIndex(cwd) {
  * that point (#982). `index` alone is what the ranker, `ask` and the listing tools read.
  *
  * @param {string} cwd
- * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]> }}
+ * `bare` lists the source files the extractors read nothing from (src/retrieval/bare-files.js):
+ * not in `index`, and added to it only by a caller that ranks and asks for them.
+ *
+ * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]>, bare: string[] }}
  */
 function readFullIndexMeta(cwd) {
   const index = new Map();
   const more = new Map();
+  const bare = [];
   let baseMs = null;
   try {
     const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-    if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more };
+    if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more, bare };
     for (const [rel, sigs] of Object.entries(data.files)) {
       if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
     }
@@ -122,10 +131,13 @@ function readFullIndexMeta(cwd) {
         if (Array.isArray(sigs) && sigs.length > 0 && index.has(rel)) more.set(rel, sigs);
       }
     }
+    if (Array.isArray(data.bare)) {
+      for (const rel of data.bare) if (typeof rel === 'string' && rel && !index.has(rel)) bare.push(rel);
+    }
     if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
     else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
   } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-  return { index, baseMs, more };
+  return { index, baseMs, more, bare };
 }
 
 /**

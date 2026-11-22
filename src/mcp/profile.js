@@ -10,6 +10,7 @@
  *
  *   "all"      every shipped tool — the default, and what an absent key means
  *   "core"     the retrieval + grounding loop only (CORE below)
+ *   "locate"   the two tools a "where is it?" question uses (LOCATE below)
  *   [names]    exactly those tools
  *
  * One function resolves it for the server and for `sigmap doctor`, so the tool
@@ -42,6 +43,15 @@ const CORE = Object.freeze([
   'verify_suggestion',
 ]);
 
+/**
+ * "Where is it implemented?" needs a ranking and the lines it points at, and nothing else. In the agent study
+ * (docs-vp/guide/agent-study) agents given the seven CORE tools called only these two, 0.46 and 0.30 times a run, and
+ * the other five were about 860 of the 1,197 tokens of definitions every turn paid for. This is a profile for locate
+ * questions: it deliberately drops the impact, callee and verification tools that editing and checking need, so it is
+ * opt-in and never the default.
+ */
+const LOCATE = Object.freeze(['query_context', 'get_lines']);
+
 const MAX_LISTED = 5;
 
 /** Estimated tokens for a tool list as a client receives it (chars/4, as everywhere in SigMap). */
@@ -59,8 +69,8 @@ function _shown(names) {
  *
  * @param {object} config  a loaded SigMap config; only `config.mcp` is read
  * @param {object[]} [tools]  the tools on offer (tests pass a subset); defaults to the shipped TOOLS
- * @returns {{ profile: 'all'|'core'|'custom', requested: *, tools: object[], names: string[],
- *             total: number, tokens: number, allTokens: number, coreTokens: number, notes: string[] }}
+ * @returns {{ profile: 'all'|'core'|'locate'|'custom', requested: *, tools: object[], names: string[],
+ *             total: number, tokens: number, allTokens: number, coreTokens: number, locateTokens: number, notes: string[] }}
  */
 function resolveProfile(config, tools = TOOLS) {
   const block = config ? config.mcp : undefined;
@@ -93,8 +103,11 @@ function resolveProfile(config, tools = TOOLS) {
     if (v === 'core') {
       profile = 'core';
       selected = tools.filter((t) => CORE.includes(t.name));
+    } else if (v === 'locate') {
+      profile = 'locate';
+      selected = tools.filter((t) => LOCATE.includes(t.name));
     } else if (v !== 'all') {
-      fallBack(`mcp.tools is "${requested}"; expected "all", "core" or a list of tool names`);
+      fallBack(`mcp.tools is "${requested}"; expected "all", "core", "locate" or a list of tool names`);
     }
   } else if (Array.isArray(requested)) {
     const wanted = new Set();
@@ -117,7 +130,7 @@ function resolveProfile(config, tools = TOOLS) {
       selected = tools.filter((t) => wanted.has(t.name));
     }
   } else {
-    fallBack(`mcp.tools must be "all", "core" or a list of tool names (got ${JSON.stringify(requested)})`);
+    fallBack(`mcp.tools must be "all", "core", "locate" or a list of tool names (got ${JSON.stringify(requested)})`);
   }
 
   return {
@@ -129,6 +142,7 @@ function resolveProfile(config, tools = TOOLS) {
     tokens: definitionTokens(selected),
     allTokens: definitionTokens(tools),
     coreTokens: definitionTokens(tools.filter((t) => CORE.includes(t.name))),
+    locateTokens: definitionTokens(tools.filter((t) => LOCATE.includes(t.name))),
     notes,
   };
 }
@@ -181,4 +195,4 @@ function instructionsFor(resolved) {
   return `SigMap serves code signatures for the working directory. ${how}`;
 }
 
-module.exports = { CORE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
+module.exports = { CORE, LOCATE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };

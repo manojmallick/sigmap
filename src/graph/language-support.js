@@ -124,6 +124,78 @@ function unsearchedNote(unsearched) {
 }
 
 /**
+ * Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) and what the
+ * call graph does with them (#1074, the phase-2 branch of #976).
+ *
+ * `buildCallGraph` resolves a `.name(` call through a receiver's type only for
+ * Java, and only where a declared type shows the class. Everywhere else such a
+ * call draws no edge, so `--callers m` on a method that is called as `x.m()`
+ * printed "no caller found": an answer a developer reads as "safe to change".
+ * Measured against compiler indexes (SCIP, benchmarks/reports/callgraph-accuracy.json),
+ * recall of receiver edges is 0.0% in TypeScript, 0.1% in Python, 0.0% in Go and
+ * 43.8% in Java, against the registered threshold of 70%. The graph was not made
+ * to resolve receivers (that needs a type checker); it says so instead.
+ *
+ * `none`: the report's interval for receiver recall is entirely below 5%.
+ * `partial`: below the 70% threshold, not below 5%. A language is listed only if
+ * the report measured at least 100 receiver edges in it (JavaScript has two, so
+ * nothing is claimed). The test `callgraph-receiver-caveat` derives this table
+ * from the saved report and fails if the two disagree, so it cannot go stale.
+ */
+const RECEIVER_CALLS = Object.freeze({
+  typescript: 'none', python: 'none', go: 'none', java: 'partial',
+});
+const RECEIVER_LABELS = Object.freeze({ typescript: 'TypeScript', python: 'Python', go: 'Go', java: 'Java' });
+// Only the extensions the call graph itself reads (CALL_GRAPH_EXTS); a test keeps the two in step.
+const RECEIVER_EXT = Object.freeze({
+  '.ts': 'typescript', '.tsx': 'typescript',
+  '.py': 'python', '.pyw': 'python', '.go': 'go', '.java': 'java',
+});
+
+/**
+ * Which of these symbols are declared in a language whose receiver calls the
+ * graph does not (fully) resolve.
+ *
+ * @param {string[]} ids  call-graph ids, `file#name`
+ * @returns {Array<{ language: string, label: string, resolved: 'none'|'partial' }>} one entry per language, in first-seen order; empty when none applies
+ */
+function receiverCalls(ids) {
+  const out = [];
+  const seen = new Set();
+  for (const id of ids || []) {
+    const file = String(id).split('#')[0];
+    const language = RECEIVER_EXT[path.extname(file).toLowerCase()];
+    if (!language || seen.has(language)) continue;
+    seen.add(language);
+    out.push({ language, label: RECEIVER_LABELS[language], resolved: RECEIVER_CALLS[language] });
+  }
+  return out;
+}
+
+/** "TypeScript", "TypeScript and Go", "TypeScript, Python and Go". */
+function _list(labels) {
+  if (labels.length <= 1) return labels.join('');
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+/**
+ * The one-paragraph answer that goes under a callers or callees list for
+ * those symbols. `kind` is `callers` or `callees`.
+ */
+function receiverNote(entries, kind) {
+  const none = entries.filter((e) => e.resolved === 'none').map((e) => e.label);
+  const part = entries.filter((e) => e.resolved === 'partial').map((e) => e.label);
+  const s = [];
+  if (none.length) s.push(`Calls made through a receiver (\`x.m()\`, \`this.m()\`, \`self.m()\`) are not resolved for ${_list(none)}: checked against a compiler index, the graph found none of them.`);
+  if (part.length) s.push(`For ${_list(part)} they are resolved only where a declared type names the receiver's class, and only in part.`);
+  s.push(kind === 'callees'
+    ? 'This list leaves out the calls this symbol makes through a receiver.'
+    : 'A short or empty list is not evidence that nothing calls this.');
+  s.push('See https://sigmap.io/guide/callgraph-accuracy');
+  return s.join(' ');
+}
+
+/**
  * Mark an impact result whose target the import graph cannot read.
  *
  * Only an empty result for an unreadable file is marked: a file with importers
@@ -177,8 +249,9 @@ function censusUntracked(cwd, opts) {
     if (depth > maxDepth) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    if (require('../util/vendored-dir').isEnvironmentRoot(entries)) return;
     for (const e of entries) {
-      if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+      if (excludeSet.has(e.name) || e.name.startsWith('.') || require('../util/vendored-dir').isVendoredName(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) { walk(full, depth + 1); continue; }
       if (!e.isFile() || seen.has(full)) continue;
@@ -206,4 +279,5 @@ module.exports = {
   UNSUPPORTED, LABELS, NOT_EXPECTED,
   graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
   importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
+  RECEIVER_CALLS, RECEIVER_EXT, receiverCalls, receiverNote,
 };

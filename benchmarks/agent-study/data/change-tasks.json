@@ -1,0 +1,206 @@
+[
+ {
+  "id": "c01",
+  "issue": 767,
+  "base": "91a32e3eda",
+  "title": "create: exits 0 when 0 of 4 stages ran",
+  "fixFiles": 2,
+  "hiddenTests": [
+   {
+    "file": "test/integration/create.test.js",
+    "bytes": 11078
+   },
+   {
+    "file": "test/integration/verify-plan.test.js",
+    "bytes": 10366
+   }
+  ],
+  "invents": [
+   "STAGE_NEEDS",
+   "extractIntroductions"
+  ],
+  "unresolved": [
+   "'./core'"
+  ],
+  "ran": true
+ },
+ {
+  "id": "c02",
+  "issue": 828,
+  "base": "db4b3b6bbe",
+  "title": "dashboard: writes outside .context/, and grades coverage against a stale 21-language list",
+  "fixFiles": 2,
+  "hiddenTests": [
+   {
+    "file": "test/integration/dashboard-population.test.js",
+    "bytes": 9224
+   },
+   {
+    "file": "test/integration/dashboard.test.js",
+    "bytes": 6830
+   }
+  ],
+  "invents": [
+   "LANGUAGES"
+  ],
+  "unresolved": [],
+  "ran": true
+ },
+ {
+  "id": "c03",
+  "issue": 831,
+  "base": "2e197c8069",
+  "title": "scope: --diff <ref> drops uncommitted work, and --callers claims a zero it cannot support",
+  "fixFiles": 4,
+  "hiddenTests": [
+   {
+    "file": "test/integration/scope-honesty.test.js",
+    "bytes": 10523
+   }
+  ],
+  "invents": [
+   "changedFiles"
+  ],
+  "unresolved": [
+   "'./src/lib'"
+  ],
+  "ran": true
+ },
+ {
+  "id": "c04",
+  "issue": 851,
+  "base": "312ad634d1",
+  "title": "retrieval: hop-1 graph boost ranks files with zero query relevance",
+  "fixFiles": 1,
+  "hiddenTests": [
+   {
+    "file": "test/integration/graph-boost-relevance.test.js",
+    "bytes": 10613
+   }
+  ],
+  "invents": [],
+  "unresolved": [
+   "'./clip-core'",
+   "'./widget-layout-core'"
+  ],
+  "ran": true
+ },
+ {
+  "id": "c05",
+  "issue": 855,
+  "base": "67f2f45034",
+  "title": "Crash: RangeError Maximum call stack size exceeded (buildFileList) in a large git root",
+  "fixFiles": 4,
+  "hiddenTests": [
+   {
+    "file": "test/integration/large-tree-spread.test.js",
+    "bytes": 7498
+   }
+  ],
+  "invents": [],
+  "unresolved": [],
+  "ran": true
+ },
+ {
+  "id": "c06",
+  "issue": 874,
+  "base": "ba1db0bba8",
+  "title": "anchors: ~4% of JS function anchors are wrong — maskCode leaves regex literals unmasked",
+  "fixFiles": 4,
+  "hiddenTests": [
+   {
+    "file": "test/integration/js-anchor-masking.test.js",
+    "bytes": 13135
+   }
+  ],
+  "invents": [],
+  "unresolved": [],
+  "ran": true
+ },
+ {
+  "id": "c07",
+  "issue": 877,
+  "base": "02fd9c20fd",
+  "title": "todos: extractor matches '## todos' in a string literal — case-insensitive, no word boundary, unmasked",
+  "fixFiles": 2,
+  "hiddenTests": [
+   {
+    "file": "test/integration/todos-comment-markers.test.js",
+    "bytes": 6590
+   }
+  ],
+  "invents": [
+   "maskStrings"
+  ],
+  "unresolved": [],
+  "ran": true
+ },
+ {
+  "id": "c08",
+  "issue": 900,
+  "base": "58eae4c4c4",
+  "title": "index: close the zero-config gaps the xrepo gate found",
+  "fixFiles": 4,
+  "hiddenTests": [
+   {
+    "file": "test/integration/extractor-index-gaps.test.js",
+    "bytes": 11617
+   }
+  ],
+  "invents": [],
+  "unresolved": [],
+  "ran": false,
+  "leftOut": "umbrella issue: its text does not say what the tests check (read before any agent ran)"
+ },
+ {
+  "id": "c09",
+  "issue": 902,
+  "base": "1de60da5f9",
+  "title": "extractor: a function named async is listed as an async function",
+  "fixFiles": 2,
+  "hiddenTests": [
+   {
+    "file": "test/integration/extractor-index-gaps.test.js",
+    "bytes": 13781
+   }
+  ],
+  "invents": [],
+  "unresolved": [],
+  "ran": true
+ },
+ {
+  "id": "c10",
+  "issue": 943,
+  "base": "886bf199bf",
+  "title": "retrieval: body-word weight sweep, then default if the rule holds",
+  "fixFiles": 1,
+  "hiddenTests": [
+   {
+    "file": "test/integration/body-words.test.js",
+    "bytes": 18040
+   }
+  ],
+  "invents": [],
+  "unresolved": [],
+  "ran": false,
+  "leftOut": "umbrella issue: its text does not say what the tests check (read before any agent ran)"
+ },
+ {
+  "id": "c11",
+  "issue": 876,
+  "base": "e2d4b2b1ba",
+  "title": "index: bundled bin entrypoint (gen-context.js) is indexed as source — duplicated symbols and noisy changes/todos",
+  "fixFiles": 2,
+  "hiddenTests": [
+   {
+    "file": "test/integration/generated-entrypoint.test.js",
+    "bytes": 11281
+   }
+  ],
+  "invents": [
+   "generatedReason"
+  ],
+  "unresolved": [],
+  "ran": true
+ }
+]

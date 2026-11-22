@@ -1,0 +1,117 @@
+{
+  "_comment": "held-out questions: merged changes since 2026-07-01 in repositories SigMap was not tuned on (scripts/build-heldout-set.mjs)",
+  "repos": [
+    {
+      "name": "conda__constructor",
+      "url": "https://github.com/conda/constructor.git",
+      "commit": "ed34a4cf39d2d0f2bc02482ec56235ee5bbcdc87",
+      "language": "python",
+      "layout": "heldout"
+    },
+    {
+      "name": "chatmail__relay",
+      "url": "https://github.com/chatmail/relay.git",
+      "commit": "5bd9adda418c7b7aee53eadfbdd8952e526739e9",
+      "language": "python",
+      "layout": "heldout"
+    },
+    {
+      "name": "TeleBoxOrg__TeleBox",
+      "url": "https://github.com/TeleBoxOrg/TeleBox.git",
+      "commit": "b16f6f747dcb36b858504497125fb27e0ac25ac3",
+      "language": "typescript",
+      "layout": "heldout"
+    },
+    {
+      "name": "openscad__openscad-playground",
+      "url": "https://github.com/openscad/openscad-playground.git",
+      "commit": "d4552def6a9b047b016b321f31cdcdcb7e6cfd5b",
+      "language": "typescript",
+      "layout": "heldout"
+    },
+    {
+      "name": "livekit__sip",
+      "url": "https://github.com/livekit/sip.git",
+      "commit": "df8074ee6df19a11085a68252f95a7f987e3b4e3",
+      "language": "go",
+      "layout": "heldout"
+    },
+    {
+      "name": "emilk__egui_plot",
+      "url": "https://github.com/emilk/egui_plot.git",
+      "commit": "d95a746602a290e48d60a70a63075cc73793f580",
+      "language": "rust",
+      "layout": "heldout"
+    },
+    {
+      "name": "GDQuest__GDScript-formatter",
+      "url": "https://github.com/GDQuest/GDScript-formatter.git",
+      "commit": "468ca8d21a1a8a5d7d49285a4dcd5361ce7bf6ab",
+      "language": "rust",
+      "layout": "heldout"
+    },
+    {
+      "name": "dromara__mica-mqtt",
+      "url": "https://github.com/dromara/mica-mqtt.git",
+      "commit": "6adfd3c8b278bbeda9646fb9df0c293afcf248e5",
+      "language": "java",
+      "layout": "heldout"
+    },
+    {
+      "name": "fastify__fastify-static",
+      "url": "https://github.com/fastify/fastify-static.git",
+      "commit": "a006a4f355b0aaaa62cd86005f52f8e6c8330d30",
+      "language": "javascript",
+      "layout": "heldout"
+    },
+    {
+      "name": "tprouvot__Salesforce-Inspector-reloaded",
+      "url": "https://github.com/tprouvot/Salesforce-Inspector-reloaded.git",
+      "commit": "59d3fab7fefe2fa7fdf8a781607597c7115aedad",
+      "language": "javascript",
+      "layout": "heldout"
+    },
+    {
+      "name": "ruby__irb",
+      "url": "https://github.com/ruby/irb.git",
+      "commit": "34be4cd7a324ab77c106e130d0716526b6e546e4",
+      "language": "ruby",
+      "layout": "heldout"
+    },
+    {
+      "name": "intaro__pinboard",
+      "url": "https://github.com/intaro/pinboard.git",
+      "commit": "ff0fd3bdd69c2b402a6cb25fd6dd14df9e8e0860",
+      "language": "php",
+      "layout": "heldout"
+    },
+    {
+      "name": "crossplane__upjet",
+      "url": "https://github.com/crossplane/upjet.git",
+      "commit": "ff4a298627cf205ab38d258cd097167501a1ea02",
+      "language": "go",
+      "layout": "heldout"
+    },
+    {
+      "name": "sventorben__keycloak-restrict-client-auth",
+      "url": "https://github.com/sventorben/keycloak-restrict-client-auth.git",
+      "commit": "df950b267c1cded0c18c6183d48898eafc113ba8",
+      "language": "java",
+      "layout": "heldout"
+    },
+    {
+      "name": "shugo__textbringer",
+      "url": "https://github.com/shugo/textbringer.git",
+      "commit": "b6ba80bb0067f2ade2e65a1ba07e3163dae787ae",
+      "language": "ruby",
+      "layout": "heldout"
+    },
+    {
+      "name": "martin-georgiev__postgresql-for-doctrine",
+      "url": "https://github.com/martin-georgiev/postgresql-for-doctrine.git",
+      "commit": "519553d5f3cf0dd155d8e55a165a2cca93d09cb4",
+      "language": "php",
+      "layout": "heldout"
+    }
+  ]
+}
