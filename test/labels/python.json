@@ -1,0 +1,14 @@
+{
+  "_comment": "Written by hand from test/fixtures/python.py. Python's contract does not list underscore names, so they are not labelled.",
+  "fixture": "test/fixtures/python.py",
+  "defines": ["UserService", "__init__", "get_user", "create_user", "AdminService", "delete_user", "hash_password", "send_email"],
+  "probes": [
+    {
+      "name": "declarations in a comment and in strings",
+      "file": "probe.py",
+      "source": "# def ghost_in_comment(): pass\ns = \"def ghost_in_string(): pass\"\nt = 'class GhostInSingle: pass'\n\ndef real():\n    return 1\n",
+      "mustContain": ["real"],
+      "mustNotContain": ["ghost_in_comment", "ghost_in_string", "GhostInSingle"]
+    }
+  ]
+}

@@ -3841,7 +3841,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
     { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-    { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+    { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
     { argv: '--help', desc: 'Show this message' },
     { argv: '--version', desc: 'Show version' },
   ];
@@ -24525,15 +24525,21 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       return lines.join('\n');
     }
     const qualifier = _scopeClause(result.scope);
+    // Calls through a receiver (`x.m()`) draw no edge outside Java, so an empty or short
+    // list for a symbol in TypeScript, Python or Go is not a safe answer (#1074).
+    const { receiverCalls, receiverNote } = __require('./src/graph/language-support');
+    const rc = receiverCalls(result.resolved);
+    const rcLine = rc.length ? [`_${receiverNote(rc, kind)}_`] : [];
     if (result.total === 0) {
       lines.push(kind === 'callees'
         ? `_no repo-defined callee found (${qualifier})._`
-        : `_no caller found (${qualifier})._`);
+        : `_no caller found (${qualifier})._`, ...(rcLine.length ? ['', ...rcLine] : []));
       return lines.join('\n');
     }
     lines.push(`**Total ${verb}:** ${result.total} _(${qualifier})_`, '');
     if (result.direct.length) { lines.push(`### Direct`); for (const id of result.direct) lines.push(`- \`${id}\``); lines.push(''); }
     if (result.transitive.length) { lines.push(`### Transitive`); for (const id of result.transitive) lines.push(`- \`${id}\``); lines.push(''); }
+    if (rcLine.length) lines.push(...rcLine, '');
     return lines.join('\n');
   }
 
@@ -24560,6 +24566,10 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     // A symbol the call graph does not know, in roots that hold files it cannot read.
     if (result.unsearched) out.unsearched = result.unsearched;
+    // Present only for a symbol in a language whose receiver calls (`x.m()`) the graph
+    // does not fully resolve, so every other result keeps its shape (#1074).
+    const rc = __require('./src/graph/language-support').receiverCalls(result.resolved);
+    if (rc.length) out.receiverCalls = rc.map(({ language, resolved }) => ({ language, resolved }));
     return out;
   }
 
@@ -25932,6 +25942,78 @@ __factories["./src/graph/language-support"] = function(module, exports) {
   }
 
   /**
+   * Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) and what the
+   * call graph does with them (#1074, the phase-2 branch of #976).
+   *
+   * `buildCallGraph` resolves a `.name(` call through a receiver's type only for
+   * Java, and only where a declared type shows the class. Everywhere else such a
+   * call draws no edge, so `--callers m` on a method that is called as `x.m()`
+   * printed "no caller found": an answer a developer reads as "safe to change".
+   * Measured against compiler indexes (SCIP, benchmarks/reports/callgraph-accuracy.json),
+   * recall of receiver edges is 0.0% in TypeScript, 0.1% in Python, 0.0% in Go and
+   * 43.8% in Java, against the registered threshold of 70%. The graph was not made
+   * to resolve receivers (that needs a type checker); it says so instead.
+   *
+   * `none`: the report's interval for receiver recall is entirely below 5%.
+   * `partial`: below the 70% threshold, not below 5%. A language is listed only if
+   * the report measured at least 100 receiver edges in it (JavaScript has two, so
+   * nothing is claimed). The test `callgraph-receiver-caveat` derives this table
+   * from the saved report and fails if the two disagree, so it cannot go stale.
+   */
+  const RECEIVER_CALLS = Object.freeze({
+    typescript: 'none', python: 'none', go: 'none', java: 'partial',
+  });
+  const RECEIVER_LABELS = Object.freeze({ typescript: 'TypeScript', python: 'Python', go: 'Go', java: 'Java' });
+  // Only the extensions the call graph itself reads (CALL_GRAPH_EXTS); a test keeps the two in step.
+  const RECEIVER_EXT = Object.freeze({
+    '.ts': 'typescript', '.tsx': 'typescript',
+    '.py': 'python', '.pyw': 'python', '.go': 'go', '.java': 'java',
+  });
+
+  /**
+   * Which of these symbols are declared in a language whose receiver calls the
+   * graph does not (fully) resolve.
+   *
+   * @param {string[]} ids  call-graph ids, `file#name`
+   * @returns {Array<{ language: string, label: string, resolved: 'none'|'partial' }>} one entry per language, in first-seen order; empty when none applies
+   */
+  function receiverCalls(ids) {
+    const out = [];
+    const seen = new Set();
+    for (const id of ids || []) {
+      const file = String(id).split('#')[0];
+      const language = RECEIVER_EXT[path.extname(file).toLowerCase()];
+      if (!language || seen.has(language)) continue;
+      seen.add(language);
+      out.push({ language, label: RECEIVER_LABELS[language], resolved: RECEIVER_CALLS[language] });
+    }
+    return out;
+  }
+
+  /** "TypeScript", "TypeScript and Go", "TypeScript, Python and Go". */
+  function _list(labels) {
+    if (labels.length <= 1) return labels.join('');
+    return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  }
+
+  /**
+   * The one-paragraph answer that goes under a callers or callees list for
+   * those symbols. `kind` is `callers` or `callees`.
+   */
+  function receiverNote(entries, kind) {
+    const none = entries.filter((e) => e.resolved === 'none').map((e) => e.label);
+    const part = entries.filter((e) => e.resolved === 'partial').map((e) => e.label);
+    const s = [];
+    if (none.length) s.push(`Calls made through a receiver (\`x.m()\`, \`this.m()\`, \`self.m()\`) are not resolved for ${_list(none)}: checked against a compiler index, the graph found none of them.`);
+    if (part.length) s.push(`For ${_list(part)} they are resolved only where a declared type names the receiver's class, and only in part.`);
+    s.push(kind === 'callees'
+      ? 'This list leaves out the calls this symbol makes through a receiver.'
+      : 'A short or empty list is not evidence that nothing calls this.');
+    s.push('See https://sigmap.io/guide/callgraph-accuracy');
+    return s.join(' ');
+  }
+
+  /**
    * Mark an impact result whose target the import graph cannot read.
    *
    * Only an empty result for an unreadable file is marked: a file with importers
@@ -26015,6 +26097,7 @@ __factories["./src/graph/language-support"] = function(module, exports) {
     UNSUPPORTED, LABELS, NOT_EXPECTED,
     graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
     importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
+    RECEIVER_CALLS, RECEIVER_EXT, receiverCalls, receiverNote,
   };
   
 };
@@ -30638,7 +30721,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.87.0',
+    version: '8.88.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -44320,7 +44403,7 @@ function writeAll(fd, text) {
   }
 }
 
-const VERSION = '8.87.0';
+const VERSION = '8.88.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();
@@ -46420,10 +46503,13 @@ function writeInitConfig(cwd) {
       fs.copyFileSync(example, dest);
     } else {
       // No example beside the script (a lone copy of the bundle, or the standalone binary):
-      // the defaults, with the one choice the example makes — a new install starts on the
-      // lean MCP profile (#966) — so `--init` means the same thing wherever it runs.
+      // the defaults, with the two choices the example makes — a new install starts on the
+      // `index` strategy and the two-tool `locate` MCP profile (#1071, Candidate A) — so
+      // `--init` means the same thing wherever it runs. DEFAULTS themselves are unchanged:
+      // a project with no config keeps `full` and every tool.
       const fresh = JSON.parse(JSON.stringify(DEFAULTS));
-      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'core' });
+      fresh.strategy = 'index';
+      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'locate' });
       fs.writeFileSync(dest, JSON.stringify(fresh, null, 2) + '\n');
     }
     console.warn('[sigmap] wrote gen-context.config.json');

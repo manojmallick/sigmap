@@ -260,6 +260,10 @@ async function main() {
     ...(PROMPT_STYLE === 'question' ? { promptFor: (task) => questionPrompt(task) } : {}),
     ...(PROMPT_STYLE === 'wrapped' ? { promptFor: (task) => wrappedPrompt(task) } : {}), // never pass runPlan's second argument on: it is not a nonce
     ...(CHANGE ? { change: true, promptFor: changePrompt, scoreRun: (record) => (record.grade ? { pass: record.grade.pass, rank: null, named: [], why: record.grade.why } : { pass: false, rank: null, named: [] }) } : {}),
+    onRetry: ({ task, arm, run, attempt, of, record }) => {
+      const lost = record.cost && record.cost.usd !== null && record.cost.usd !== undefined ? ` (the discarded run cost $${record.cost.usd.toFixed(4)})` : '';
+      say(`  RETRY ${task.repo}/${task.id} run ${run} ${arm.padEnd(7)} the sigmap server was still pending at init, so that run had no SigMap tool: discarded, repeat ${attempt} of ${of}${lost}`);
+    },
     onRun: ({ task, arm, run, record }) => {
       n++;
       const c = record.cost && record.cost.usd !== null ? `${record.cost.source === 'table' ? '≥' : ''}$${record.cost.usd.toFixed(4)}` : 'cost n/a';
@@ -292,7 +296,7 @@ async function main() {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
       named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
-      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE !== 'template', limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
+      cacheGaps: record.cacheGaps, cost: record.cost, hooks: record.hooks || null, ranked: record.ranked || null, fresh: PROMPT_STYLE !== 'template', startupRetries: record.startupRetries || 0, limit: record.limit || null, why: record.score.why || null, patch: record.grade ? record.grade.patch : null,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);

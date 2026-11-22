@@ -447,12 +447,13 @@ test('doctor counts the capture tool when session.mcpCapture is on, exactly as t
 // New installs
 // ---------------------------------------------------------------------------
 
-test('--init writes "core" into a new config; an existing config is left alone', () => {
+test('--init writes the "locate" profile and strategy "index" into a new config (#1071); an existing config is left alone', () => {
   withProject(undefined, (dir) => {
     spawnSync(process.execPath, [GEN, '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
     const written = JSON.parse(fs.readFileSync(path.join(dir, 'gen-context.config.json'), 'utf8'));
-    assert.strictEqual(written.mcp.tools, 'core', 'a new install starts lean');
-    assert.strictEqual(listTools(dir).length, profile.CORE.length);
+    assert.strictEqual(written.mcp.tools, 'locate', 'a new install starts on the two-tool profile');
+    assert.strictEqual(written.strategy, 'index', 'and on the index strategy');
+    assert.deepStrictEqual(listTools(dir).map((t) => t.name).sort(), profile.LOCATE.slice().sort());
   });
   withProject({ maxTokens: 5000 }, (dir) => {
     spawnSync(process.execPath, [GEN, '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
@@ -462,7 +463,7 @@ test('--init writes "core" into a new config; an existing config is left alone',
   });
 });
 
-test('--init from a lone copy of the script (no example file beside it) writes "core" too', () => {
+test('--init from a lone copy of the script (no example file beside it) writes "locate" and "index" too', () => {
   // The standalone bundle / binary ships without gen-context.config.json.example; `--init` must
   // mean the same thing there, or the docs' "a new install starts lean" is true only for npm.
   withProject(undefined, (dir) => {
@@ -472,9 +473,10 @@ test('--init from a lone copy of the script (no example file beside it) writes "
       assert.ok(!fs.existsSync(path.join(lone, 'gen-context.config.json.example')), 'the premise: no example beside the script');
       spawnSync(process.execPath, [path.join(lone, 'gen-context.js'), '--init'], { cwd: dir, encoding: 'utf8', timeout: 30000 });
       const written = JSON.parse(fs.readFileSync(path.join(dir, 'gen-context.config.json'), 'utf8'));
-      assert.strictEqual(written.mcp.tools, 'core');
+      assert.strictEqual(written.mcp.tools, 'locate');
+      assert.strictEqual(written.strategy, 'index');
       assert.strictEqual(written.mcp.autoRegister, true, 'the rest of the block is the default, untouched');
-      assert.strictEqual(listTools(dir).length, profile.CORE.length);
+      assert.deepStrictEqual(listTools(dir).map((t) => t.name).sort(), profile.LOCATE.slice().sort());
     } finally { fs.rmSync(lone, { recursive: true, force: true }); }
   });
 });

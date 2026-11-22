@@ -39,15 +39,34 @@ prompt itself (the row above), and the installed hook (`sigmap hooks install cla
 comparison in Claude Code (Haiku 5.5, eight repositories, 348 first asks) **the installed hook took time −11%, total tokens −23%, tool calls −41% and cost −4% [−7%, −1%]**, about a third
 of what the same text saves in the prompt. So expect the smaller numbers from the hook and read the table as the ceiling.
 
+## What a new install starts on
+
+`sigmap --init` writes `{ "strategy": "index", "mcp": { "tools": "locate" } }` into a **new** project's `gen-context.config.json`. A project that already has a config keeps it byte for byte, and a
+project with no config at all keeps what it had: strategy `full` and every tool. The choice rests on three pre-registered runs of exactly this setup against no SigMap in Claude Code (`--bare`, an
+API key, one question per run, the repository as the unit), in which no repository clearly cost more:
+
+| Model | Repositories | Cost, with against without SigMap | File found, with / without | SigMap used |
+|---|---|---|---|---:|
+| Haiku 5.5 | 20, 31 to 2,388 files | **−16.6%** [−23.2%, −9.7%] | 205 / 208 of 222 | 96% |
+| Sonnet 5.5 | the same 20 | **−8.8%** [−15.5%, −2.0%] | 211 / 207 of 222 | 93% |
+| Haiku 5.5 | 16 large, 3,026 to 7,756 files | **−18.5%** [−22.5%, −14.3%] | 167 / 175 of 192 | 96% |
+
+Read it with its limits. With Sonnet the saving is in the price, not the token count: total tokens per run rose 9% while the mean cost per run fell 12%. On the large repositories the file was found 4.2 points less
+often with SigMap, inside the pre-registered limit of 5 but not far inside it; an interval computed afterwards, [−7.8, −1.0] points, does not rule out a larger loss. Not measured: a logged-in
+session or a subscription allowance (the runs were API-billed), Opus, repositories above 7,756 files, Python or JavaScript repositories above about 2,400 files, answer quality beyond which
+file was named, editing work, and the `ask` command and the prefetch hook that go with it. `locate` is for *where is this implemented?* questions: it drops the impact, callee and
+verification tools. To get them back, set `"mcp": { "tools": "core" }`; to go back to the old behaviour, set `"strategy": "full"` and `"mcp": { "tools": "all" }`. The runs, the bar and the code
+that applies it are in [the agent study](/guide/agent-study) (`benchmarks/agent-study/`).
+
 ## What each setup is
 
 - **The prefetch hook** (opt-in): `sigmap hooks install claude --prefetch` adds a `UserPromptSubmit` hook that runs `sigmap ask` on each substantive prompt and gives the model the top
   five files with signatures and `:start-end` anchors. It needs no MCP server and adds no tool definitions. It stays silent for slash commands, prompts under four words, a prompt it cannot read
   (under 90% ASCII letters) and a project with no index. `SIGMAP_PREFETCH=0` turns it off. See [the prefetch hook](/guide/cli#the-prefetch-hook).
-- **`index` plus `locate`** (opt-in): `{ "strategy": "index", "mcp": { "tools": "locate" } }` in `gen-context.config.json`, and the MCP server registered. The model carries a short map and
-  two tools, `query_context` and `get_lines`, about 426 tokens of definitions a turn. It drops the impact, callee and verification tools, so it is for *where is this implemented?* questions.
-  See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
-- **`index` plus `core`** (the documented setup): seven tools, about 1,505 tokens of definitions a turn, for an agent that also edits and checks code. The study measured location questions,
+- **`index` plus `locate`** (what `sigmap --init` writes for a new project, above): `{ "strategy": "index", "mcp": { "tools": "locate" } }` in `gen-context.config.json`, and the MCP server registered
+  (`sigmap mcp install <client>`). The model carries a short map and two tools, `query_context` and `get_lines`, about 426 tokens of definitions a turn. It drops the impact, callee and
+  verification tools, so it is for *where is this implemented?* questions. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
+- **`index` plus `core`** (opt-in): seven tools, about 1,505 tokens of definitions a turn, for an agent that also edits and checks code. The study measured location questions,
   not editing, so it does not say whether `core` pays for an editing agent.
 
 ## What not to use

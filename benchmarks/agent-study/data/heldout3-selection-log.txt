@@ -1,0 +1,324 @@
+# stderr of the two selection passes: language, repository, stars, merged PRs since 2026-07-01 (a line marked 'too few' was not selected).
+# pass 1
+  python     phenom-films/dayu_widgets                         500★  merged PRs since 2026-07-01: 0  (too few)
+  python     alibaba/ROCK                                      500★  merged PRs since 2026-07-01: 76
+  python     codemagic-ci-cd/cli-tools                         500★  merged PRs since 2026-07-01: 7  (too few)
+  python     1313e/CMasher                                     499★  merged PRs since 2026-07-01: 33
+  python     thepeacemonk/Onigiri                              499★  merged PRs since 2026-07-01: 0  (too few)
+  python     httpwg/http-extensions                            498★  merged PRs since 2026-07-01: 80
+  python     aristoteleo/PantheonOS                            497★  merged PRs since 2026-07-01: 50
+  python     dsmrreader/dsmr-reader                            496★  merged PRs since 2026-07-01: 2  (too few)
+  python     TeleAI-UAGI/telemem                               495★  merged PRs since 2026-07-01: 4  (too few)
+  python     TheHive-Project/Cortex-Analyzers                  495★  merged PRs since 2026-07-01: 55
+  python     Grid2op/grid2op                                   494★  merged PRs since 2026-07-01: 17
+  typescript hyper-elements/hyper-elements                     499★  merged PRs since 2026-07-01: 168
+  typescript NPC-Worldwide/incognide                           499★  merged PRs since 2026-07-01: 73
+  typescript dataflint/spark                                   498★  merged PRs since 2026-07-01: 0  (too few)
+  typescript codegouvfr/react-dsfr                             497★  merged PRs since 2026-07-01: 12  (too few)
+  typescript OlegWock/anori                                    497★  merged PRs since 2026-07-01: 4  (too few)
+  typescript pengzhanbo/vuepress-theme-plume                   496★  merged PRs since 2026-07-01: 100
+  typescript gtkx-org/gtkx                                     495★  merged PRs since 2026-07-01: 377
+  typescript oddbird/css-anchor-positioning                    493★  merged PRs since 2026-07-01: 31
+  typescript ansible/vscode-ansible                            493★  merged PRs since 2026-07-01: 205
+  go         leptonai/gpud                                     497★  merged PRs since 2026-07-01: 124
+  go         crossplane-contrib/provider-aws                   496★  merged PRs since 2026-07-01: 13  (too few)
+  go         grafana/grafana-kiosk                             496★  merged PRs since 2026-07-01: 9  (too few)
+  go         ctwj/urldb                                        495★  merged PRs since 2026-07-01: 9  (too few)
+  go         hashicorp/terraform-provider-azuread              487★  merged PRs since 2026-07-01: 51
+  go         housepower/ckman                                  485★  merged PRs since 2026-07-01: 0  (too few)
+  go         jrnxf/gh-eco                                      485★  merged PRs since 2026-07-01: 14  (too few)
+  go         bucketeer-io/bucketeer                            485★  merged PRs since 2026-07-01: 280
+  go         esrrhs/mahjong_ai                                 484★  merged PRs since 2026-07-01: 0  (too few)
+  go         sse-secure-systems/connaisseur                    484★  merged PRs since 2026-07-01: 40
+  go         uber/zanzibar                                     484★  merged PRs since 2026-07-01: 3  (too few)
+  go         iota-uz/iota-sdk                                  483★  merged PRs since 2026-07-01: 306
+  go         Salvanza/salvanza_client                          482★  merged PRs since 2026-07-01: 57
+  rust       nockchain/nockchain                               500★  merged PRs since 2026-07-01: 33
+  rust       Paligo/xee                                        500★  merged PRs since 2026-07-01: 3  (too few)
+  rust       tari-project/tari                                 498★  merged PRs since 2026-07-01: 287
+  rust       agbrs/agb                                         496★  merged PRs since 2026-07-01: 34
+  rust       tauri-apps/cef-rs                                 493★  merged PRs since 2026-07-01: 55
+  rust       istio/ztunnel                                     493★  merged PRs since 2026-07-01: 192
+  rust       fortanix/rust-sgx                                 491★  merged PRs since 2026-07-01: 32
+  java       pentaho/pentaho-platform                          495★  merged PRs since 2026-07-01: 148
+  java       icei-pucminas/aeds2                               495★  merged PRs since 2026-07-01: 0  (too few)
+  java       kohlschutter/junixsocket                          495★  merged PRs since 2026-07-01: 1  (too few)
+  java       stoicflame/enunciate                              494★  merged PRs since 2026-07-01: 4  (too few)
+  java       intoolswetrust/jsignpdf                           492★  merged PRs since 2026-07-01: 84
+  java       CagataySonmez/EdgeCloudSim                        490★  merged PRs since 2026-07-01: 2  (too few)
+  java       siyuan-note/siyuan-android                        490★  merged PRs since 2026-07-01: 0  (too few)
+  java       gchq/stroom                                       490★  merged PRs since 2026-07-01: 240
+  java       Catrobat/Catroid                                  488★  merged PRs since 2026-07-01: 15
+  java       wro4j/wro4j                                       488★  merged PRs since 2026-07-01: 2  (too few)
+  java       apache/commons-imaging                            488★  merged PRs since 2026-07-01: 3  (too few)
+  java       citrusframework/citrus                            487★  merged PRs since 2026-07-01: 292
+  java       opendaylight/controller                           483★  merged PRs since 2026-07-01: 0  (too few)
+  java       SasanLabs/VulnerableApp                           482★  merged PRs since 2026-07-01: 137
+  javascript krystonschwarze/coolicons                         498★  merged PRs since 2026-07-01: 19
+  javascript theBowja/genshin-db                               497★  merged PRs since 2026-07-01: 0  (too few)
+  javascript lutangar/cities.json                              497★  merged PRs since 2026-07-01: 0  (too few)
+  javascript scala-text/scala_text                             494★  merged PRs since 2026-07-01: 94
+  javascript UMAprotocol/protocol                              492★  merged PRs since 2026-07-01: 17
+  javascript ember-bootstrap/ember-bootstrap                   490★  merged PRs since 2026-07-01: 43
+  javascript AntonPalmqvist/physically-based-api               490★  merged PRs since 2026-07-01: 9  (too few)
+  javascript breck7/scroll                                     489★  merged PRs since 2026-07-01: 0  (too few)
+  javascript Moonfin-Client/Smart-TV                           488★  merged PRs since 2026-07-01: 170
+  javascript Omicron-Industries/Monifactory                    487★  merged PRs since 2026-07-01: 167
+# pass 2
+  python     phenom-films/dayu_widgets                         500★  merged PRs since 2026-07-01: 0  (too few)
+  python     codemagic-ci-cd/cli-tools                         500★  merged PRs since 2026-07-01: 7  (too few)
+  python     thepeacemonk/Onigiri                              499★  merged PRs since 2026-07-01: 0  (too few)
+  python     dsmrreader/dsmr-reader                            496★  merged PRs since 2026-07-01: 2  (too few)
+  python     TeleAI-UAGI/telemem                               495★  merged PRs since 2026-07-01: 4  (too few)
+  python     xgboosted/pandas-ta-classic                       494★  merged PRs since 2026-07-01: 269
+  python     ishandutta2007/Top-AI-repos                       494★  merged PRs since 2026-07-01: 7  (too few)
+  python     openwallet-foundation/acapy                       493★  merged PRs since 2026-07-01: 93
+  python     subzeroid/aiograpi                                493★  merged PRs since 2026-07-01: 143
+  python     vita-epfl/UniTraj                                 493★  merged PRs since 2026-07-01: 1  (too few)
+  python     pykale/pykale                                     493★  merged PRs since 2026-07-01: 35
+  python     adrienbrault/geekmagic-hacs                       492★  merged PRs since 2026-07-01: 108
+  python     DigitalSlideArchive/HistomicsTK                   492★  merged PRs since 2026-07-01: 23
+  python     aleiepure/devtoolbox                              492★  merged PRs since 2026-07-01: 0  (too few)
+  python     mapequation/infomap                               492★  merged PRs since 2026-07-01: 462
+  python     guanyue91141/GhidraMCP-AI-rename                  491★  merged PRs since 2026-07-01: 1  (too few)
+  python     DashAISoftware/dashAI                             491★  merged PRs since 2026-07-01: 203
+  python     PallasBot/Pallas-Bot                              491★  merged PRs since 2026-07-01: 129
+  python     pinellolab/DNA-Diffusion                          491★  merged PRs since 2026-07-01: 0  (too few)
+  python     wamp-proto/wamp-proto                             490★  merged PRs since 2026-07-01: 7  (too few)
+  python     intrinsic-dev/aic                                 490★  merged PRs since 2026-07-01: 21
+  python     aaronwmorris/indi-allsky                          489★  merged PRs since 2026-07-01: 169
+  python     jenskutilek/sudo-font                             488★  merged PRs since 2026-07-01: 0  (too few)
+  python     microsoft/archai                                  488★  merged PRs since 2026-07-01: 11  (too few)
+  python     nandyalu/trailarr                                 487★  merged PRs since 2026-07-01: 90
+  python     AndreWeiner/ml-cfd-lecture                        486★  merged PRs since 2026-07-01: 0  (too few)
+  python     twardoch/fonttools-opentype-feature-freezer       486★  merged PRs since 2026-07-01: 1  (too few)
+  python     knobiknows/all-the-bufo                           486★  merged PRs since 2026-07-01: 13  (too few)
+  python     torchmd/torchmd-net                               486★  merged PRs since 2026-07-01: 1  (too few)
+  typescript OlegWock/anori                                    498★  merged PRs since 2026-07-01: 4  (too few)
+  typescript dataflint/spark                                   498★  merged PRs since 2026-07-01: 0  (too few)
+  typescript codegouvfr/react-dsfr                             497★  merged PRs since 2026-07-01: 12  (too few)
+  typescript zzliux/assttyys_autojs                            493★  merged PRs since 2026-07-01: 19
+  typescript guilhermeborgesbastos/live-resume                 492★  merged PRs since 2026-07-01: 29
+  typescript sanoojes/spicetify-lucid                          492★  merged PRs since 2026-07-01: 1  (too few)
+  typescript codaxy/cxjs                                       492★  merged PRs since 2026-07-01: 20
+  typescript Web3Auth/web3auth-web                             491★  merged PRs since 2026-07-01: 19
+  typescript crowbartools/Firebot                              490★  merged PRs since 2026-07-01: 5  (too few)
+  typescript sigle/sigle                                       489★  merged PRs since 2026-07-01: 80
+  typescript firebase/apphosting-adapters                      489★  merged PRs since 2026-07-01: 27
+  typescript ossappscollective/oss-weather                     489★  merged PRs since 2026-07-01: 146
+  typescript microsoft-search/pnp-modern-search                489★  merged PRs since 2026-07-01: 108
+  typescript cortex-js/compute-engine                          488★  merged PRs since 2026-07-01: 35
+  typescript instructure/instructure-ui                        486★  merged PRs since 2026-07-01: 135
+  typescript hbl917070/Tiefsee4                                486★  merged PRs since 2026-07-01: 0  (too few)
+  typescript microsoft/Power-CAT-Copilot-Studio-Kit            486★  merged PRs since 2026-07-01: 37
+  typescript reearth/reearth-visualizer                        486★  merged PRs since 2026-07-01: 217
+  typescript zodiaceco/zodiac                                  483★  merged PRs since 2026-07-01: 3  (too few)
+  typescript twilio-labs/paste                                 483★  merged PRs since 2026-07-01: 2  (too few)
+  typescript DataRecce/recce                                   483★  merged PRs since 2026-07-01: 89
+  typescript telerik/kendo-angular                             482★  merged PRs since 2026-07-01: 4  (too few)
+  typescript receptron/mulmocast-cli                           482★  merged PRs since 2026-07-01: 156
+  typescript lone-cloud/gerbil                                 481★  merged PRs since 2026-07-01: 0  (too few)
+  typescript SpyglassMC/Spyglass                               481★  merged PRs since 2026-07-01: 32
+  javascript theBowja/genshin-db                               497★  merged PRs since 2026-07-01: 0  (too few)
+  javascript lutangar/cities.json                              497★  merged PRs since 2026-07-01: 0  (too few)
+  javascript AntonPalmqvist/physically-based-api               490★  merged PRs since 2026-07-01: 9  (too few)
+  javascript breck7/scroll                                     489★  merged PRs since 2026-07-01: 0  (too few)
+  javascript zpix1/yt-anti-translate                           485★  merged PRs since 2026-07-01: 1  (too few)
+  javascript jsakamoto/BlazingStory                            480★  merged PRs since 2026-07-01: 9  (too few)
+  javascript ApryseSDK/webviewer-ui                            479★  merged PRs since 2026-07-01: 0  (too few)
+  javascript obsidianmd/obsidian-translations                  477★  merged PRs since 2026-07-01: 38
+  javascript APIJSON/APIJSON-Demo                              474★  merged PRs since 2026-07-01: 3  (too few)
+  javascript IgniteUI/ignite-ui                                474★  merged PRs since 2026-07-01: 6  (too few)
+  javascript nwutils/updater                                   471★  merged PRs since 2026-07-01: 7  (too few)
+  javascript OpenGeoscience/geojs                              471★  merged PRs since 2026-07-01: 21
+  javascript ddterm/gnome-shell-extension-ddterm               470★  merged PRs since 2026-07-01: 176
+  javascript alienkitty/space.js                               467★  merged PRs since 2026-07-01: 4  (too few)
+  javascript amazon-connect/amazon-connect-streams             466★  merged PRs since 2026-07-01: 22
+  javascript Jaysmito101/cgl                                   464★  merged PRs since 2026-07-01: 0  (too few)
+  javascript lastsunday/job-hunting                            462★  merged PRs since 2026-07-01: 2  (too few)
+  javascript pyladies/pyladies                                 462★  merged PRs since 2026-07-01: 5  (too few)
+  javascript genielabs/HomeGenie                               459★  merged PRs since 2026-07-01: 0  (too few)
+  javascript nextcloud/richdocuments                           459★  merged PRs since 2026-07-01: 446
+  javascript sbiermanlytle/iioEngine                           457★  merged PRs since 2026-07-01: 2  (too few)
+  javascript Laumss/loominary                                  457★  merged PRs since 2026-07-01: 5  (too few)
+  javascript ros-infrastructure/www.ros.org                    456★  merged PRs since 2026-07-01: 4  (too few)
+  javascript MrAntares/roBrowserLegacy                         455★  merged PRs since 2026-07-01: 214
+  javascript springreport/springreport                         454★  merged PRs since 2026-07-01: 11  (too few)
+  javascript lipengjun92/platform-wxshop                       453★  merged PRs since 2026-07-01: 0  (too few)
+  javascript poolifier/poolifier                               453★  merged PRs since 2026-07-01: 147
+  javascript DeekeScript/ad-deeke                              452★  merged PRs since 2026-07-01: 0  (too few)
+  javascript RobotWebTools/rclnodejs                           450★  merged PRs since 2026-07-01: 70
+  javascript coatless/quarto-webr                              450★  merged PRs since 2026-07-01: 9  (too few)
+  javascript WesselKroos/youtube-ambilight                     450★  merged PRs since 2026-07-01: 0  (too few)
+  javascript andrescv/jupiter                                  450★  merged PRs since 2026-07-01: 0  (too few)
+  rust       Paligo/xee                                        500★  merged PRs since 2026-07-01: 3  (too few)
+  rust       fluxy-rs/fluxy                                    490★  merged PRs since 2026-07-01: 21
+  rust       Mjoyufull/fsel                                    489★  merged PRs since 2026-07-01: 28
+  rust       kvark/vange-rs                                    489★  merged PRs since 2026-07-01: 122
+  rust       r3bl-org/r3bl-open-core                           488★  merged PRs since 2026-07-01: 8  (too few)
+  rust       FutureSDR/FutureSDR                               487★  merged PRs since 2026-07-01: 0  (too few)
+  rust       Sovereign-Labs/sovereign-sdk                      484★  merged PRs since 2026-07-01: 41
+  rust       fluree/db                                         483★  merged PRs since 2026-07-01: 465
+  rust       zkVerify/zkVerify                                 478★  merged PRs since 2026-07-01: 15
+  rust       glebbash/LO                                       476★  merged PRs since 2026-07-01: 2  (too few)
+  rust       longbridge/openapi                                475★  merged PRs since 2026-07-01: 71
+  rust       2DGD-F0TH/2DGD_F0TH                               472★  merged PRs since 2026-07-01: 2  (too few)
+  rust       FelixKrueger/Bismark                              472★  merged PRs since 2026-07-01: 168
+  rust       Cykooz/fast_image_resize                          470★  merged PRs since 2026-07-01: 1  (too few)
+  rust       open-telemetry/otel-arrow                         469★  merged PRs since 2026-07-01: 837
+  rust       udoprog/musli                                     468★  merged PRs since 2026-07-01: 12  (too few)
+  rust       conda/rattler                                     467★  merged PRs since 2026-07-01: 452
+  rust       o1-labs/proof-systems                             459★  merged PRs since 2026-07-01: 30
+  rust       theseus-rs/rsql                                   459★  merged PRs since 2026-07-01: 14  (too few)
+  rust       IceDynamix/reliquary-archiver                     458★  merged PRs since 2026-07-01: 14  (too few)
+  rust       apollographql/rover                               456★  merged PRs since 2026-07-01: 660
+  rust       tlsnotary/tlsn                                    454★  merged PRs since 2026-07-01: 26
+  rust       JeroenGar/sparrow                                 454★  merged PRs since 2026-07-01: 23
+  rust       crocidb/bulletty                                  453★  merged PRs since 2026-07-01: 24
+  csharp     Geodan/pg2b3dm                                    499★  merged PRs since 2026-07-01: 2  (too few)
+  csharp     WildGums/Orchestra                                496★  merged PRs since 2026-07-01: 74
+  csharp     526077247/GenshinGamePlay                         493★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     VocaDB/vocadb                                     492★  merged PRs since 2026-07-01: 14  (too few)
+  csharp     Suprcode/Zircon                                   492★  merged PRs since 2026-07-01: 9  (too few)
+  csharp     OpenCoreMMO/OpenCoreMMO                           489★  merged PRs since 2026-07-01: 23
+  csharp     dotnetprojects/DotNetSiemensPLCToolBoxLibrary     489★  merged PRs since 2026-07-01: 10  (too few)
+  csharp     KSP-RO/RP-1                                       486★  merged PRs since 2026-07-01: 85
+  csharp     LANCommander/LANCommander                         482★  merged PRs since 2026-07-01: 30
+  csharp     wieslawsoltes/PanAndZoom                          481★  merged PRs since 2026-07-01: 7  (too few)
+  csharp     OData/RESTier                                     481★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     outfox/fennecs                                    481★  merged PRs since 2026-07-01: 3  (too few)
+  csharp     ArtifexSoftware/Ghostscript.NET                   480★  merged PRs since 2026-07-01: 7  (too few)
+  csharp     Azure/azure-iot-sdk-csharp                        477★  merged PRs since 2026-07-01: 10  (too few)
+  csharp     oculus-samples/Unity-NorthStar                    476★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     microsoft/PSRule                                  475★  merged PRs since 2026-07-01: 54
+  csharp     alper-han/CrossMacro                              474★  merged PRs since 2026-07-01: 7  (too few)
+  csharp     RapidScada/scada-v6                               473★  merged PRs since 2026-07-01: 4  (too few)
+  csharp     shimat/opencvsharp_samples                        473★  merged PRs since 2026-07-01: 54
+  csharp     NetCordDev/NetCord                                468★  merged PRs since 2026-07-01: 61
+  csharp     nissl-lab/toxy                                    467★  merged PRs since 2026-07-01: 3  (too few)
+  csharp     OpenKH/OpenKh                                     466★  merged PRs since 2026-07-01: 16
+  csharp     robinrodricks/FluentStorage                       463★  merged PRs since 2026-07-01: 18
+  csharp     kwsch/pkNX                                        459★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     AAEmu/AAEmu                                       458★  merged PRs since 2026-07-01: 328
+  csharp     openshwprojects/BK7231GUIFlashTool                456★  merged PRs since 2026-07-01: 32
+  csharp     notgiven688/jitterphysics2                        454★  merged PRs since 2026-07-01: 31
+  csharp     TastSong/GameProgrammerStudyNotes                 451★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     SlimPlanet/SlimFaas                               451★  merged PRs since 2026-07-01: 80
+  csharp     CervantesSec/cervantes                            450★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     microsoft/PowerApps-Tooling                       449★  merged PRs since 2026-07-01: 11  (too few)
+  csharp     AccountGo/accountgo                               448★  merged PRs since 2026-07-01: 252
+  csharp     Martenfur/Monofoxe                                448★  merged PRs since 2026-07-01: 0  (too few)
+  csharp     ShapeCrawler/ShapeCrawler                         446★  merged PRs since 2026-07-01: 51
+  kotlin     techlore/Plexus-app                               498★  merged PRs since 2026-07-01: 0  (too few)
+  kotlin     piashcse/kmp-movie                                496★  merged PRs since 2026-07-01: 9  (too few)
+  kotlin     FossifyOrg/Camera                                 496★  merged PRs since 2026-07-01: 33
+  kotlin     tangcent/easy-yapi                                489★  merged PRs since 2026-07-01: 62
+  kotlin     GeorgeClensy/Escape-Launcher                      482★  merged PRs since 2026-07-01: 2  (too few)
+  kotlin     thewca/tnoodle                                    482★  merged PRs since 2026-07-01: 83
+  kotlin     slackhq/foundry                                   480★  merged PRs since 2026-07-01: 110
+  kotlin     cashapp/misk                                      473★  merged PRs since 2026-07-01: 131
+  kotlin     Fraunhofer-AISEC/cpg                              472★  merged PRs since 2026-07-01: 169
+  kotlin     software-mansion/pulsar                           469★  merged PRs since 2026-07-01: 166
+  kotlin     FossifyOrg/Calculator                             469★  merged PRs since 2026-07-01: 44
+  kotlin     HDCharts/charts                                   466★  merged PRs since 2026-07-01: 345
+  kotlin     GPLaider/Ventoid                                  463★  merged PRs since 2026-07-01: 15
+  kotlin     palincat/gama                                     459★  merged PRs since 2026-07-01: 0  (too few)
+  kotlin     android/xr-samples                                458★  merged PRs since 2026-07-01: 3  (too few)
+  kotlin     KhubaibKhan4/Youtube-Clone-KMP                    449★  merged PRs since 2026-07-01: 1  (too few)
+  kotlin     wisnukurniawan/Compose-ToDo                       447★  merged PRs since 2026-07-01: 0  (too few)
+  kotlin     AndraxDev/speak-gpt                               447★  merged PRs since 2026-07-01: 2  (too few)
+  kotlin     InsanusMokrassar/ktgbotapi                        444★  merged PRs since 2026-07-01: 4  (too few)
+  kotlin     CraftWorksMC/Chora                                442★  merged PRs since 2026-07-01: 5  (too few)
+  kotlin     wyskoj/midis2jam2                                 442★  merged PRs since 2026-07-01: 25
+  kotlin     anujja/DoNotNotify                                441★  merged PRs since 2026-07-01: 2  (too few)
+  kotlin     ProtonDriveApps/android-drive                     435★  merged PRs since 2026-07-01: 0  (too few)
+  kotlin     keepalivedev/KeepAlive                            431★  merged PRs since 2026-07-01: 40
+  kotlin     akshay2211/DrawBox                                427★  merged PRs since 2026-07-01: 36
+  kotlin     Katsuyamaki/DroidOS                               427★  merged PRs since 2026-07-01: 0  (too few)
+  kotlin     alisonthemonster/Presently                        422★  merged PRs since 2026-07-01: 24
+  kotlin     braintree/braintree_android                       422★  merged PRs since 2026-07-01: 93
+  php        xenocrat/chyrp-lite                               500★  merged PRs since 2026-07-01: 4  (too few)
+  php        spatie/spatie.be                                  500★  merged PRs since 2026-07-01: 75
+  php        ikhsan3adi/absensi-sekolah-qr-code                498★  merged PRs since 2026-07-01: 7  (too few)
+  php        baopham/laravel-dynamodb                          497★  merged PRs since 2026-07-01: 1  (too few)
+  php        LDAPAccountManager/lam                            497★  merged PRs since 2026-07-01: 57
+  php        Admidio/admidio                                   488★  merged PRs since 2026-07-01: 139
+  php        PHPJasper/phpjasper                               488★  merged PRs since 2026-07-01: 0  (too few)
+  php        ttskch/jp-postal-code-api                         483★  merged PRs since 2026-07-01: 0  (too few)
+  php        pressbooks/pressbooks                             463★  merged PRs since 2026-07-01: 79
+  php        sebastianbergmann/object-graph                    459★  merged PRs since 2026-07-01: 13  (too few)
+  php        atk4/ui                                           456★  merged PRs since 2026-07-01: 8  (too few)
+  php        contao/contao                                     454★  merged PRs since 2026-07-01: 493
+  php        mzkeep/ModStartCMS                                453★  merged PRs since 2026-07-01: 0  (too few)
+  php        browscap/browscap                                 445★  merged PRs since 2026-07-01: 20
+  php        kohler/hotcrp                                     443★  merged PRs since 2026-07-01: 2  (too few)
+  php        Zakarialabib/myStockMaster                        442★  merged PRs since 2026-07-01: 5  (too few)
+  php        awcodes/filament-curator                          440★  merged PRs since 2026-07-01: 83
+  php        minthcm/minthcm                                   438★  merged PRs since 2026-07-01: 0  (too few)
+  php        RetroAchievements/RAWeb                           437★  merged PRs since 2026-07-01: 254
+  php        inex/IXP-Manager                                  434★  merged PRs since 2026-07-01: 145
+  php        zencart/zencart                                   428★  merged PRs since 2026-07-01: 101
+  php        laradashboard/laradashboard                       421★  merged PRs since 2026-07-01: 88
+  php        OPSnet/Gazelle                                    417★  merged PRs since 2026-07-01: 0  (too few)
+  php        jeedom/core                                       413★  merged PRs since 2026-07-01: 284
+  php        academico-sis/academico                           413★  merged PRs since 2026-07-01: 57
+  php        openITCOCKPIT/openITCOCKPIT                       409★  merged PRs since 2026-07-01: 72
+  php        sergejey/majordomo                                407★  merged PRs since 2026-07-01: 47
+  ruby       hitobito/hitobito                                 485★  merged PRs since 2026-07-01: 197
+  ruby       concerto/concerto                                 485★  merged PRs since 2026-07-01: 151
+  ruby       openai/openai-ruby                                476★  merged PRs since 2026-07-01: 706
+  ruby       archivesspace/archivesspace                       449★  merged PRs since 2026-07-01: 238
+  ruby       github/entitlements-app                           448★  merged PRs since 2026-07-01: 14  (too few)
+  ruby       getlago/lago-api                                  444★  merged PRs since 2026-07-01: 1083
+  ruby       WikiEducationFoundation/WikiEduDashboard          433★  merged PRs since 2026-07-01: 254
+  ruby       mysociety/alaveteli                               421★  merged PRs since 2026-07-01: 229
+  ruby       sous-chefs/jenkins                                421★  merged PRs since 2026-07-01: 4  (too few)
+  ruby       DataDog/dd-trace-rb                               419★  merged PRs since 2026-07-01: 540
+  ruby       ruby-gnome/ruby-gnome                             404★  merged PRs since 2026-07-01: 26
+  ruby       karafka/rdkafka-ruby                              400★  merged PRs since 2026-07-01: 186
+  ruby       buildkite/emojis                                  399★  merged PRs since 2026-07-01: 26
+  ruby       Maruno17/pokemon-essentials                       389★  merged PRs since 2026-07-01: 3  (too few)
+  ruby       kagisearch/bangs                                  384★  merged PRs since 2026-07-01: 47
+  ruby       rubyforgood/casa                                  384★  merged PRs since 2026-07-01: 215
+  ruby       sudara/alonetone                                  382★  merged PRs since 2026-07-01: 0  (too few)
+  ruby       anthropics/anthropic-sdk-ruby                     379★  merged PRs since 2026-07-01: 27
+  ruby       tobymao/18xx                                      378★  merged PRs since 2026-07-01: 231
+  cpp        F5OEO/tezuka_fw                                   500★  merged PRs since 2026-07-01: 19
+  cpp        coin-or/Clp                                       499★  merged PRs since 2026-07-01: 16
+  cpp        adaptyteam/AdaptySDK-iOS                          498★  merged PRs since 2026-07-01: 10  (too few)
+  cpp        user1121114685/Wallpaper_Engine                   496★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        mrsanshui/vworkApi                                494★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        daisyaudio/libDaisy                               494★  merged PRs since 2026-07-01: 13  (too few)
+  cpp        Admiral-Fish/PokeFinder                           494★  merged PRs since 2026-07-01: 16
+  cpp        KDE/falkon                                        494★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        raspberrypi/libcamera                             492★  merged PRs since 2026-07-01: 1  (too few)
+  cpp        stijnherfst/HiveWE                                492★  merged PRs since 2026-07-01: 6  (too few)
+  cpp        ValveSoftware/dxvk                                489★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        davy7125/polyphone                                488★  merged PRs since 2026-07-01: 1  (too few)
+  cpp        irods/irods                                       487★  merged PRs since 2026-07-01: 44
+  cpp        QuantumLeaps/qpcpp                                487★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        introlab/find-object                              483★  merged PRs since 2026-07-01: 2  (too few)
+  cpp        open-planning/roboplan                            483★  merged PRs since 2026-07-01: 114
+  cpp        topology-tool-kit/ttk                             482★  merged PRs since 2026-07-01: 15
+  cpp        prusa3d/Prusa-Firmware-ESP32-Cam                  479★  merged PRs since 2026-07-01: 9  (too few)
+  cpp        evpo/EncryptPad                                   478★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        ryzom/ryzomcore                                   478★  merged PRs since 2026-07-01: 16
+  cpp        PhotoFlare/photoflare                             477★  merged PRs since 2026-07-01: 3  (too few)
+  cpp        JeanPhilippeKernel/RendererEngine                 477★  merged PRs since 2026-07-01: 196
+  cpp        dmtcp/dmtcp                                       476★  merged PRs since 2026-07-01: 35
+  cpp        freeminer/freeminer                               476★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        BenjaminPoilve/minichord                          474★  merged PRs since 2026-07-01: 19
+  cpp        slynobody/SteamOS-wallpaper-engine-kde-plugin     471★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        UtilitechAS/amsreader-firmware                    471★  merged PRs since 2026-07-01: 74
+  cpp        headtracker/HeadTracker                           471★  merged PRs since 2026-07-01: 1  (too few)
+  cpp        fluffos/fluffos                                   469★  merged PRs since 2026-07-01: 192
+  cpp        GregoryCannon/StackRabbit                         467★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        PX4/PX4-SITL_gazebo-classic                       467★  merged PRs since 2026-07-01: 2  (too few)
+  cpp        cool2528/GDownload                                467★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        h2oai/h2o4gpu                                     467★  merged PRs since 2026-07-01: 9  (too few)
+  cpp        cselab/aphros                                     465★  merged PRs since 2026-07-01: 1  (too few)
+  cpp        open-telemetry/opentelemetry-dotnet-instrumentation  464★  merged PRs since 2026-07-01: 351
+  cpp        sunjw/fhash                                       464★  merged PRs since 2026-07-01: 0  (too few)
+  cpp        WujekFoliarz/DualSenseY-v2                        463★  merged PRs since 2026-07-01: 12  (too few)
+  cpp        XCSoar/XCSoar                                     463★  merged PRs since 2026-07-01: 420
+  cpp        valbok/QtAVPlayer                                 459★  merged PRs since 2026-07-01: 54

@@ -12,7 +12,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { spawnSync } from 'child_process';
+import { screenHiddenTests } from '../../scripts/lib/change-task-screen.mjs';
 
 const argv = process.argv.slice(2);
 const root = argv[0];
@@ -24,25 +24,7 @@ const out = [];
 for (const t of tasks) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-'));
   fs.cpSync(path.join(root, 'benchmarks/repos', t.repo), tmp, { recursive: true });
-  const invents = []; const unresolved = [];
-  for (const h of t.hidden) {
-    const re = /const\s*\{([^}]+)\}\s*=\s*require\(([^;]+?)\);/g;
-    const checks = [];
-    for (let m; (m = re.exec(h.content));) checks.push({ names: m[1].split(',').map((s) => s.trim().split(':')[0].trim()).filter(Boolean), expr: m[2] });
-    const dir = path.join(tmp, path.dirname(h.path));
-    fs.mkdirSync(dir, { recursive: true });
-    const lines = ["const path = require('path'); const fs = require('fs'); const os = require('os'); const ROOT = path.resolve(__dirname, '../..'); const res = { missing: [], unresolved: [] };"];
-    for (const c of checks) lines.push(`try { const m = require(${c.expr}); for (const n of ${JSON.stringify(c.names)}) if (typeof m[n] === 'undefined') res.missing.push(n); } catch (e) { res.unresolved.push(${JSON.stringify(c.expr.slice(0, 60))}); }`);
-    lines.push('console.log(JSON.stringify(res));');
-    const f = path.join(dir, '__screen.js');
-    fs.writeFileSync(f, lines.join('\n'));
-    const r = spawnSync(process.execPath, [f], { cwd: tmp, encoding: 'utf8', timeout: 60000 });
-    try {
-      const j = JSON.parse(r.stdout.trim().split('\n').pop());
-      for (const n of j.missing) if (!invents.includes(n)) invents.push(n);
-      for (const n of j.unresolved) if (!unresolved.includes(n)) unresolved.push(n);
-    } catch (_) { unresolved.push(`screen failed for ${h.path}`); }
-  }
+  const { invents, unresolved } = screenHiddenTests(tmp, t.hidden);
   fs.rmSync(tmp, { recursive: true, force: true });
   out.push({
     id: t.id, issue: t.issue, base: t.parent, title: t.query.split('\n')[0], fixFiles: t.goldFiles || t.expected_files,

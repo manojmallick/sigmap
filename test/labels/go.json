@@ -1,0 +1,14 @@
+{
+  "_comment": "Written by hand from test/fixtures/go.go, not from the extractor's output. `defines` are the declarations the extractor's contract lists: types, functions, methods (private ones are not in this fixture).",
+  "fixture": "test/fixtures/go.go",
+  "defines": ["UserService", "Repository", "FindById", "Save", "NewUserService", "GetUser", "CreateUser", "HashPassword", "Apply", "Map", "Stack", "Push", "Fetch", "Join", "Sum", "Runner", "Run"],
+  "probes": [
+    {
+      "name": "declarations in a comment and in strings",
+      "file": "probe.go",
+      "source": "package main\n\n// func GhostInLineComment() {}\n/* func GhostInBlockComment() {} */\nvar s = \"func GhostInString() {}\"\nvar t = `func GhostInRawString() {}`\n\nfunc Real() {}\n",
+      "mustContain": ["Real"],
+      "mustNotContain": ["GhostInLineComment", "GhostInBlockComment", "GhostInString", "GhostInRawString"]
+    }
+  ]
+}
