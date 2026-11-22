@@ -95,6 +95,23 @@ function runLines(workflow, job) {
     assert.ok(!files.includes('AGENTS.md'), 'AGENTS.md is SigMap\'s own generated file, not the package\'s');
   });
 
+  // CodeQL runs as a workflow so it can leave test code out. What it must not do is leave out anything else, or scan fewer languages
+  // than GitHub's default setup did (which is what ran before): a narrower scan reads as a cleaner repository.
+  await test('CodeQL scans both languages, reads its config, and that config ignores test/ and nothing else', () => {
+    const wf = read('.github/workflows/codeql.yml');
+    assert.match(wf, /language:\s*\[actions, javascript-typescript\]/, 'the two languages the default setup scanned');
+    assert.match(wf, /config-file:\s*\.\/\.github\/codeql\/codeql-config\.yml/, 'the workflow reads the config');
+    assert.match(wf, /build-mode:\s*none/);
+    assert.match(wf, /pull_request:\s*\n\s+branches:\s*\[main\]/, 'a pull request into main is analysed');
+    assert.match(wf, /push:\s*\n\s+branches:\s*\[main\]/, 'a push to main is analysed');
+    assert.match(wf, /schedule:/, 'the weekly run stays');
+    const cfg = read('.github/codeql/codeql-config.yml').split('\n').filter((l) => !/^\s*(#|$)/.test(l));
+    const ignored = cfg.filter((l) => /^\s+-\s/.test(l)).map((l) => l.replace(/^\s+-\s+/, '').replace(/^['"]|['"]$/g, ''));
+    assert.deepStrictEqual(ignored, ['test/**'], 'only test code is left out of the scan');
+    assert.ok(!cfg.some((l) => /^queries:/.test(l)), 'no `queries:` key: the default suite, as before');
+    assert.ok(!cfg.some((l) => /^paths:/.test(l)), 'no `paths:` allow-list: it would narrow the scan to what it names');
+  });
+
   console.log(`\nrelease-hygiene: ${pass} passed, ${fail} failed`);
   process.exit(fail > 0 ? 1 : 0);
 })();

@@ -160,7 +160,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --models` | List the accepted model names, their per-MTok input rates, and the date of the profile they come from |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
-| `--init` | Scaffold `gen-context.config.json` (starting on the lean `core` MCP tool profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
+| `--init` | Scaffold `gen-context.config.json` (a new install starts on strategy `index` and the two-tool `locate` MCP profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched. Measured against compiler-derived edges: plain `f()` calls are found 99% in Go, 56% in Python; calls through a receiver (`x.m()`) are not found outside Java — see [call-graph accuracy](/guide/callgraph-accuracy) |
@@ -2623,7 +2623,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.87.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.88.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3235,7 +3235,7 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 sigmap --init
 ```
 
-A new config starts on the lean MCP profile — `"mcp": { "tools": "core" }`, the retrieval + grounding loop at about a third of the tool-definition tokens (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps every tool.
+A new config starts on the `index` strategy and the two-tool `locate` MCP profile — `"strategy": "index"` and `"mcp": { "tools": "locate" }`: a short always-on map, with `query_context` and `get_lines` for where-is-it questions, under a third of the tool-definition tokens of `core` (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all) and [Choosing a setup](/guide/choosing-a-setup#what-a-new-install-starts-on) for what it was measured to do and what it drops). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps strategy `full` and every tool. To start from the previous profile, set `"mcp": { "tools": "core" }` (and `"strategy": "full"`).
 
 ::: tip `.context/` keeps itself out of git
 `--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.
@@ -3279,6 +3279,8 @@ sigmap --impact src/auth/service.ts --json
 **Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS, Python, Java, Go, and Rust** (Java/Go/Rust added in v8.14.0).
 
 Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
+
+**Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) are not resolved outside Java.** For a symbol in TypeScript, Python or Go the output says so and `--json` carries `receiverCalls`, because an empty list there is not a safe answer ([measured](/guide/callgraph-accuracy)).
 
 ```bash
 sigmap --callers validateToken            # who (transitively) calls validateToken?
@@ -3326,7 +3328,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.87.0
+# 8.88.0
 ```
 
 ---
