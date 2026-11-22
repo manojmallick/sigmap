@@ -67,8 +67,74 @@ Second round (fifteen more repositories): `node scripts/select-heldout-repos.mjs
 --keep-per-language 2` builds the questions (`data/heldout2-*`). Shard a large set with `HELDOUT_REPOS=a,b`. `--sigmap-variant locate` is `index`
 with the tool list cut to `query_context` and `get_lines`.
 
+**Third round: large repositories** (16 repositories of 3,026 to 7,756 tracked files, 192 questions, `data/heldout3-*`). The first two rounds top out at
+about 2,400 files, so nothing in the study says what a new-install default does on a large repository. The rule is round 2's with two changes that
+`select-heldout-repos.mjs --size-kb 30000..400000` and `build-heldout-set.mjs --min-files 3000 --max-files 10000` make: a larger size window in the search,
+and a check on `git ls-files` at the pinned commit. GitHub's size filter is a weak proxy for file count: of the 93 candidates the builder tried, 72 were
+outside the window (71 under 3,000 files, one over 10,000), 3 failed to clone on the macOS machine that built the set, 2 had fewer than 8 qualifying
+questions and 16 were kept; 36 were not tried because their language already had two. Pass 1 (36 candidates) gave only 4 usable repositories, so pass 2 applied the same rule deeper in star order and in five more
+languages; that decision was made knowing file counts and no agent outcome. Nothing was chosen by hand: every repository is a candidate the rule
+printed (`data/heldout3-selected-repos.txt`, with stars and merged-PR counts in `data/heldout3-selection-log.txt`), and `data/heldout3-build-report.txt` has
+one line for every candidate. Rebuild it with no key:
+
+```bash
+node benchmarks/agent-study/rebuild-heldout-root.mjs --out ~/heldout3-root --pins heldout3-repos.json --questions heldout3-questions.jsonl   # about 2 GB
+```
+
 `data/heldout-questions.jsonl`, `data/heldout-repos.json` (the pinned commits) and `data/heldout-build-report.txt` are the question set the
 study used; `data/closed-book.heldout.*.json` is its closed-book control.
+
+### Repeating a run on the same held-out repositories
+
+`build-heldout-set.mjs` reads each repository's current head, so running it again gives different questions. To repeat a run on what the study used, rebuild the data root from the saved pins (about 100 MB; network only, no key):
+
+```bash
+node benchmarks/agent-study/rebuild-heldout-root.mjs --out ~/heldout-root --exclude emilk__egui_plot   # the 20 repositories, 222 questions, of the API and hook series
+# plan and cost ceiling first (starts nothing); then GO=1. ANTHROPIC_API_KEY in your shell only.
+MCP_CONNECTION_NONBLOCKING=0 SETS=heldout HELDOUT_ROOT=~/heldout-root VARIANTS=locate AGENT=claude MODEL=claude-haiku-5-5 RUNS=4 MAX_TOTAL_USD=25 BUDGET=0.25 \
+  OUT=~/t5-runs bash benchmarks/agent-study/run-token-saving.sh
+node benchmarks/agent-study/to-runs.mjs ~/t5-runs --route claude-code --model claude-haiku-5-5 > locate.ndjson
+# first asks only (run 1 of each question; runs 2-4 are served from the host's prompt cache, see `ask` above), then the bar:
+node -e 'const l=require("fs").readFileSync(0,"utf8").split("\n").filter(Boolean).filter((x)=>JSON.parse(x).ask!=="repeat");process.stdout.write(l.join("\n")+"\n")' < locate.ndjson > locate-first.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs locate-first.ndjson --variant locate --set heldout   # a pre-registered bar, clause by clause
+```
+
+`confirm-bar.mjs` applies the bar written in its own source (B1 to B4) with the study's pairing, drop rule and repository-level pooling, and exits 1 if a clause is not met. `--out` must be outside this repository.
+
+**The run this was written for is saved:** `data/confirm-locate-claude-code.ndjson` is the table of the confirmatory run of #1071 (`locate`, Claude Code, Haiku 5.5, the 20 held-out repositories, 1,776 runs, run 2026-11-18/19; the output of `to-runs.mjs`, unedited). It is kept apart from `data/runs.ndjson` so the study's counts and every figure derived from them stay as published. Anyone can re-derive its headline with no key and no network:
+
+```bash
+grep '"ask":"first"' benchmarks/agent-study/data/confirm-locate-claude-code.ndjson > first.ndjson
+node benchmarks/agent-study/confirm-bar.mjs --runs first.ndjson --variant locate --set heldout   # BAR MET: cost -16.6% [-23.2, -9.7], file found 205 vs 208, uptake 96%
+```
+
+`test/integration/agent-study-confirmatory-tools.test.js` pins those numbers. They say what the bar says about this run and nothing beyond it: one model, one agent setup, 20 repositories of up to about 2,400 files, and "file found", not answer quality.
+
+**The same test with Sonnet 5.5 (T6 of #1071) is saved too:** `data/confirm-locate-claude-code-sonnet-5-5.ndjson`, 444 runs (one per question per arm, so every run is a first ask), run 2026-11-20/21 from commit `1c85b72`, whose harness files are identical to those of the pre-registered commit; the output of `to-runs.mjs`, unedited. Run it as above with `MODEL=claude-sonnet-5-5 RUNS=1 BUDGET=0.50`; the bar reads all runs, with no first-ask filter:
+
+```bash
+node benchmarks/agent-study/confirm-bar.mjs --runs benchmarks/agent-study/data/confirm-locate-claude-code-sonnet-5-5.ndjson --variant locate --set heldout
+# BAR MET: cost -8.8% [-15.5, -2.0], file found 211 vs 207, uptake 93%; 5 repositories clearly save, 15 are indeterminate, none clearly costs more
+```
+
+With Sonnet the saving is in cost, not in tokens: the SigMap arm wrote less output and fewer cache tokens but read more from cache, so its total tokens per run were 9% higher while its reported cost was 12% lower (ratio of means; a test pins the direction). Two batches were run twice because the maintainer's laptop slept mid-run (wall times of 974 to 1,520 s against a 420 s timeout); the discarded attempt gives -8.2% [-14.9, -1.7] with the bar met, so the rerun does not decide the result. If a long run times out, compare the run's wall time with the timeout first: a figure far above it means the host was asleep, not that the agent hung.
+
+**The same test on large repositories (T7 of #1071) is saved as well:** `data/confirm-locate-claude-code-large.ndjson`, 384 runs (192 questions on the third round's 16 repositories of 3,026 to 7,756 tracked files, one run per question per arm, so every run is a first ask), Haiku 5.5, run 2026-11-21 from commit `f341c54` (the harness files are identical to `1c85b72`, the commit T5 and T6 ran from); the output of `to-runs.mjs`, unedited. It was pre-registered on #1071 before any run existed, and the bar is the same B1 to B4.
+
+```bash
+node benchmarks/agent-study/confirm-bar.mjs --runs benchmarks/agent-study/data/confirm-locate-claude-code-large.ndjson --variant locate --set heldout
+# BAR MET: cost -18.5% [-22.5, -14.3], file found 167 vs 175, uptake 96%; 11 repositories clearly save, 5 are indeterminate, none clearly costs more
+```
+
+What the bar's reading hides: B3 is read on the point estimate, and it passes by 0.8 points (-4.2 against a limit of -5): 13 questions were found only without SigMap and 5 only with it, and an interval from resampling repositories is [-7.8, -1.0] (computed afterwards, not part of the bar), so a loss of more than 5 points is not excluded. Here cost and tokens fell together (about -20% each, against Sonnet's +9% tokens and -12% cost in T6). The rank correlation of cost change with file count is, post hoc, +0.36 over these 16 repositories (3,026 to 7,756 files), -0.48 over T5's 20 (31 to 2,388) and -0.19 [-0.50, 0.16] over all 36: no trend with size in either direction. Two runs of one repository took 376 and 381 s against the 420 s timeout and completed. It says nothing beyond one model, `locate` only, `--bare` with an API key, 16 repositories of up to 7,756 files in eight languages (no Python or JavaScript qualified), and "file found", not answer quality.
+
+Three things the first live attempts taught, so they need not be learned again:
+
+- **`PROMPT_STYLE=question` does not work for `locate`.** The harness refuses it (`scripts/lib/agent-ab-claude.mjs`): the SigMap arm of a variant that is neither a hook nor prefetch needs the system-prompt slot the style also uses. Leave `PROMPT_STYLE` unset, which is why runs 2-4 of a question are `repeat` asks and the bar above is read on first asks.
+- **Set `MCP_CONNECTION_NONBLOCKING=0`.** Claude Code 2.1.178 does not wait for the MCP server before its first model request by default, so a SigMap arm can begin with no SigMap tool (its init event says the server is `pending`). With the variable set the CLI waits for it.
+- **A server that is still `pending` anyway is repeated, up to 3 times.** It happened once in 93 SigMap-arm launches with the variable set (45 in a probe, 48 in the first batch). The run is discarded and the same job is run again (read from the init event alone, before the agent has done anything, so it cannot select on the outcome); each repeat prints a `RETRY` line with the discarded run's cost, and the kept record carries `startupRetries` in `raw.json`. A server that is absent or `failed`, a forbidden tool, or any fault in the baseline arm is still fatal, and a failed batch still records nothing.
+
+A batch is one repository (96 runs with 12 questions and 4 repetitions, about 15 minutes), so a crash or Ctrl-C loses the batch in progress; rerunning resumes from the finished ones.
 
 ### Change tasks (stage 2)
 
@@ -105,7 +171,7 @@ unfamiliar set is built from this checkout (`make-unfamiliar-root.mjs`).
 | `summarize.mjs --vs-placebo` | `index` and `prefetch` against the size-matched placebo, as well as against nothing |
 | `retrieval-rank.mjs` | free, offline: where SigMap's own ranking puts the expected file |
 | `run-change.sh` | stage 2: the change tasks, one process per task, resumable |
-| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented |
+| `screen-change-tasks.mjs` | describes the change tasks and flags hidden tests that need names the real fix invented (`build-change-tasks.mjs` now applies the same screen, from `scripts/lib/change-task-screen.mjs`, as a rule and never keeps such a task) |
 | `summarize.mjs` | every number in the study, from `data/runs.ndjson` |
 | `to-runs.mjs` | turns your own runs into rows `summarize.mjs` reads |
 

@@ -138,7 +138,7 @@ Or to use a larger fixed budget and disable auto-scaling:
 - Check JSON syntax in the settings file — a missing comma or mismatched quote will silently prevent parsing.
 - Reload or fully restart the IDE after making config changes. MCP servers are registered at startup.
 - Test the server manually to confirm it responds before blaming the editor config.
-- If the server answers but lists fewer tools than you expect, `mcp.tools` in `gen-context.config.json` chose them: `sigmap --init` writes `"core"` (seven tools) into a new config, and the server neither advertises nor answers the others. `sigmap doctor` prints the active profile in its `MCP tool profile` row. Set `"mcp": { "tools": "all" }` and restart the server for all 22 — see [Tool profiles](/guide/mcp#tool-profiles-core-or-all).
+- If the server answers but lists fewer tools than you expect, `mcp.tools` in `gen-context.config.json` chose them: `sigmap --init` writes `"locate"` (two tools) into a new config, and the server neither advertises nor answers the others. `sigmap doctor` prints the active profile in its `MCP tool profile` row. Set `"mcp": { "tools": "all" }` and restart the server for all 22 — see [Tool profiles](/guide/mcp#tool-profiles-core-or-all).
 
 ```bash
 node /path/to/gen-context.js --version

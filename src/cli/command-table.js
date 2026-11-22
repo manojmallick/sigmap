@@ -133,6 +133,7 @@ const USAGE = [
   { argv: 'redact [file]', desc: 'Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)' },
   { argv: 'tune', desc: 'Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)' },
   { argv: 'tune --apply', desc: 'Write the recommendations into gen-context.config.json (merges; your keys preserved)' },
+  { argv: 'advise', desc: 'Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --emit-root <dir>, --json)' },
   { argv: 'skills list', desc: 'List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)' },
   { argv: 'skills install', desc: 'Install the SigMap agent playbooks for detected clients (--client <name> | --all)' },
   { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
@@ -161,7 +162,7 @@ const USAGE = [
   { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
   { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
   { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-  { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+  { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
   { argv: '--help', desc: 'Show this message' },
   { argv: '--version', desc: 'Show version' },
 ];

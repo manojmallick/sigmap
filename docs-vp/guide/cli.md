@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, session, hooks, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, advise, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, session, hooks, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 129 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 130 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, advise, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 129 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 130 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, advise, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -96,6 +96,7 @@ If you are new to the product, start with the workflow pages first:
 |----------------|-------------|
 | `roots [--explain | --json | --fix]` | Auto-detect source roots for 17 languages and 50+ frameworks; shows confidence and scoring |
 | `tune [--apply | --json]` | Recommend config from repo detection — srcDirs pin, monorepo, adapters, exclude, budget — one reason per change; `--apply` writes |
+| `advise [--since <date>] [--max <n>] [--no-grep] [--emit-root <dir>] [--json]` | Offline facts for choosing how an agent gets SigMap (no model call, no forecast): what each setup adds to a turn, how often SigMap's first five files hold the file your recent changes touched against a single-shot grep, and whether the prefetch hook would fire. See [Choosing a setup](/guide/choosing-a-setup) |
 | `skills list` | List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) with presence and install state (`--json`) |
 | `skills install [--client <name> \| --all]` | Install the SigMap agent playbooks in each client's native skill/rules format, including the invokable `sigmap-task` loop; plain `install` wires only detected clients |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
@@ -159,7 +160,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --models` | List the accepted model names, their per-MTok input rates, and the date of the profile they come from |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
-| `--init` | Scaffold `gen-context.config.json` (starting on the lean `core` MCP tool profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
+| `--init` | Scaffold `gen-context.config.json` (a new install starts on strategy `index` and the two-tool `locate` MCP profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched. Measured against compiler-derived edges: plain `f()` calls are found 99% in Go, 56% in Python; calls through a receiver (`x.m()`) are not found outside Java — see [call-graph accuracy](/guide/callgraph-accuracy) |
@@ -2090,6 +2091,65 @@ Five rules, each deterministic:
 
 ---
 
+## advise
+
+Offline facts for choosing **how an agent gets SigMap**, for one project. It spends nothing and writes nothing in your project: it makes no model call, never generates an index (without one it says to run `sigmap` first), and prints no forecast; only `--emit-root`, if you pass it, writes, and only under the directory you name. It reports what each setup adds to every turn in your project; how often SigMap's first five files hold the file a recent change of yours touched, against the honest benchmark's single-shot grep; and whether the [prefetch hook](#the-prefetch-hook) would fire on those titles as prompts. It then prints what the [agent study](/guide/agent-study) measured, by goal.
+
+```bash
+sigmap advise                       # the questions come from your git history of the last year
+sigmap advise --since 2026-01-01    # a date, or 90d / 6m / 1y
+sigmap advise --max 20 --json       # more questions; machine-readable
+sigmap advise --no-grep             # skip the grep side (a very large tree)
+sigmap advise --emit-root ../advise-root   # write the paired harness's inputs for THIS project, outside it
+```
+
+```
+sigmap advise — sigmap: what SigMap can tell you offline (no model call, nothing written)
+
+What each setup adds to a turn (tokens, estimated as chars/4; the API's own counter read the study's locate profile at 426 and core at 1,505):
+  tools, locate profile      278   (2 tools: query_context, get_lines)
+  tools, core profile        953   (7 tools)
+  tools, all               2,561   (22 tools)
+  prefetch hook                0   standing; one block per prompt, at most ~2,048; on your first question below, the search result is ~761
+  now: strategy "full", mcp.tools "all"
+  CLAUDE.md                       2,936   the whole file (which one your agent loads depends on the client)
+  AGENTS.md                       8,087   the whole file (which one your agent loads depends on the client)
+  .github/copilot-instructions.md 15,807   the whole file (which one your agent loads depends on the client)
+  the map `strategy: "index"` writes was 761 tokens on the API's counter for the study's snapshot of SigMap's own repository; it is not measured for yours here
+
+Questions mined from your git history since 2025-11-14: 12 (55 commit(s) examined; the title is the question, the source files it touched are the answer).
+  the file is in SigMap's first five   9 of 12 (75%, 95% interval 47% to 91%)
+  the file is in a single-shot grep's  1 of 12 (8%, 95% interval 1% to 35%)
+  headroom (SigMap minus grep)         +67 points
+  the prefetch hook would fire for     12 of 12 of those titles as prompts
+
+What this does NOT do: it makes no call and prints no saving. In the agent study these numbers did not predict which repositories save
+  (headroom against the cost of prefetch over 20 repositories: rho -0.13 [-0.57, +0.36]; the bar was -0.5 with the interval below zero).
+
+What the study measured, by goal (20 repositories, Messages-API agent, Haiku 5.5; repositories that save / cost more):
+  time    prefetch −18% (19 save, 0 slower)   index +2%   locate +1%
+  tokens  prefetch −26% (9 save, 0 more)   index +51%   locate +18%
+  cost    prefetch −7% (7 save, 5 more)   locate −7% (4 save, 0 more)   index −1%
+
+To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup
+```
+
+(From SigMap's own repository, whose ranker was tuned on questions like these, so the first-five share is the best case. The checkout name above is the directory it runs in.)
+
+**It makes no call on purpose.** The study tested, with its bar written first, whether any of these numbers predicts how much a setup saves on a repository (the share of questions with the file in SigMap's first five, the same for grep, their difference, and the repository's size). None did: over twenty repositories the correlation of the headroom with the cost of `prefetch` was −0.13 [−0.57, +0.36] against a bar of −0.50 with the interval below zero ([Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository)). So the numbers are facts about your project, not a recommendation, and `call` and `forecast` are `null` in `--json`. To know what a setup saves for you, measure it: [Choosing a setup](/guide/choosing-a-setup).
+
+**The questions** are mined by the rule that built the study's held-out set: the first-parent commits since `--since`, oldest first; the title (with a trailing `(#123)` and a conventional-commit type removed, 25 to 160 characters, four words or more, not about lint, tests, docs, renames or CI, no bot, no dependency bump or release) is the question, and the one to three source files the commit changed (not tests, fixtures, examples, docs, config or generated files, all still present, none named in the title) are the answer. Fewer than eight qualifying changes are still scored, with a note that the interval is too wide to read.
+
+**`--emit-root <dir>`** turns the same questions into what the paired agent harness (`scripts/run-agent-ab.mjs`, in the SigMap repository and not in the npm package) reads, so a private project can be measured too: `benchmarks/xrepo-repos.json` (the project pinned to its `HEAD`), `benchmarks/tasks/retrieval-xrepo.jsonl` (one task per question, with the commit that made the change) and `benchmarks/repos/<name>`, a link to the project. It writes only under `<dir>`, which must be outside the project and either empty or a root this command wrote earlier; the harness resolves the link and copies the project for each arm, so the project is never reset, cleaned or written. It refuses a project whose `.git` is a file (a linked worktree or a submodule), because the copy's reset would write into the repository that file points at; run it in a plain clone. Uncommitted changes are reported, because every arm is reset to the pinned commit. It then prints the dry-run and run commands with the path quoted.
+
+| Option | Description |
+|--------|-------------|
+| `--since <date>` | Where the history starts: `2026-01-01`, `90d`, `6m` or `1y` (default `365d`) |
+| `--max <n>` | The most questions to use, oldest first (default 12) |
+| `--no-grep` | Leave the grep side (and the headroom row) out |
+| `--emit-root <dir>` | Write the inputs the [paired agent harness](/guide/choosing-a-setup#find-out-for-your-own-project) reads, for this project, under `<dir>`, and print the commands to run it |
+| `--json` | One object: `project, call, forecast, standing, questions, lead, readability, notes, study`, and `emitted` with `--emit-root` |
+
 ## skills
 
 Install SigMap's agent playbooks in each client's **native** skill/rules format (v8.26.0) — the multi-adapter idea applied to skills. Three skills ship:
@@ -2563,7 +2623,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.86.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.88.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3175,7 +3235,7 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 sigmap --init
 ```
 
-A new config starts on the lean MCP profile — `"mcp": { "tools": "core" }`, the retrieval + grounding loop at about a third of the tool-definition tokens (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps every tool.
+A new config starts on the `index` strategy and the two-tool `locate` MCP profile — `"strategy": "index"` and `"mcp": { "tools": "locate" }`: a short always-on map, with `query_context` and `get_lines` for where-is-it questions, under a third of the tool-definition tokens of `core` (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all) and [Choosing a setup](/guide/choosing-a-setup#what-a-new-install-starts-on) for what it was measured to do and what it drops). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps strategy `full` and every tool. To start from the previous profile, set `"mcp": { "tools": "core" }` (and `"strategy": "full"`).
 
 ::: tip `.context/` keeps itself out of git
 `--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.
@@ -3219,6 +3279,8 @@ sigmap --impact src/auth/service.ts --json
 **Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS, Python, Java, Go, and Rust** (Java/Go/Rust added in v8.14.0).
 
 Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
+
+**Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) are not resolved outside Java.** For a symbol in TypeScript, Python or Go the output says so and `--json` carries `receiverCalls`, because an empty list there is not a safe answer ([measured](/guide/callgraph-accuracy)).
 
 ```bash
 sigmap --callers validateToken            # who (transitively) calls validateToken?
@@ -3266,7 +3328,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.86.0
+# 8.88.0
 ```
 
 ---

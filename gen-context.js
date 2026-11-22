@@ -968,6 +968,591 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
   
 };
 
+// ── ./src/advise/advise ──
+__factories["./src/advise/advise"] = function(module, exports) {
+  
+  /**
+   * advise.js — `sigmap advise`: what SigMap can tell you about a project, offline, before you pick how an agent gets it.
+   *
+   * It reports FACTS and makes NO CALL. The agent study asked whether anything computable for free on a repository predicts how much a setup
+   * saves there, with the test and its bar written first (docs-vp/guide/agent-study-protocol.md, Stage I). The test did not pass
+   * (rho -0.13, 95% interval -0.57 to +0.36 over twenty repositories), so this command prints what each setup adds to a turn in the project,
+   * how often SigMap's first five files hold the file a recent change of the project touched, against a single-shot grep, and whether the
+   * project's prompts are readable by the hook, and says that these numbers did not predict the saving. It prints no percentage as a forecast.
+   *
+   * Read-only on the project: it runs `git log`/`git diff --name-only`, reads the index and the project's files, and writes nothing there (it never generates an
+   * index; without one it says so).
+   *
+   * Zero-dependency.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { mineQuestions, DEFAULT_SINCE, DEFAULT_MAX } = __require('./src/advise/mine');
+  const { grepRank, sigmapOutputs } = __require('./src/advise/grep-scan');
+
+  // Fewer than this many questions and the interval is too wide to read: the numbers are still printed, with that said.
+  const MIN_QUESTIONS = 8;
+
+  /**
+   * What the agent study measured, copied from benchmarks/agent-study/data/setup-signal-eval.txt (test/integration/advise.test.js fails if it drifts).
+   * Messages-API agent, Haiku 5.5, the twenty held-out repositories, the typical-task change against each repository's own baseline.
+   */
+  const STUDY = {
+    repositories: 20,
+    primary: { feature: 'headroom', setup: 'prefetch', measure: 'cost', rho: -0.13, lo: -0.57, hi: 0.36, bar: -0.5 },
+    byGoal: {
+      cost:   { index: { saves: 3, none: 15, costs: 2, pooled: -1 },  prefetch: { saves: 7, none: 8, costs: 5, pooled: -7 },  locate: { saves: 4, none: 16, costs: 0, pooled: -7 } },
+      time:   { index: { saves: 1, none: 15, costs: 4, pooled: 2 },   prefetch: { saves: 19, none: 1, costs: 0, pooled: -18 }, locate: { saves: 1, none: 16, costs: 3, pooled: 1 } },
+      tokens: { index: { saves: 0, none: 3, costs: 17, pooled: 51 },  prefetch: { saves: 9, none: 11, costs: 0, pooled: -26 }, locate: { saves: 1, none: 8, costs: 11, pooled: 18 } },
+    },
+  };
+
+  const tokensOf = (bytes) => Math.ceil(bytes / 4); // chars/4, as everywhere in SigMap
+
+  /** "In the first five": the cut the agent study and the honest benchmark both use. */
+  const TOP = 5;
+  /** 1-based position of the first of `files` in `list`, or 0 when none is there. */
+  const rankOf = (list, files) => list.findIndex((f) => files.includes(f)) + 1;
+  const inTop = (rank) => rank >= 1 && rank <= TOP;
+  /** SigMap's share minus grep's, in whole points of the questions; null when grep was not scored. */
+  const headroomPoints = (lead, grep, n) => (grep === null || !n ? null : Math.round((100 * (lead - grep)) / n));
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+
+  /** Wilson score interval for k of n at 95%, in [0, 1]. */
+  function wilson(k, n) {
+    if (!n) return { lo: 0, hi: 1 };
+    const z = 1.96, p = k / n, d = 1 + (z * z) / n;
+    const c = p + (z * z) / (2 * n);
+    const w = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+    return { lo: Math.max(0, (c - w) / d), hi: Math.min(1, (c + w) / d) };
+  }
+
+  function _toolFacts() {
+    const profile = __require('./src/mcp/profile');
+    const one = (tools) => { const r = profile.resolveProfile({ mcp: tools === null ? undefined : { tools } }); return { tools: r.names.length, tokens: r.tokens }; };
+    return { locate: one('locate'), core: one('core'), all: one(null) };
+  }
+
+  function _alwaysOn(cwd) {
+    const out = [];
+    for (const rel of ['CLAUDE.md', 'AGENTS.md', path.join('.github', 'copilot-instructions.md')]) {
+      try {
+        const st = fs.statSync(path.join(cwd, rel));
+        if (st.isFile()) out.push({ file: rel.replace(/\\/g, '/'), tokens: tokensOf(st.size) });
+      } catch (_) { /* absent */ }
+    }
+    return out;
+  }
+
+  /** Ranks of each question's expected file, by the MCP `query_context` tool an agent calls, and by the single-shot grep. */
+  function _signals(cwd, questions, opts) {
+    const handlers = __require('./src/mcp/handlers');
+    let lead = 0;
+    let firstBlockTokens = null;
+    questions.forEach((q, i) => {
+      const txt = String(handlers.queryContext({ query: q.title, topK: 10 }, cwd));
+      if (i === 0) firstBlockTokens = tokensOf(Buffer.byteLength(txt));
+      const got = [...txt.matchAll(/^\| (\d+) \| (\S+) \| ([\d.]+) \|/gm)].map((m) => m[2]);
+      if (inTop(rankOf(got, q.files))) lead++;
+    });
+    let grep = null, filesScanned = null, truncated = false;
+    if (!opts.noGrep) {
+      const g = grepRank(cwd, questions.map((q, i) => ({ id: String(i), query: q.title })), { skipFile: sigmapOutputs(cwd), maxFiles: opts.maxGrepFiles });
+      grep = 0;
+      questions.forEach((q, i) => {
+        if (inTop(rankOf(g.ranked.get(String(i)) || [], q.files))) grep++;
+      });
+      filesScanned = g.filesScanned; truncated = g.truncated;
+    }
+    return { lead, grep, firstBlockTokens, filesScanned, truncated };
+  }
+
+  /**
+   * @param {string} cwd
+   * @param {{ since?: string, max?: number, noGrep?: boolean, maxGrepFiles?: number }} [opts]
+   * @returns {object} the facts; `call` and `forecast` are always null
+   */
+  function buildAdvice(cwd, opts = {}) {
+    let config = {};
+    try { config = __require('./src/config/loader').loadConfig(cwd) || {}; } catch (_) { config = {}; }
+    const prefetch = __require('./src/session/prefetch');
+    const tools = _toolFacts();
+    const advice = {
+      project: path.basename(cwd),
+      call: null,
+      forecast: null,
+      standing: {
+        strategy: config.strategy || 'full',
+        mcpTools: (config.mcp && config.mcp.tools) || 'all',
+        tools,
+        alwaysOn: _alwaysOn(cwd),
+        hook: { standingTokens: 0, perPromptMaxTokens: tokensOf(prefetch.MAX_BYTES), perPromptFirstQuestionTokens: null },
+      },
+      questions: { ok: false },
+      lead: null,
+      readability: null,
+      notes: [],
+      study: STUDY,
+    };
+
+    const mined = mineQuestions(cwd, { since: opts.since, max: opts.max });
+    advice.questions = { ok: mined.ok, reason: mined.reason || null, since: mined.since || null, examined: mined.examined || 0, used: mined.questions.length, skipped: mined.skipped, list: mined.questions.map((q) => ({ sha: q.sha, title: q.title, files: q.files })) };
+    if (!mined.ok) { advice.notes.push(`no questions mined: ${mined.reason}`); return advice; }
+    if (mined.questions.length === 0) { advice.notes.push(`no change since ${mined.since} qualified as a question (1 to 3 source files, a title that describes behaviour); try a longer --since`); return advice; }
+
+    // The hook's own screen, on each question as a prompt: how many would it stay silent for, and why.
+    const silent = {};
+    let fires = 0;
+    for (const q of mined.questions) {
+      const s = prefetch.screen(q.title);
+      if (s.ok) fires++; else silent[s.reason] = (silent[s.reason] || 0) + 1;
+    }
+    advice.readability = { fires, silent: mined.questions.length - fires, reasons: silent };
+
+    const indexFile = __require('./src/retrieval/sig-index-store').indexPath(cwd);
+    if (!fs.existsSync(indexFile)) { advice.notes.push('no index: run `sigmap` first (advise reads the index and never generates one), so SigMap\'s ranking was not scored'); return advice; }
+
+    const n = mined.questions.length;
+    const sig = _signals(cwd, mined.questions, opts);
+    const w = (k) => { const i = wilson(k, n); return { count: k, of: n, share: k / n, lo: i.lo, hi: i.hi }; };
+    advice.lead = { n, enough: n >= MIN_QUESTIONS, sigmap: w(sig.lead), grep: sig.grep === null ? null : w(sig.grep), headroomPoints: headroomPoints(sig.lead, sig.grep, n), filesScanned: sig.filesScanned, grepTruncated: sig.truncated };
+    advice.standing.hook.perPromptFirstQuestionTokens = sig.firstBlockTokens;
+    if (n < MIN_QUESTIONS) advice.notes.push(`only ${n} question(s) qualified (fewer than ${MIN_QUESTIONS}): the intervals are too wide to read; a longer --since finds more`);
+    if (sig.truncated) advice.notes.push('the grep scan stopped at its file limit, so its share is for the files it reached');
+    return advice;
+  }
+
+  const pc = (x) => `${Math.round(x * 100)}%`;
+  const sgn = (v) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
+
+  /** The human-readable report. */
+  function formatAdvice(a) {
+    const L = [];
+    const s = a.standing;
+    L.push(`sigmap advise — ${a.project}: what SigMap can tell you offline (no model call, nothing written)`);
+    L.push('');
+    L.push('What each setup adds to a turn (tokens, estimated as chars/4; the API\'s own counter read the study\'s locate profile at 426 and core at 1,505):');
+    L.push(`  tools, locate profile   ${fmt(s.tools.locate.tokens).padStart(6)}   (${s.tools.locate.tools} tools: query_context, get_lines)`);
+    L.push(`  tools, core profile     ${fmt(s.tools.core.tokens).padStart(6)}   (${s.tools.core.tools} tools)`);
+    L.push(`  tools, all              ${fmt(s.tools.all.tokens).padStart(6)}   (${s.tools.all.tools} tools)`);
+    L.push(`  prefetch hook           ${String(0).padStart(6)}   standing; one block per prompt, at most ~${fmt(s.hook.perPromptMaxTokens)}${s.hook.perPromptFirstQuestionTokens !== null ? `; on your first question below, the search result is ~${fmt(s.hook.perPromptFirstQuestionTokens)}` : ''}`);
+    L.push(`  now: strategy "${s.strategy}", mcp.tools "${s.mcpTools}"`);
+    for (const f of s.alwaysOn) L.push(`  ${f.file.padEnd(30)} ${fmt(f.tokens).padStart(6)}   the whole file (which one your agent loads depends on the client)`);
+    L.push('  the map `strategy: "index"` writes was 761 tokens on the API\'s counter for the study\'s snapshot of SigMap\'s own repository; it is not measured for yours here');
+    L.push('');
+
+    if (!a.questions.ok) {
+      L.push(`Questions from your git history: none (${a.questions.reason}).`);
+    } else if (a.questions.used === 0) {
+      L.push(`Questions from your git history: none qualified since ${a.questions.since} (${a.questions.examined} commit(s) examined).`);
+    } else {
+      L.push(`Questions mined from your git history since ${a.questions.since}: ${a.questions.used} (${a.questions.examined} commit(s) examined; the title is the question, the source files it touched are the answer).`);
+    }
+    if (a.lead) {
+      const l = a.lead;
+      const band = (c) => `${c.count} of ${c.of} (${pc(c.share)}, 95% interval ${pc(c.lo)} to ${pc(c.hi)})`;
+      L.push(`  the file is in SigMap's first five   ${band(l.sigmap)}`);
+      if (l.grep) {
+        L.push(`  the file is in a single-shot grep's  ${band(l.grep)}`);
+        L.push(`  headroom (SigMap minus grep)         ${sgn(l.headroomPoints)} points`);
+      }
+    }
+    if (a.readability) {
+      const r = a.readability;
+      L.push(`  the prefetch hook would fire for     ${r.fires} of ${r.fires + r.silent} of those titles as prompts${r.silent ? ` (silent for ${r.silent}: ${Object.entries(r.reasons).map(([k, v]) => `${v} ${k}`).join(', ')})` : ''}`);
+    }
+    for (const n of a.notes) L.push(`  note: ${n}`);
+    L.push('');
+    L.push('What this does NOT do: it makes no call and prints no saving. In the agent study these numbers did not predict which repositories save');
+    L.push(`  (headroom against the cost of prefetch over ${STUDY.repositories} repositories: rho ${STUDY.primary.rho} [${STUDY.primary.lo}, +${STUDY.primary.hi}]; the bar was ${STUDY.primary.bar} with the interval below zero).`);
+    L.push('');
+    const g = STUDY.byGoal;
+    L.push(`What the study measured, by goal (${STUDY.repositories} repositories, Messages-API agent, Haiku 5.5; repositories that save / cost more):`);
+    L.push(`  time    prefetch ${sgn(g.time.prefetch.pooled)}% (${g.time.prefetch.saves} save, ${g.time.prefetch.costs} slower)   index ${sgn(g.time.index.pooled)}%   locate ${sgn(g.time.locate.pooled)}%`);
+    L.push(`  tokens  prefetch ${sgn(g.tokens.prefetch.pooled)}% (${g.tokens.prefetch.saves} save, ${g.tokens.prefetch.costs} more)   index ${sgn(g.tokens.index.pooled)}%   locate ${sgn(g.tokens.locate.pooled)}%`);
+    L.push(`  cost    prefetch ${sgn(g.cost.prefetch.pooled)}% (${g.cost.prefetch.saves} save, ${g.cost.prefetch.costs} more)   locate ${sgn(g.cost.locate.pooled)}% (${g.cost.locate.saves} save, ${g.cost.locate.costs} more)   index ${sgn(g.cost.index.pooled)}%`);
+    L.push('');
+    if (a.emitted) {
+      const e = a.emitted;
+      const q = (p) => `'${String(p).replace(/'/g, "'\\''")}'`;
+      const per = Math.min(e.questions, 8);
+      const base = `SIGMAP_XREPO_DATA=${q(e.root)} node scripts/run-agent-ab.mjs --agent api --model claude-haiku-5-5 --tasks-per-repo ${per} --runs 4`;
+      L.push(`Harness inputs written under ${e.root} (nothing in your project): ${e.questions} question(s), pinned to ${e.commit.slice(0, 10)}, checkout linked to this project.`);
+      if (e.dirty) L.push('  note: the working tree has uncommitted changes; every arm is a copy reset to the pinned commit, so the harness measures the committed state.');
+      L.push('  1. preview the plan and the worst-case spend (spawns nothing); scripts/run-agent-ab.mjs is in the SigMap repository, not in the npm package:');
+      L.push(`       ${base} --sigmap-variant prefetch --dry-run`);
+      L.push('  2. run it (ANTHROPIC_API_KEY, each run capped by --max-budget-usd), once per setup; compare with the interval, not the point:');
+      L.push(`       ${base} --sigmap-variant prefetch --save   # then --sigmap-variant index, then locate`);
+      L.push('');
+    }
+    L.push('To find out for this project, measure it: https://sigmap.io/guide/choosing-a-setup');
+    return L.join('\n');
+  }
+
+  module.exports = { buildAdvice, formatAdvice, wilson, rankOf, inTop, headroomPoints, TOP, STUDY, MIN_QUESTIONS, DEFAULT_SINCE, DEFAULT_MAX };
+  
+};
+
+// ── ./src/advise/emit ──
+__factories["./src/advise/emit"] = function(module, exports) {
+  
+  /**
+   * emit.js — `sigmap advise --emit-root <dir>`: the inputs the paired agent harness reads, for THIS project.
+   *
+   * The harness (scripts/run-agent-ab.mjs, in the SigMap repository, not in the npm package) runs the same questions with and without a setup
+   * against a real agent and pairs them. It reads a "data root": benchmarks/xrepo-repos.json (a manifest of repositories, each pinned to a
+   * commit), benchmarks/tasks/retrieval-xrepo.jsonl (the questions) and a checkout under benchmarks/repos/<name>. The study built those from public
+   * GitHub repositories (scripts/build-heldout-set.mjs); this builds them from the project in the current directory, private or not, out of the
+   * questions `advise` already mined from its own git history.
+   *
+   * It writes ONLY under the directory it is given, never in the project: the checkout is a symlink to the project (the harness resolves a link
+   * before it copies anything, so the project is never reset, cleaned or written; each arm is a throwaway copy that is hard-reset to the pin).
+   * It will not write inside the project, and will not overwrite a directory that is not a root it wrote.
+   *
+   * Zero-dependency.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+  const { CODE } = __require('./src/advise/mine');
+
+  const MARK = 'written by sigmap advise --emit-root';
+
+  function _git(cwd, args) {
+    return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 1 << 26, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+  }
+
+  /** A directory name the harness and a shell can both hold: letters, digits, dot, underscore, hyphen. */
+  function repoNameOf(dir) {
+    const n = path.basename(dir).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[.-]+/, '').replace(/-+$/, '');
+    return n || 'project';
+  }
+
+  /** The language most of the questions' files are in (by extension), as the study's builder names it. */
+  function languageOf(questions) {
+    const tally = {};
+    for (const q of questions) for (const f of q.files) { const l = CODE[(f.split('.').pop() || '').toLowerCase()]; if (l) tally[l] = (tally[l] || 0) + 1; }
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    return top ? top[0] : 'unknown';
+  }
+
+  const pad = (n, w) => String(n).padStart(w, '0');
+
+  /**
+   * @param {string} cwd the project (a git work tree)
+   * @param {string} outDir where to write the data root
+   * @param {Array<{sha: string, title: string, files: string[]}>} questions as mined, oldest first
+   * @returns {{ root: string, name: string, commit: string, dirty: boolean, questions: number, language: string, link: string, manifest: string, tasks: string }}
+   * @throws {Error} with a message that says what to change
+   */
+  function emitRoot(cwd, outDir, questions) {
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('no question qualified, so there is nothing to write (try a longer --since)');
+    const project = fs.realpathSync(cwd);
+    const out = path.resolve(outDir);
+    const rel = path.relative(project, out);
+    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) throw new Error(`--emit-root ${outDir} is inside the project; give a directory outside it (the harness copies the project, and a copy of its own inputs would be searchable by the agent)`);
+
+    const manifestPath = path.join(out, 'benchmarks', 'xrepo-repos.json');
+    if (fs.existsSync(out) && fs.readdirSync(out).length > 0) {
+      let ours = false;
+      try { ours = String(JSON.parse(fs.readFileSync(manifestPath, 'utf8'))._comment || '').includes(MARK); } catch (_) { /* not a root of ours */ }
+      if (!ours) throw new Error(`${outDir} is not empty and is not a root this command wrote; use a new directory`);
+    }
+
+    let dotGit = null;
+    try { dotGit = fs.lstatSync(path.join(project, '.git')); } catch (_) { /* absent: reported below */ }
+    if (!dotGit || dotGit.isSymbolicLink() || !dotGit.isDirectory()) {
+      throw new Error('this project\'s .git is not a directory of its own (a linked worktree or a submodule keeps it elsewhere), and the harness copies the project and resets the copy, which would write into that other repository; run advise in a plain clone (git clone <path> <dir>)');
+    }
+
+    const head = _git(project, ['rev-parse', 'HEAD']);
+    if (head.error || head.status !== 0) throw new Error('not a git work tree with a commit: the harness pins every repository to one');
+    const commit = head.stdout.trim();
+    const st = _git(project, ['status', '--porcelain', '--untracked-files=no']);
+    const dirty = st.status === 0 && st.stdout.trim().length > 0;
+
+    const name = repoNameOf(project);
+    const language = languageOf(questions);
+    const tasks = questions.map((q, i) => ({ id: `p${pad(i + 1, 3)}`, split: 'local', source: 'merged-commit', repo: name, project: name, query: q.title, expected_files: q.files, goldCommit: q.sha }));
+    const manifest = { _comment: `${MARK}: questions mined from this project's own git history`, repos: [{ name, url: 'local', commit, language, layout: 'local' }] };
+
+    const tasksPath = path.join(out, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl');
+    const link = path.join(out, 'benchmarks', 'repos', name);
+    fs.mkdirSync(path.dirname(tasksPath), { recursive: true });
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    fs.writeFileSync(tasksPath, `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n`);
+    let existing = null;
+    try { existing = fs.lstatSync(link); } catch (_) { /* nothing there */ }
+    if (existing) {
+      if (!existing.isSymbolicLink()) throw new Error(`${link} exists and is not a link this command made; remove it or use a new directory`);
+      fs.unlinkSync(link); // our own link from an earlier run
+    }
+    fs.symlinkSync(project, link, 'dir');
+    return { root: out, name, commit, dirty, questions: tasks.length, language, link, manifest: manifestPath, tasks: tasksPath };
+  }
+
+  module.exports = { emitRoot, repoNameOf, languageOf, MARK };
+  
+};
+
+// ── ./src/advise/grep-scan ──
+__factories["./src/advise/grep-scan"] = function(module, exports) {
+  
+  /**
+   * grep-scan.js — the single-shot grep the honest benchmark compares SigMap with, for `sigmap advise`.
+   *
+   * The same scan as scripts/lib/grep-baseline.mjs (`grepRank`), which is not in the published package, so `advise` cannot import it. Pure Node
+   * fs, no ripgrep and no child process, deterministic: it ranks files by how many distinct query terms they hold, then by occurrences.
+   * test/integration/advise.test.js pins that the two give identical rankings on a fixture, so a change to one that is not made to the other
+   * fails there.
+   *
+   * It leaves out every file SigMap itself wrote (`sigmapOutputs`): a person grepping their code does not see them, and they hold every
+   * identifier in the project, so counting them would hand grep an answer key it never had.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { STOP } = __require('./src/retrieval/bm25');
+
+  // Dirs a grep agent never scans (ripgrep skips VCS + honors .gitignore).
+  const SKIP_DIRS = new Set(['.git', '.hg', '.svn', 'node_modules', 'vendor', 'dist', 'build', 'target', 'out', 'coverage', '.next', '__pycache__', '.venv', 'venv', '.tox']);
+  const MAX_FILE_BYTES = 1024 * 1024; // grep-realistic cap; skips lockfile giants
+
+  const norm = (p) => String(p).replace(/\\/g, '/').replace(/^\.\//, '');
+
+  /** Significant literal query terms: no stemming; grep matches literals. */
+  function terms(query) {
+    return [...new Set(String(query).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w)))];
+  }
+
+  /** Top-level directory patterns from a repo's .gitignore (simple names only). */
+  function gitignoreDirs(repoPath) {
+    const dirs = new Set();
+    try {
+      const src = fs.readFileSync(path.join(repoPath, '.gitignore'), 'utf8');
+      for (const raw of src.split('\n')) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#') || line.startsWith('!')) continue;
+        const m = line.match(/^\/?([A-Za-z0-9._-]+)\/?$/);
+        if (m) dirs.add(m[1]);
+      }
+    } catch (_) { /* no .gitignore: nothing to skip */ }
+    return dirs;
+  }
+
+  function countOccurrences(haystack, needle) {
+    let n = 0;
+    let i = haystack.indexOf(needle);
+    while (i !== -1) { n++; i = haystack.indexOf(needle, i + needle.length); }
+    return n;
+  }
+
+  /**
+   * Every file SigMap itself writes into a repository: each adapter's output and the `.context/` directory.
+   * @param {string} repoPath
+   * @returns {(relPath:string)=>boolean} true for a file SigMap wrote
+   */
+  function sigmapOutputs(repoPath) {
+    const written = new Set();
+    try {
+      const adapters = __require('./packages/adapters');
+      for (const name of adapters.listAdapters()) {
+        try {
+          const out = adapters.getAdapter(name).outputPath(repoPath);
+          if (typeof out === 'string') written.add(String(path.isAbsolute(out) ? path.relative(repoPath, out) : out).replace(/\\/g, '/'));
+        } catch (_) { /* an adapter without a file output writes nothing here */ }
+      }
+    } catch (_) { /* adapters unavailable: only .context/ is skipped */ }
+    return (rel) => rel === '.context' || rel.startsWith('.context/') || written.has(rel);
+  }
+
+  /**
+   * Scan a repo once and rank files for every task's term set.
+   * @param {string} repoPath
+   * @param {Array<{id: string, query: string}>} tasks
+   * @param {{ skipFile?: ((rel: string) => boolean) | null, maxFiles?: number }} [opts]
+   *   `skipFile(relPath)` leaves a file out of the scan; `maxFiles` stops a scan of an enormous tree (the result then says it was truncated)
+   * @returns {{ ranked: Map<string, string[]>, filesScanned: number, truncated: boolean }} id to its top-10 relative paths
+   */
+  function grepRank(repoPath, tasks, opts = {}) {
+    const skipFile = opts.skipFile || null;
+    const maxFiles = Number.isInteger(opts.maxFiles) && opts.maxFiles > 0 ? opts.maxFiles : Infinity;
+    const perTask = new Map(tasks.map((t) => [t.id, new Map()])); // id to file to {cover, occ}
+    const termSets = tasks.map((t) => ({ id: t.id, terms: terms(t.query) }));
+    const ignored = gitignoreDirs(repoPath);
+    let filesScanned = 0;
+    let truncated = false;
+
+    const walk = (dir) => {
+      if (truncated) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      entries.sort((a, b) => a.name.localeCompare(b.name)); // deterministic order
+      for (const e of entries) {
+        if (truncated) return;
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          if (SKIP_DIRS.has(e.name) || ignored.has(e.name)) continue;
+          walk(full);
+          continue;
+        }
+        if (!e.isFile()) continue;
+        const rel = norm(path.relative(repoPath, full));
+        if (rel === '.context/extract-cache.json') continue;
+        if (skipFile && skipFile(rel)) continue;
+        if (filesScanned >= maxFiles) { truncated = true; return; }
+        filesScanned++;
+        let buf;
+        try {
+          if (fs.statSync(full).size > MAX_FILE_BYTES) continue;
+          buf = fs.readFileSync(full);
+        } catch (_) { continue; }
+        if (buf.subarray(0, 8192).includes(0)) continue; // binary
+        const text = buf.toString('utf8').toLowerCase();
+
+        const termCount = new Map(); // term to occurrences in this file (shared across tasks)
+        for (const { id, terms: ts } of termSets) {
+          let cover = 0, occ = 0;
+          for (const t of ts) {
+            if (!termCount.has(t)) termCount.set(t, countOccurrences(text, t));
+            const c = termCount.get(t);
+            if (c > 0) { cover++; occ += c; }
+          }
+          if (cover > 0) perTask.get(id).set(rel, { cover, occ });
+        }
+      }
+    };
+    walk(repoPath);
+
+    const ranked = new Map();
+    for (const [id, fileScores] of perTask) {
+      ranked.set(id, [...fileScores.entries()]
+        .sort((a, b) => b[1].cover - a[1].cover || b[1].occ - a[1].occ || a[0].localeCompare(b[0]))
+        .slice(0, 10)
+        .map(([file]) => file));
+    }
+    return { ranked, filesScanned, truncated };
+  }
+
+  module.exports = { grepRank, sigmapOutputs, terms, SKIP_DIRS, MAX_FILE_BYTES };
+  
+};
+
+// ── ./src/advise/mine ──
+__factories["./src/advise/mine"] = function(module, exports) {
+  
+  /**
+   * mine.js — questions from a project's own git history, for `sigmap advise`.
+   *
+   * The rule is the one that built the agent study's held-out questions (scripts/build-heldout-set.mjs), so a number measured on them means the
+   * same thing here. It is mechanical, reads the project's git history and nothing else, and does not depend on how a question might score:
+   *   - the first-parent commits since a date: a squash-merged pull request is one commit, a merge-commit pull request is its merge commit, whose
+   *     title is the first line of its message body; the oldest come first;
+   *   - the title has its trailing "(#123)" and its conventional-commit type ("fix(parser):" becomes "parser:") taken off, and is 25 to 160
+   *     characters; bots, dependency bumps, releases, reverts and merges are left out;
+   *   - a title of fewer than 4 words, or one about lint, formatting, tests, docs, refactoring, renames or CI, is left out;
+   *   - the commit changes 1 to 3 source files (a code extension that is not a test, fixture, example, demo, doc, config, generated or minified
+   *     file), every one of which still exists, and the title names none of them;
+   *   - the questions are the oldest qualifying commits up to `max`.
+   * A question is the title; its label is the source file(s) the change touched.
+   *
+   * Zero-dependency, read-only: it runs `git log` and `git diff --name-only` and writes nothing.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawnSync } = require('child_process');
+
+  const CODE = { py: 'python', js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript', ts: 'typescript', tsx: 'typescript', go: 'go', rs: 'rust', java: 'java', kt: 'kotlin', scala: 'scala', rb: 'ruby', php: 'php', c: 'c', h: 'c', cc: 'cpp', cpp: 'cpp', hpp: 'cpp', cs: 'csharp', swift: 'swift' };
+  const NOT_SOURCE = [/(^|\/)(tests?|spec|specs|__tests__|e2e|integration-tests?|fixtures?|testdata|test-data|examples?|samples?|docs?|documentation|benchmarks?|scripts?|demos?|website|playground|\.github|vendor|node_modules)\//i, /\.config\.\w+$/i, /[._-](test|spec|tests)\.\w+$/i, /(^|\/)(tests?|testing|spec|conftest)\.\w+$/i, /(^|\/)test_[^/]*$/i, /_tests?\.\w+$/, /(Test|Tests|IT|Spec)\.(java|kt|scala)$/, /\.d\.ts$/, /generated|\.pb\.go$|_pb2|\.min\.|\.gen\./i, /(^|\/)setup\.py$/];
+  const NOT_A_FEATURE = /^(bump|chore\(deps|chore: bump|update dependency|build\(deps|release|prepare release|merge|revert|version|v?\d+\.\d+|\[?release|ci:|docs?:|style:|test:|tests:)/i;
+  const VAGUE = /\b(lint|linter|clippy|typos?|formatt?(ing|er)?|style|clean ?up|refactor(ing)?|rename[sd]?|readiness|wip|docs?|readme|tests?|dependenc(y|ies)|ci|workflow)\b/i;
+  const BOT = /\[bot\]|dependabot|renovate|github-actions|noreply@github\.com.*bot|bot@/i;
+
+  const DEFAULT_SINCE = '365d';
+  const DEFAULT_MAX = 12;
+  const MAX_COMMITS_EXAMINED = 3000; // a bound on work, not on the rule: the oldest 3,000 commits of the window
+
+  const isSource = (f) => !!CODE[(f.split('.').pop() || '').toLowerCase()] && !NOT_SOURCE.some((re) => re.test(f));
+
+  function cleanTitle(s) {
+    let t = String(s).replace(/\s*\(#\d+\)\s*$/, '').replace(/^[\s\p{Extended_Pictographic}\u{FE0F}]+/u, '').trim();
+    const m = /^([a-z]+)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(t);
+    if (m && /^(fix|feat|feature|perf|refactor|chore|build|improve|add|update)$/i.test(m[1])) t = m[2] ? `${m[2]}: ${m[3]}` : m[3];
+    return t.trim();
+  }
+
+  /**
+   * `--since` as a date git understands: an ISO date passes through, `<n>d`, `<n>m` and `<n>y` count back from `now`.
+   * @returns {string|null} YYYY-MM-DD, or null when the value cannot be read
+   */
+  function resolveSince(value, now = Date.now()) {
+    const v = String(value == null ? DEFAULT_SINCE : value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const m = /^(\d+)([dmy])$/.exec(v);
+    if (!m) return null;
+    const n = Number(m[1]);
+    const days = m[2] === 'd' ? n : m[2] === 'm' ? n * 30 : n * 365;
+    return new Date(now - days * 86400000).toISOString().slice(0, 10);
+  }
+
+  function git(cwd, args) {
+    return spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0' } });
+  }
+
+  /**
+   * @param {string} cwd the project root (a git work tree)
+   * @param {{ since?: string, max?: number, now?: number }} [opts]
+   * @returns {{ ok: boolean, reason?: string, since?: string, examined?: number, qualifying?: number,
+   *             questions: Array<{ sha: string, title: string, files: string[] }>, skipped: Object<string, number> }}
+   */
+  function mineQuestions(cwd, opts = {}) {
+    const none = (reason) => ({ ok: false, reason, questions: [], skipped: {} });
+    const since = resolveSince(opts.since, opts.now);
+    if (!since) return none(`cannot read --since "${opts.since}" (use 2026-01-01, 90d, 6m or 1y)`);
+    const max = Number.isInteger(opts.max) && opts.max > 0 ? opts.max : DEFAULT_MAX;
+
+    const inside = git(cwd, ['rev-parse', '--is-inside-work-tree']);
+    if (inside.error || inside.status !== 0) return none('not a git work tree');
+    const raw = git(cwd, ['log', '--first-parent', `--since=${since}`, '--format=%H%x1f%P%x1f%s%x1f%an <%ae>%x1f%b%x1e']);
+    if (raw.status !== 0) return none('git log failed');
+    const log = raw.stdout.split('\x1e').map((s) => s.replace(/^\n/, '')).filter(Boolean).reverse().slice(0, MAX_COMMITS_EXAMINED);
+
+    const skipped = {};
+    const skip = (r) => { skipped[r] = (skipped[r] || 0) + 1; };
+    const picks = [];
+    let examined = 0;
+    for (const rec of log) {
+      examined++;
+      const [sha, parents, subject, author, body] = rec.split('\x1f');
+      const parent = (parents || '').split(' ')[0];
+      if (!parent || BOT.test(author)) { skip('a bot, or no parent in the history'); continue; }
+      let title = subject;
+      if (/^Merge pull request #\d+/.test(subject)) title = (body || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
+      title = cleanTitle(title);
+      if (title.length < 25 || title.length > 160) { skip('title length'); continue; }
+      if (title.split(/\s+/).length < 4 || VAGUE.test(title)) { skip('title is vague, about tooling, tests or docs'); continue; }
+      if (NOT_A_FEATURE.test(title) || /dependabot|bump .* from .* to/i.test(title)) { skip('dependency bump, release, revert, merge or docs'); continue; }
+      const diff = git(cwd, ['diff', '--name-only', parent, sha]);
+      if (diff.status !== 0) { skip('git diff failed'); continue; }
+      const src = diff.stdout.split('\n').filter(Boolean).filter(isSource);
+      if (src.length < 1 || src.length > 3) { skip('not 1 to 3 source files'); continue; }
+      if (src.some((f) => !fs.existsSync(path.join(cwd, f)))) { skip('a changed source file no longer exists'); continue; }
+      const low = title.toLowerCase();
+      if (src.some((f) => { const b = path.basename(f); const stem = b.replace(/\.[^.]+$/, ''); return low.includes(b.toLowerCase()) || (stem.length >= 6 && low.includes(stem.toLowerCase())); })) { skip('the title names a changed file'); continue; }
+      picks.push({ sha, title, files: src });
+      if (picks.length >= max) break; // the oldest `max` qualifying commits: stopping here selects the same ones the full pass would
+    }
+    return { ok: true, since, examined, qualifying: picks.length, questions: picks, skipped };
+  }
+
+  module.exports = { mineQuestions, resolveSince, cleanTitle, isSource, CODE, DEFAULT_SINCE, DEFAULT_MAX };
+  
+};
+
 // ── ./src/analysis/coverage-score ──
 __factories["./src/analysis/coverage-score"] = function(module, exports) {
   
@@ -3227,6 +3812,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'redact [file]', desc: 'Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)' },
     { argv: 'tune', desc: 'Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)' },
     { argv: 'tune --apply', desc: 'Write the recommendations into gen-context.config.json (merges; your keys preserved)' },
+    { argv: 'advise', desc: 'Offline facts for choosing how an agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file your recent changes touched, vs grep. No call, no forecast (--since, --max, --no-grep, --emit-root <dir>, --json)' },
     { argv: 'skills list', desc: 'List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)' },
     { argv: 'skills install', desc: 'Install the SigMap agent playbooks for detected clients (--client <name> | --all)' },
     { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
@@ -3255,7 +3841,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
     { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
-    { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+    { argv: '--init', desc: 'Write config (index strategy, locate MCP profile) + .contextignore scaffold' },
     { argv: '--help', desc: 'Show this message' },
     { argv: '--version', desc: 'Show version' },
   ];
@@ -23939,15 +24525,21 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       return lines.join('\n');
     }
     const qualifier = _scopeClause(result.scope);
+    // Calls through a receiver (`x.m()`) draw no edge outside Java, so an empty or short
+    // list for a symbol in TypeScript, Python or Go is not a safe answer (#1074).
+    const { receiverCalls, receiverNote } = __require('./src/graph/language-support');
+    const rc = receiverCalls(result.resolved);
+    const rcLine = rc.length ? [`_${receiverNote(rc, kind)}_`] : [];
     if (result.total === 0) {
       lines.push(kind === 'callees'
         ? `_no repo-defined callee found (${qualifier})._`
-        : `_no caller found (${qualifier})._`);
+        : `_no caller found (${qualifier})._`, ...(rcLine.length ? ['', ...rcLine] : []));
       return lines.join('\n');
     }
     lines.push(`**Total ${verb}:** ${result.total} _(${qualifier})_`, '');
     if (result.direct.length) { lines.push(`### Direct`); for (const id of result.direct) lines.push(`- \`${id}\``); lines.push(''); }
     if (result.transitive.length) { lines.push(`### Transitive`); for (const id of result.transitive) lines.push(`- \`${id}\``); lines.push(''); }
+    if (rcLine.length) lines.push(...rcLine, '');
     return lines.join('\n');
   }
 
@@ -23974,6 +24566,10 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     // A symbol the call graph does not know, in roots that hold files it cannot read.
     if (result.unsearched) out.unsearched = result.unsearched;
+    // Present only for a symbol in a language whose receiver calls (`x.m()`) the graph
+    // does not fully resolve, so every other result keeps its shape (#1074).
+    const rc = __require('./src/graph/language-support').receiverCalls(result.resolved);
+    if (rc.length) out.receiverCalls = rc.map(({ language, resolved }) => ({ language, resolved }));
     return out;
   }
 
@@ -25346,6 +25942,78 @@ __factories["./src/graph/language-support"] = function(module, exports) {
   }
 
   /**
+   * Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) and what the
+   * call graph does with them (#1074, the phase-2 branch of #976).
+   *
+   * `buildCallGraph` resolves a `.name(` call through a receiver's type only for
+   * Java, and only where a declared type shows the class. Everywhere else such a
+   * call draws no edge, so `--callers m` on a method that is called as `x.m()`
+   * printed "no caller found": an answer a developer reads as "safe to change".
+   * Measured against compiler indexes (SCIP, benchmarks/reports/callgraph-accuracy.json),
+   * recall of receiver edges is 0.0% in TypeScript, 0.1% in Python, 0.0% in Go and
+   * 43.8% in Java, against the registered threshold of 70%. The graph was not made
+   * to resolve receivers (that needs a type checker); it says so instead.
+   *
+   * `none`: the report's interval for receiver recall is entirely below 5%.
+   * `partial`: below the 70% threshold, not below 5%. A language is listed only if
+   * the report measured at least 100 receiver edges in it (JavaScript has two, so
+   * nothing is claimed). The test `callgraph-receiver-caveat` derives this table
+   * from the saved report and fails if the two disagree, so it cannot go stale.
+   */
+  const RECEIVER_CALLS = Object.freeze({
+    typescript: 'none', python: 'none', go: 'none', java: 'partial',
+  });
+  const RECEIVER_LABELS = Object.freeze({ typescript: 'TypeScript', python: 'Python', go: 'Go', java: 'Java' });
+  // Only the extensions the call graph itself reads (CALL_GRAPH_EXTS); a test keeps the two in step.
+  const RECEIVER_EXT = Object.freeze({
+    '.ts': 'typescript', '.tsx': 'typescript',
+    '.py': 'python', '.pyw': 'python', '.go': 'go', '.java': 'java',
+  });
+
+  /**
+   * Which of these symbols are declared in a language whose receiver calls the
+   * graph does not (fully) resolve.
+   *
+   * @param {string[]} ids  call-graph ids, `file#name`
+   * @returns {Array<{ language: string, label: string, resolved: 'none'|'partial' }>} one entry per language, in first-seen order; empty when none applies
+   */
+  function receiverCalls(ids) {
+    const out = [];
+    const seen = new Set();
+    for (const id of ids || []) {
+      const file = String(id).split('#')[0];
+      const language = RECEIVER_EXT[path.extname(file).toLowerCase()];
+      if (!language || seen.has(language)) continue;
+      seen.add(language);
+      out.push({ language, label: RECEIVER_LABELS[language], resolved: RECEIVER_CALLS[language] });
+    }
+    return out;
+  }
+
+  /** "TypeScript", "TypeScript and Go", "TypeScript, Python and Go". */
+  function _list(labels) {
+    if (labels.length <= 1) return labels.join('');
+    return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  }
+
+  /**
+   * The one-paragraph answer that goes under a callers or callees list for
+   * those symbols. `kind` is `callers` or `callees`.
+   */
+  function receiverNote(entries, kind) {
+    const none = entries.filter((e) => e.resolved === 'none').map((e) => e.label);
+    const part = entries.filter((e) => e.resolved === 'partial').map((e) => e.label);
+    const s = [];
+    if (none.length) s.push(`Calls made through a receiver (\`x.m()\`, \`this.m()\`, \`self.m()\`) are not resolved for ${_list(none)}: checked against a compiler index, the graph found none of them.`);
+    if (part.length) s.push(`For ${_list(part)} they are resolved only where a declared type names the receiver's class, and only in part.`);
+    s.push(kind === 'callees'
+      ? 'This list leaves out the calls this symbol makes through a receiver.'
+      : 'A short or empty list is not evidence that nothing calls this.');
+    s.push('See https://sigmap.io/guide/callgraph-accuracy');
+    return s.join(' ');
+  }
+
+  /**
    * Mark an impact result whose target the import graph cannot read.
    *
    * Only an empty result for an unreadable file is marked: a file with importers
@@ -25429,6 +26097,7 @@ __factories["./src/graph/language-support"] = function(module, exports) {
     UNSUPPORTED, LABELS, NOT_EXPECTED,
     graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
     importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
+    RECEIVER_CALLS, RECEIVER_EXT, receiverCalls, receiverNote,
   };
   
 };
@@ -30052,7 +30721,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.86.0',
+    version: '8.88.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -43734,7 +44403,7 @@ function writeAll(fd, text) {
   }
 }
 
-const VERSION = '8.86.0';
+const VERSION = '8.88.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();
@@ -45834,10 +46503,13 @@ function writeInitConfig(cwd) {
       fs.copyFileSync(example, dest);
     } else {
       // No example beside the script (a lone copy of the bundle, or the standalone binary):
-      // the defaults, with the one choice the example makes — a new install starts on the
-      // lean MCP profile (#966) — so `--init` means the same thing wherever it runs.
+      // the defaults, with the two choices the example makes — a new install starts on the
+      // `index` strategy and the two-tool `locate` MCP profile (#1071, Candidate A) — so
+      // `--init` means the same thing wherever it runs. DEFAULTS themselves are unchanged:
+      // a project with no config keeps `full` and every tool.
       const fresh = JSON.parse(JSON.stringify(DEFAULTS));
-      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'core' });
+      fresh.strategy = 'index';
+      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'locate' });
       fs.writeFileSync(dest, JSON.stringify(fresh, null, 2) + '\n');
     }
     console.warn('[sigmap] wrote gen-context.config.json');
@@ -49518,6 +50190,46 @@ function main() {
       writeAll(1, JSON.stringify(proposal) + '\n');
     } else {
       console.log(formatTuneProposal(proposal));
+    }
+    process.exit(0);
+  }
+
+  // `sigmap advise [--since <date|90d|6m|1y>] [--max <n>] [--no-grep] [--emit-root <dir>] [--json]` — offline facts for choosing how an
+  // agent gets SigMap: what each setup adds to a turn, how often the first five files hold the file a recent change
+  // touched (vs a single-shot grep), whether the hook would fire. Read-only; it makes no call and prints no forecast,
+  // because those numbers did not predict the saving in the agent study (Stage I).
+  if (args[0] === 'advise') {
+    const { buildAdvice, formatAdvice } = requireSourceOrBundled('./src/advise/advise');
+    const flag = (name) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : undefined; };
+    const maxArg = flag('--max');
+    const emitDir = flag('--emit-root');
+    if (args.includes('--emit-root') && !emitDir) {
+      console.error('[sigmap] advise: --emit-root takes a directory');
+      process.exit(2);
+    }
+    if (maxArg !== undefined && !(Number.isInteger(Number(maxArg)) && Number(maxArg) > 0)) {
+      console.error('[sigmap] advise: --max takes a positive whole number');
+      process.exit(2);
+    }
+    let advice;
+    try {
+      advice = buildAdvice(cwd, { since: flag('--since'), max: maxArg === undefined ? undefined : Number(maxArg), noGrep: args.includes('--no-grep') });
+    } catch (err) {
+      console.error(`[sigmap] advise failed: ${err.message}`);
+      process.exit(1);
+    }
+    if (emitDir) {
+      try {
+        advice.emitted = requireSourceOrBundled('./src/advise/emit').emitRoot(cwd, emitDir, advice.questions.list || []);
+      } catch (err) {
+        console.error(`[sigmap] advise --emit-root: ${err.message}`);
+        process.exit(1);
+      }
+    }
+    if (args.includes('--json')) {
+      writeAll(1, JSON.stringify(advice) + '\n');
+    } else {
+      console.log(formatAdvice(advice));
     }
     process.exit(0);
   }

@@ -143,3 +143,17 @@ The final run started from an empty work directory (no cached index) with the pr
 
 11. **`java/gson` is unmeasured; the Java figures are spring-petclinic alone.** gson's `pom.xml` passes Error Prone to `javac` as one multi-line compiler argument (`-Xplugin:ErrorProne` followed by its options on the next lines), and scip-java replaces `javac` with a wrapper that rejects the options once the first line is dropped. On a scratch copy: ignoring the `-Xplugin:ErrorProne` prefix did not help (the continuation lines arrive as separate arguments with leading whitespace); deleting that argument from the copy's `pom.xml` let the build reach the Spotless format check, which that edit trips; skipping Spotless reached a `failOnWarning` set explicitly in the pom, which a command-line property cannot override. The attempt stopped there, as section 8 requires: no substitute, no edit beyond the throwaway copy, and no number from gson. One Java repository is a small sample for any claim about Java, and the Java rows say so.
 12. A failed build reports Maven's own `[ERROR]` lines rather than the command it echoed.
+
+### 2026-11-16, the phase-2 decision (#1074)
+
+The registered threshold (section 5) said a receiver-type spike is warranted: receiver-only recall is 0.0% in TypeScript (664 edges), 0.1% in Python (23,863) and 0.0% in Go (1,883) against 0.70, and 43.8% in Java (178). **The spike was not started.** This is a decision about where effort goes, not a finding that a zero-dependency receiver-type pass cannot work; the section 5 keep rule (at least 20 points of recall for at most 2 points of precision) was never tried.
+
+The reasons, each checkable:
+
+13. The call graph has not been shown to help retrieval: the call-neighbour boost (`retrieval.callGraphBoost`) is off by default, and on the saved A/B (`benchmarks/reports/callgraph-boost.json`, 90 tasks) it changed no task's hit@5, 87.8% with and without. So its consumers today are `--callers`, `--callees` and `get_method_impact`.
+14. The agent study measured where-is-it questions only, and the arm that cleared its bar (`locate`) deliberately carries neither the impact nor the callee tools. Nothing recorded says anyone relies on these commands, and there is no usage data to check.
+15. The cost of the spike is about two weeks for one maintainer (an estimate, not a measurement).
+
+**What changed instead (the "demote" branch of #1074).** `--callers`, `--callees` and `get_method_impact` now say, under the list, that calls made through a receiver are not resolved for a symbol in TypeScript, Python or Go (and only in part for Java), because an empty list there is not evidence of safety; `--json` carries a `receiverCalls` field. The table behind the note is `RECEIVER_CALLS` in `src/graph/language-support.js`, and `test/integration/callgraph-receiver-caveat.test.js` derives it from `benchmarks/reports/callgraph-accuracy.json` and fails if the two disagree. On the same fixtures `--callers save` printed "no caller found" for a method with two callers in TypeScript, Python and Go before this change.
+
+**What would reopen the spike:** evidence that people use these commands to decide whether a method is safe to change. The figures above were measured on 8.82.0; the TypeScript extractor changed afterwards (#996), so a re-measurement is needed before any all-edges figure is quoted again, and the receiver-only figure is structural (the graph builds no receiver type outside Java).

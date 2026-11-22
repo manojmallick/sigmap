@@ -96,7 +96,8 @@ Co-authored-by: Name <email@example.com>
 3. Run `node test/run.js --update {language}` to generate expected output
 4. Review the expected output — it should contain only signatures, no bodies
 5. Run `node test/run.js` — every fixture must pass before opening a PR
-6. Run `node test/integration/all.js` — every integration suite must pass
+6. **Write `test/labels/{language}.json` by hand**, from reading the fixture and not from what the extractor prints (step 3 only records the extractor's own output, so it cannot tell you the extractor is right): `defines` lists at least 5 names the fixture declares that the extractor should list, and `probes` has at least one small source in your language where a declaration-looking line sits in a comment or a string (`mustNotContain`) beside one real declaration (`mustContain`). See `test/labels/go.json`. Then run `node scripts/check-extractor-labels.mjs {language}`: at least 95% of `defines` must be listed and every probe must pass. A reviewer reads your labels instead of your regular expressions, so keep them honest.
+7. Run `node test/integration/all.js` — every integration suite must pass
 
 ## Extractor contract
 

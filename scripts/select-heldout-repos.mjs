@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Choose repositories for the held-out question sets by a fixed rule, from GitHub's repository search.
 //
-//   node scripts/select-heldout-repos.mjs --languages python,typescript,go,rust,java --per-language 4 [--skip owner/name,...]
+//   node scripts/select-heldout-repos.mjs --languages python,typescript,go,rust,java --per-language 4 [--skip owner/name,...] [--stars 100..500] [--size-kb 800..10000]
 //
 // The rule (the same for every language, applied in star order, nothing chosen by hand):
-//   - not a fork, not archived, created before 2026, pushed since --pushed-since, 100 to 500 stars, 0.8 to 10 MB;
+//   - not a fork, not archived, created before 2026, pushed since --pushed-since, 100 to 500 stars (--stars), 0.8 to 10 MB (--size-kb);
 //   - the description does not say it is a list, a collection, a template, a tutorial or a set of examples;
 //   - at least --min-prs pull requests merged since --since (so there are enough changes to ask about).
 // It prints one `language:owner/name` per line, up to --per-language per language, for `build-heldout-set.mjs --repos`.
@@ -18,6 +18,10 @@ const PER = Number(val('--per-language', '4'));
 const SINCE = val('--since', '2026-07-01');
 const PUSHED = val('--pushed-since', '2026-10-15');
 const MIN_PRS = Number(val('--min-prs', '15'));
+// The star and size windows. Their defaults are the rule the first two rounds used; a round of bigger repositories changes --size-kb and nothing else.
+const STARS = val('--stars', '100..500');
+const SIZE_KB = val('--size-kb', '800..10000');
+if (!/^\d+\.\.\d+$/.test(STARS) || !/^\d+\.\.\d+$/.test(SIZE_KB)) { console.error('--stars and --size-kb are ranges such as 100..500'); process.exit(2); }
 const SKIP = new Set((val('--skip', '') || '').split(',').filter(Boolean).map((s) => s.toLowerCase()));
 const LIST_LIKE = /\b(awesome|curated|collection|resources?|templates?|boilerplate|starters?|tutorials?|cheat ?sheets?|examples?|samples?|list of|roadmap|dotfiles)\b/i;
 
@@ -33,7 +37,7 @@ function gh(args) {
 }
 
 for (const lang of LANGS) {
-  const q = `stars:100..500 pushed:>${PUSHED} created:<2026-01-01 archived:false fork:false size:800..10000 language:${lang}`;
+  const q = `stars:${STARS} pushed:>${PUSHED} created:<2026-01-01 archived:false fork:false size:${SIZE_KB} language:${lang}`;
   const items = gh(['search/repositories', '-f', `q=${q}`, '-f', 'sort=stars', '-f', 'per_page=40']).items;
   let kept = 0;
   for (const it of items) {
