@@ -3,6 +3,7 @@
 // after a date, and its label is the source file(s) that change touched.
 //
 //   node scripts/build-heldout-set.mjs --out <dir> --repos owner/name,owner/name [--since 2026-07-01] [--max-per-repo 12] [--min-per-repo 8]
+//                                      [--min-files 3000] [--max-files 10000]   (only repositories whose checkout tracks that many files)
 //   node scripts/build-heldout-set.mjs --out <dir> --repos python:owner/a,python:owner/b,go:owner/c --keep-per-language 2   (stop a language after 2 usable repositories)
 //
 // The rule is mechanical and fixed before any agent runs (it reads a repository's own git history, nothing else):
@@ -14,7 +15,9 @@
 //   - the commit changes 1 to 3 source files (a code extension, not a test, fixture, example, demo, doc, config, generated or minified file), every one
 //     of which still exists at the pinned commit (the default branch's head when the set is built), and the title names none of them;
 //   - the questions are the oldest qualifying commits up to --max-per-repo, so the choice does not depend on how they might score;
-//   - a repository with fewer than --min-per-repo qualifying commits contributes nothing and is reported.
+//   - a repository with fewer than --min-per-repo qualifying commits contributes nothing and is reported;
+//   - with --min-files / --max-files, a repository whose checkout at the pinned commit tracks fewer or more files (`git ls-files`) than that is left out
+//     and reported, before any of its history is read, so the size of the set does not depend on how its questions might score.
 // Output is a data root the harness reads like any other: benchmarks/xrepo-repos.json, benchmarks/tasks/retrieval-xrepo.jsonl and one
 // shallow checkout per repository under benchmarks/repos/. Needs network access to clone; no key, no GitHub API.
 import fs from 'fs';
@@ -31,6 +34,8 @@ const keptBy = {};
 const SINCE = val('--since', '2026-07-01');
 const MAX = Number(val('--max-per-repo', '12'));
 const MIN = Number(val('--min-per-repo', '8'));
+const MIN_FILES = val('--min-files', null) === null ? null : Number(val('--min-files', '0'));
+const MAX_FILES = val('--max-files', null) === null ? null : Number(val('--max-files', '0'));
 if (!OUT || !REPOS.length) { console.error('usage: build-heldout-set.mjs --out <dir> --repos owner/name,... [--since YYYY-MM-DD] [--max-per-repo N] [--min-per-repo N]'); process.exit(2); }
 
 const CODE = { py: 'python', js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript', ts: 'typescript', tsx: 'typescript', go: 'go', rs: 'rust', java: 'java', kt: 'kotlin', scala: 'scala', rb: 'ruby', php: 'php', c: 'c', h: 'c', cc: 'cpp', cpp: 'cpp', hpp: 'cpp', cs: 'csharp', swift: 'swift' };
@@ -65,6 +70,14 @@ for (const { slug, lang: wantLang } of ENTRIES) {
     if (c.status !== 0) { report.push(`${slug}: clone failed: ${(c.stderr || '').trim().split('\n').pop()}`); continue; }
   }
   const head = git(dir, 'rev-parse', 'HEAD').stdout.trim();
+  let tracked = null;
+  if (MIN_FILES !== null || MAX_FILES !== null) {
+    tracked = git(dir, 'ls-files').stdout.split('\n').filter(Boolean).length;
+    if ((MIN_FILES !== null && tracked < MIN_FILES) || (MAX_FILES !== null && tracked > MAX_FILES)) {
+      report.push(`${slug}: ${tracked} tracked files, outside ${MIN_FILES ?? 0} to ${MAX_FILES ?? 'any'}; left out`);
+      fs.rmSync(dir, { recursive: true, force: true }); continue;
+    }
+  }
   const log = git(dir, 'log', '--first-parent', `--since=${SINCE}`, '--format=%H%x1f%P%x1f%s%x1f%an <%ae>%x1f%b%x1e').stdout.split('\x1e').map((s) => s.replace(/^\n/, '')).filter(Boolean).reverse();
   const picks = []; const why = {};
   const skip = (r) => { why[r] = (why[r] || 0) + 1; };
@@ -93,7 +106,7 @@ for (const { slug, lang: wantLang } of ENTRIES) {
   if (wantLang) keptBy[wantLang] = (keptBy[wantLang] || 0) + 1;
   manifest.repos.push({ name, url: `https://github.com/${slug}.git`, commit: head, language, layout: 'heldout' });
   for (const c of chosen) { n++; tasks.push({ id: `p${String(n).padStart(3, '0')}`, split: 'heldout', source: 'merged-commit', repo: name, project: slug, query: c.title, expected_files: c.src, goldCommit: c.sha }); }
-  report.push(`${slug}: ${chosen.length} questions (of ${picks.length} qualifying; ${log.length} commits since ${SINCE}); pinned ${head.slice(0, 10)}; language ${language}. Skipped: ${JSON.stringify(why)}`);
+  report.push(`${slug}: ${chosen.length} questions (of ${picks.length} qualifying; ${log.length} commits since ${SINCE}); pinned ${head.slice(0, 10)}; language ${language}${tracked === null ? '' : `; ${tracked} tracked files`}. Skipped: ${JSON.stringify(why)}`);
 }
 fs.writeFileSync(path.join(out, 'benchmarks', 'xrepo-repos.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 fs.writeFileSync(path.join(out, 'benchmarks', 'tasks', 'retrieval-xrepo.jsonl'), `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n`);

@@ -1,0 +1,12 @@
+# What CodeQL scans. Read by .github/workflows/codeql.yml (its `config-file:`).
+#
+# Test code is not scanned. A test holds URLs, shell strings and deliberately wrong input as literals
+# and asserts on what the program prints, so what CodeQL says about it concerns the assertion and not a
+# path anyone reaches: 15 of the 47 alerts open on main on 2026-11-21 were under test/, and the one
+# that turned the v8.88.0 release PR red was `text.includes('https://sigmap.io/guide/...')`, a check that
+# the output carries a docs link. Everything the package ships and the scripts that build and release it
+# (gen-context.js, src/, packages/, scripts/) is still scanned, and so are benchmarks/ and the workflows.
+name: SigMap CodeQL configuration
+
+paths-ignore:
+  - 'test/**'

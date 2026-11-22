@@ -56,6 +56,12 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
 - **Not every way of handing SigMap to an agent works.** The old default (`current`, +9%), the lean section (`lean`, +16%) and a skill
   that the agent is told to call first (`skill-always`, +25%) cost more than no SigMap on Haiku 5.5. A skill the agent may call or not
   was never called and changed nothing.
+- **By goal, on the twenty repositories (Messages-API agent, Haiku 5.5): `prefetch` is the only setup that cut time and tokens.** Time on 19 of 20 repositories (**−18% [−21, −14]**), tokens
+  **−26% [−39, −14]** with none using more; it saved cost on 7 and cost more on 5. `locate` is the only one that cost more on none (−7%) and saves no time; `index` raised tokens on 17 of 20
+  (+51%) and saves no time. The installed hook is about a third of the benchmark's `prefetch`. Per repository and measure: [Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository).
+- **Nothing SigMap can compute offline predicted which repositories save.** The share of a repository's questions whose file is in SigMap's first five, the same for a single-shot grep, their
+  difference and the repository's size: none tracked the saving (the pre-registered test, headroom against `prefetch` cost: ρ = −0.13 [−0.57, +0.36], bar −0.50 with the interval below zero).
+  To find out for a project, measure it: [choosing a setup](/guide/choosing-a-setup).
 
 ## Set it up the way the runs did
 
@@ -450,9 +456,11 @@ calls too, but only one interval clears zero (tool calls under `prefetch`), and 
 both times?" no for all three). Restricted to the four tasks whose tests use no invented names, `index` on Haiku 5.5 reads −17% [−26, −8]
 in cost over 12 pairs; that cut was chosen after the results were seen and is exploratory, not evidence.
 
-What would make this stage informative: screen the tasks for invented names *before* running anything (the script is there, and the
-next version of `build-change-tasks.mjs` should apply it as a rule), add the equivalence and review graders the article used instead of
-only a test file, use more tasks than nine, and a model strong enough to clear them. None of that was done here.
+What would make this stage informative: screen the tasks for invented names *before* running anything, add the equivalence and review graders the
+article used instead of only a test file, use more tasks than nine, and a model strong enough to clear them. None of that was done in this run.
+Since then `build-change-tasks.mjs` applies the screen as a rule (`scripts/lib/change-task-screen.mjs`: a task whose hidden tests need a name the
+fix invents is never kept), which only removes the first problem; the stage has not been re-run. SigMap's own history cannot supply many such tasks. On 2026-11-16, of the 113 `fix(...)` commits since 2026-07-01, 49 met the builder's structural rules (source and a test changed, no new source file, one task per issue, six source files or fewer). Of the 9 tasks that ran in this stage, 4 were answerable, so a re-run from this one repository would see at most about 20, before the builder's size and fail-then-pass filters take more, and from a
+repository the ranker was tuned on.
 
 ## Where this can mislead
 

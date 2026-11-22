@@ -1,0 +1,129 @@
+bucketeer-io/bucketeer: 12 questions (of 49 qualifying; 283 commits since 2026-07-01); pinned 16e3d1b612; language go; 3079 tracked files. Skipped: {"bot or no parent in the shallow history":55,"not 1 to 3 source files":107,"the title names a changed file":22,"title is vague, about tooling, tests or docs":41,"dependency bump, release, revert, merge or docs":4,"a changed source file no longer exists":1,"title length":4}
+iota-uz/iota-sdk: 12 questions (of 75 qualifying; 314 commits since 2026-07-01); pinned 6983576347; language go; 5664 tracked files. Skipped: {"bot or no parent in the shallow history":19,"title is vague, about tooling, tests or docs":40,"not 1 to 3 source files":152,"a changed source file no longer exists":4,"the title names a changed file":11,"title length":8,"dependency bump, release, revert, merge or docs":5}
+pentaho/pentaho-platform: 12 questions (of 17 qualifying; 67 commits since 2026-07-01); pinned 3f8caf7305; language java; 5940 tracked files. Skipped: {"bot or no parent in the shallow history":1,"not 1 to 3 source files":29,"title is vague, about tooling, tests or docs":19,"title length":1}
+citrusframework/citrus: 12 questions (of 183 qualifying; 816 commits since 2026-07-01); pinned 137d02de8f; language java; 7756 tracked files. Skipped: {"bot or no parent in the shallow history":12,"not 1 to 3 source files":233,"title is vague, about tooling, tests or docs":328,"a changed source file no longer exists":6,"the title names a changed file":25,"dependency bump, release, revert, merge or docs":2,"title length":27}
+xgboosted/pandas-ta-classic: 509 tracked files, outside 3000 to 10000; left out
+openwallet-foundation/acapy: 2338 tracked files, outside 3000 to 10000; left out
+subzeroid/aiograpi: 286 tracked files, outside 3000 to 10000; left out
+pykale/pykale: 384 tracked files, outside 3000 to 10000; left out
+adrienbrault/geekmagic-hacs: 684 tracked files, outside 3000 to 10000; left out
+DigitalSlideArchive/HistomicsTK: 309 tracked files, outside 3000 to 10000; left out
+mapequation/infomap: 762 tracked files, outside 3000 to 10000; left out
+DashAISoftware/dashAI: 2553 tracked files, outside 3000 to 10000; left out
+PallasBot/Pallas-Bot: 2298 tracked files, outside 3000 to 10000; left out
+intrinsic-dev/aic: 344 tracked files, outside 3000 to 10000; left out
+aaronwmorris/indi-allsky: 874 tracked files, outside 3000 to 10000; left out
+nandyalu/trailarr: 952 tracked files, outside 3000 to 10000; left out
+zzliux/assttyys_autojs: 361 tracked files, outside 3000 to 10000; left out
+guilhermeborgesbastos/live-resume: 325 tracked files, outside 3000 to 10000; left out
+codaxy/cxjs: 2453 tracked files, outside 3000 to 10000; left out
+Web3Auth/web3auth-web: 562 tracked files, outside 3000 to 10000; left out
+sigle/sigle: 586 tracked files, outside 3000 to 10000; left out
+firebase/apphosting-adapters: 1370 tracked files, outside 3000 to 10000; left out
+ossappscollective/oss-weather: 1700 tracked files, outside 3000 to 10000; left out
+microsoft-search/pnp-modern-search: 841 tracked files, outside 3000 to 10000; left out
+cortex-js/compute-engine: 12 questions (of 608 qualifying; 3987 commits since 2026-07-01); pinned 1044ec18c9; language typescript; 5032 tracked files. Skipped: {"bot or no parent in the shallow history":2,"title is vague, about tooling, tests or docs":734,"title length":1373,"not 1 to 3 source files":1025,"a changed source file no longer exists":167,"the title names a changed file":60,"dependency bump, release, revert, merge or docs":18}
+instructure/instructure-ui: 12 questions (of 49 qualifying; 223 commits since 2026-07-01); pinned 9c5d56eadc; language typescript; 4059 tracked files. Skipped: {"bot or no parent in the shallow history":1,"not 1 to 3 source files":59,"title is vague, about tooling, tests or docs":91,"title length":11,"the title names a changed file":11,"a changed source file no longer exists":1}
+microsoft/Power-CAT-Copilot-Studio-Kit: not tried (2 typescript repositories already usable)
+reearth/reearth-visualizer: not tried (2 typescript repositories already usable)
+DataRecce/recce: not tried (2 typescript repositories already usable)
+receptron/mulmocast-cli: not tried (2 typescript repositories already usable)
+SpyglassMC/Spyglass: not tried (2 typescript repositories already usable)
+obsidianmd/obsidian-translations: 98 tracked files, outside 3000 to 10000; left out
+OpenGeoscience/geojs: 717 tracked files, outside 3000 to 10000; left out
+ddterm/gnome-shell-extension-ddterm: clone failed: and retry with 'git restore --source=HEAD :/'
+amazon-connect/amazon-connect-streams: 108 tracked files, outside 3000 to 10000; left out
+nextcloud/richdocuments: 577 tracked files, outside 3000 to 10000; left out
+MrAntares/roBrowserLegacy: 1210 tracked files, outside 3000 to 10000; left out
+poolifier/poolifier: 329 tracked files, outside 3000 to 10000; left out
+RobotWebTools/rclnodejs: 594 tracked files, outside 3000 to 10000; left out
+fluxy-rs/fluxy: 1012 tracked files, outside 3000 to 10000; left out
+Mjoyufull/fsel: 178 tracked files, outside 3000 to 10000; left out
+kvark/vange-rs: 347 tracked files, outside 3000 to 10000; left out
+Sovereign-Labs/sovereign-sdk: 2079 tracked files, outside 3000 to 10000; left out
+fluree/db: 12 questions (of 77 qualifying; 446 commits since 2026-07-01); pinned b5aee2c0f0; language rust; 3285 tracked files. Skipped: {"bot or no parent in the shallow history":1,"not 1 to 3 source files":272,"the title names a changed file":23,"title is vague, about tooling, tests or docs":47,"title length":23,"a changed source file no longer exists":2,"dependency bump, release, revert, merge or docs":1}
+zkVerify/zkVerify: 1021 tracked files, outside 3000 to 10000; left out
+longbridge/openapi: 1152 tracked files, outside 3000 to 10000; left out
+FelixKrueger/Bismark: 1537 tracked files, outside 3000 to 10000; left out
+open-telemetry/otel-arrow: 12 questions (of 122 qualifying; 835 commits since 2026-07-01); pinned 137d2cfe23; language rust; 3306 tracked files. Skipped: {"bot or no parent in the shallow history":152,"the title names a changed file":50,"a changed source file no longer exists":24,"not 1 to 3 source files":296,"title length":9,"title is vague, about tooling, tests or docs":168,"dependency bump, release, revert, merge or docs":14}
+conda/rattler: not tried (2 rust repositories already usable)
+o1-labs/proof-systems: not tried (2 rust repositories already usable)
+apollographql/rover: not tried (2 rust repositories already usable)
+tlsnotary/tlsn: not tried (2 rust repositories already usable)
+JeroenGar/sparrow: not tried (2 rust repositories already usable)
+crocidb/bulletty: not tried (2 rust repositories already usable)
+WildGums/Orchestra: 556 tracked files, outside 3000 to 10000; left out
+OpenCoreMMO/OpenCoreMMO: 2860 tracked files, outside 3000 to 10000; left out
+KSP-RO/RP-1: 1902 tracked files, outside 3000 to 10000; left out
+LANCommander/LANCommander: 12 questions (of 77 qualifying; 292 commits since 2026-07-01); pinned e41d80f990; language csharp; 3454 tracked files. Skipped: {"bot or no parent in the shallow history":12,"not 1 to 3 source files":123,"title length":40,"title is vague, about tooling, tests or docs":17,"a changed source file no longer exists":1,"dependency bump, release, revert, merge or docs":22}
+microsoft/PSRule: 1222 tracked files, outside 3000 to 10000; left out
+shimat/opencvsharp_samples: 187 tracked files, outside 3000 to 10000; left out
+NetCordDev/NetCord: 1709 tracked files, outside 3000 to 10000; left out
+OpenKH/OpenKh: 2537 tracked files, outside 3000 to 10000; left out
+robinrodricks/FluentStorage: 385 tracked files, outside 3000 to 10000; left out
+AAEmu/AAEmu: 12 questions (of 23 qualifying; 52 commits since 2026-07-01); pinned 4cb1119d78; language csharp; 3026 tracked files. Skipped: {"bot or no parent in the shallow history":1,"not 1 to 3 source files":14,"title length":5,"title is vague, about tooling, tests or docs":7,"the title names a changed file":2}
+openshwprojects/BK7231GUIFlashTool: not tried (2 csharp repositories already usable)
+notgiven688/jitterphysics2: not tried (2 csharp repositories already usable)
+SlimPlanet/SlimFaas: not tried (2 csharp repositories already usable)
+AccountGo/accountgo: not tried (2 csharp repositories already usable)
+ShapeCrawler/ShapeCrawler: not tried (2 csharp repositories already usable)
+FossifyOrg/Camera: 315 tracked files, outside 3000 to 10000; left out
+tangcent/easy-yapi: 1879 tracked files, outside 3000 to 10000; left out
+thewca/tnoodle: 309 tracked files, outside 3000 to 10000; left out
+slackhq/foundry: clone failed: and retry with 'git restore --source=HEAD :/'
+cashapp/misk: 2563 tracked files, outside 3000 to 10000; left out
+Fraunhofer-AISEC/cpg: 2265 tracked files, outside 3000 to 10000; left out
+software-mansion/pulsar: 2137 tracked files, outside 3000 to 10000; left out
+FossifyOrg/Calculator: 291 tracked files, outside 3000 to 10000; left out
+HDCharts/charts: 1212 tracked files, outside 3000 to 10000; left out
+GPLaider/Ventoid: 187 tracked files, outside 3000 to 10000; left out
+wyskoj/midis2jam2: clone failed: and retry with 'git restore --source=HEAD :/'
+keepalivedev/KeepAlive: 501 tracked files, outside 3000 to 10000; left out
+akshay2211/DrawBox: 309 tracked files, outside 3000 to 10000; left out
+alisonthemonster/Presently: 867 tracked files, outside 3000 to 10000; left out
+braintree/braintree_android: 823 tracked files, outside 3000 to 10000; left out
+spatie/spatie.be: 1586 tracked files, outside 3000 to 10000; left out
+LDAPAccountManager/lam: 6 qualifying question(s) (< 8); left out. Skipped: {"bot or no parent in the shallow history":1,"dependency bump, release, revert, merge or docs":26,"not 1 to 3 source files":26,"title length":100,"title is vague, about tooling, tests or docs":4}
+Admidio/admidio: 1588 tracked files, outside 3000 to 10000; left out
+pressbooks/pressbooks: 963 tracked files, outside 3000 to 10000; left out
+contao/contao: 12 questions (of 63 qualifying; 250 commits since 2026-07-01); pinned 24bd85b340; language php; 4961 tracked files. Skipped: {"bot or no parent in the shallow history":1,"the title names a changed file":8,"dependency bump, release, revert, merge or docs":51,"title is vague, about tooling, tests or docs":32,"not 1 to 3 source files":74,"title length":15,"a changed source file no longer exists":6}
+browscap/browscap: 0 qualifying question(s) (< 8); left out. Skipped: {"bot or no parent in the shallow history":1,"dependency bump, release, revert, merge or docs":19}
+awcodes/filament-curator: 328 tracked files, outside 3000 to 10000; left out
+RetroAchievements/RAWeb: 12 questions (of 80 qualifying; 261 commits since 2026-07-01); pinned f1a4b1768d; language php; 5226 tracked files. Skipped: {"bot or no parent in the shallow history":29,"not 1 to 3 source files":120,"the title names a changed file":9,"title length":7,"title is vague, about tooling, tests or docs":13,"dependency bump, release, revert, merge or docs":2,"a changed source file no longer exists":1}
+inex/IXP-Manager: not tried (2 php repositories already usable)
+zencart/zencart: not tried (2 php repositories already usable)
+laradashboard/laradashboard: not tried (2 php repositories already usable)
+jeedom/core: not tried (2 php repositories already usable)
+academico-sis/academico: not tried (2 php repositories already usable)
+openITCOCKPIT/openITCOCKPIT: not tried (2 php repositories already usable)
+sergejey/majordomo: not tried (2 php repositories already usable)
+hitobito/hitobito: 12 questions (of 100 qualifying; 445 commits since 2026-07-01); pinned 8ead977bfb; language ruby; 3868 tracked files. Skipped: {"bot or no parent in the shallow history":19,"the title names a changed file":20,"title length":39,"not 1 to 3 source files":193,"title is vague, about tooling, tests or docs":59,"a changed source file no longer exists":9,"dependency bump, release, revert, merge or docs":6}
+concerto/concerto: 606 tracked files, outside 3000 to 10000; left out
+openai/openai-ruby: 12 questions (of 164 qualifying; 675 commits since 2026-07-01); pinned 681e6a990f; language ruby; 5488 tracked files. Skipped: {"bot or no parent in the shallow history":115,"not 1 to 3 source files":229,"title length":11,"title is vague, about tooling, tests or docs":112,"a changed source file no longer exists":4,"dependency bump, release, revert, merge or docs":5,"the title names a changed file":35}
+archivesspace/archivesspace: not tried (2 ruby repositories already usable)
+getlago/lago-api: not tried (2 ruby repositories already usable)
+WikiEducationFoundation/WikiEduDashboard: not tried (2 ruby repositories already usable)
+mysociety/alaveteli: not tried (2 ruby repositories already usable)
+DataDog/dd-trace-rb: not tried (2 ruby repositories already usable)
+ruby-gnome/ruby-gnome: not tried (2 ruby repositories already usable)
+karafka/rdkafka-ruby: not tried (2 ruby repositories already usable)
+buildkite/emojis: not tried (2 ruby repositories already usable)
+kagisearch/bangs: not tried (2 ruby repositories already usable)
+rubyforgood/casa: not tried (2 ruby repositories already usable)
+anthropics/anthropic-sdk-ruby: not tried (2 ruby repositories already usable)
+tobymao/18xx: not tried (2 ruby repositories already usable)
+F5OEO/tezuka_fw: 905 tracked files, outside 3000 to 10000; left out
+coin-or/Clp: 350 tracked files, outside 3000 to 10000; left out
+Admiral-Fish/PokeFinder: 930 tracked files, outside 3000 to 10000; left out
+irods/irods: 1959 tracked files, outside 3000 to 10000; left out
+open-planning/roboplan: 588 tracked files, outside 3000 to 10000; left out
+topology-tool-kit/ttk: 1630 tracked files, outside 3000 to 10000; left out
+ryzom/ryzomcore: 12537 tracked files, outside 3000 to 10000; left out
+JeanPhilippeKernel/RendererEngine: 1343 tracked files, outside 3000 to 10000; left out
+dmtcp/dmtcp: 530 tracked files, outside 3000 to 10000; left out
+BenjaminPoilve/minichord: 550 tracked files, outside 3000 to 10000; left out
+UtilitechAS/amsreader-firmware: 565 tracked files, outside 3000 to 10000; left out
+fluffos/fluffos: 12 questions (of 111 qualifying; 382 commits since 2026-07-01); pinned 93f1ea843d; language cpp; 3728 tracked files. Skipped: {"bot or no parent in the shallow history":18,"title is vague, about tooling, tests or docs":79,"not 1 to 3 source files":104,"title length":2,"the title names a changed file":67,"dependency bump, release, revert, merge or docs":1}
+open-telemetry/opentelemetry-dotnet-instrumentation: 2284 tracked files, outside 3000 to 10000; left out
+XCSoar/XCSoar: 12 questions (of 337 qualifying; 1740 commits since 2026-07-01); pinned 3f4ef180d9; language cpp; 5483 tracked files. Skipped: {"bot or no parent in the shallow history":20,"the title names a changed file":436,"not 1 to 3 source files":604,"title is vague, about tooling, tests or docs":249,"a changed source file no longer exists":10,"title length":79,"dependency bump, release, revert, merge or docs":5}
+valbok/QtAVPlayer: not tried (2 cpp repositories already usable)

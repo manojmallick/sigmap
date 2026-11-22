@@ -796,6 +796,79 @@ largest growth in bytes is 3.5 KB and the median is under 1%. I committed the ch
 one revert away if the 5% is meant to bind.
 
 
+## Sixth round: choosing a setup for a project
+
+The study says how much each setup saved on twenty repositories and that the saving varies a great deal between them (`index` −1% pooled, 3 repositories saving and 2 costing
+more; `prefetch` −7% pooled, 7 saving and 5 costing more; `locate` −7% pooled, 4 saving and none costing more). A reader with one project wants to know which of those it will
+look like. This round asks whether anything SigMap can compute for free on a repository, with no model call, says so. It is offline: nothing here is run against an agent, and
+the outcomes are the ones already recorded in `data/runs.ndjson`.
+
+### Stage I: can an offline signal say which setup suits a repository?
+
+*Written before any feature was computed against an outcome.* What the author had already seen when this was written: the pooled results and per-repository classes of the
+earlier rounds, and that the saving tracks how much the unaided agent spends per question (rank correlation 0.66 with a repository's baseline cost per run; not size or language).
+No candidate feature below had been computed.
+
+**Outcome (recorded, nothing new is run).** The `heldout` set, Messages API, Haiku 5.5, the twenty repositories of the second round. Per repository and per setup (`index`,
+`prefetch`, `locate`), the typical-task change against that repository's own baseline, by `geometricChange` of the with/without pairs exactly as `summarize.mjs --by-repo` computes
+it, for three measures: real cost (`usd`), time (`ms`) and total tokens (`in + out + cacheRead + cacheWrite`). A setup *saves* on a repository when its 95% interval is below zero.
+
+**Features (computed offline on each repository's pinned checkout, no model call).** On the repository's own held-out questions (the 222, built by the fixed rule in
+`scripts/build-heldout-set.mjs`, a repository's git history and nothing else), with the index strategy as the A/B prepares it:
+
+| Feature | Definition |
+|---|---|
+| `lead5` | the share of the repository's questions whose expected file is among the first five that `query_context` returns |
+| `grep5` | the share whose expected file is among the first five of the honest benchmark's single-shot grep scan (a whole-repository term scan ranked by coverage, then occurrences) |
+| `headroom` | `lead5 − grep5`: how much more often SigMap's first five hold the file than a grep's do |
+| `files` | the number of files the index lists (a control: the study found size does not predict) |
+
+**The primary test, one only.** The Spearman rank correlation ρ between `headroom` and the per-repository change in real cost of `prefetch` (n = 20; a more negative change is a
+bigger saving), with a 95% interval from resampling repositories (10,000 times, seed 1). The hypothesis is that more headroom means a bigger saving, so ρ < 0. **The bar:
+ρ ≤ −0.50 and the interval entirely below zero.** Everything else is reported and is not used to claim anything: the same for `lead5`, `grep5` and `files`, for `index` and
+`locate`, and for time and tokens. Six comparisons beside one primary is why only the primary can pass.
+
+**What follows, decided now.**
+
+- **The primary passes:** `sigmap advise` says, for the hook only, *likely to save* or *uncertain*, from a `headroom` cut chosen by leave-one-out on these twenty repositories, and prints
+  the cut, the evidence and how often the rule was wrong on them. It is labelled an estimate.
+- **The primary fails:** `sigmap advise` prints the facts (the standing tokens each setup adds to a turn, `lead5`, `grep5`, `headroom`, whether the prompts are readable) and makes no
+  call, and says that no offline signal predicted the saving on the twenty repositories.
+- **Either way** no percentage is printed as a forecast, and a repository's own questions are mined by the same rule that built these, so the feature means the same thing there.
+
+**What this cannot show.** Twenty repositories, one cheap model, one agent (the Messages-API agent, not Claude Code), and the features are computed on the same questions the agent
+was asked, where `advise` will mine its own from the project's history. A pass would be a reason to offer a hint and not a reason to trust a number; a second, independent set
+of questions would be the next check.
+
+**Result** (`node benchmarks/agent-study/setup-signal-eval.mjs`, committed before it was run; output in `data/setup-signal-eval.txt`; 20 repositories, 222 questions).
+
+- **The primary test does not pass.** ρ between `headroom` and the change in real cost of `prefetch` is **−0.13, 95% interval [−0.57, +0.36]**, against a bar of ρ ≤ −0.50 with
+  the interval entirely below zero. As decided above, `sigmap advise` prints the facts and makes no call.
+- **Nothing else predicts either, and the one place that looks like it should not be read as a finding.** Of the 36 secondary intervals (four features, three setups, three measures),
+  3 exclude zero, all on `files` (`locate` cost −0.57 [−0.86, −0.12], `index` tokens −0.50 [−0.78, −0.04], `locate` tokens −0.54 [−0.85, −0.04]); at 95% about 2 of 36 would
+  by chance. `files` is the feature the study had reported not to predict, and the larger savings sit on a few large repositories (`flamingock-java`, 1,205 files, −64% for `prefetch`).
+  It would need its own test, on other repositories, to count.
+
+**By goal** (descriptive; added after the test was run and not part of it). Per setup and measure, how many of the twenty repositories save, show no clear change or cost more (by each
+repository's own 95% interval), and the pooled typical-task change with an interval from resampling repositories. The cost rows reproduce `summarize.mjs --by-repo`.
+
+| Goal | Setup | Saves | No clear change | Costs more | Pooled change [95% interval] |
+|---|---|---:|---:|---:|---:|
+| cost | `index` | 3 | 15 | 2 | −1% [−8%, +5%] |
+| cost | `prefetch` | 7 | 8 | 5 | −7% [−19%, +4%] |
+| cost | `locate` | 4 | 16 | 0 | −7% [−13%, −2%] |
+| time | `index` | 1 | 15 | 4 | +2% [0%, +5%] |
+| time | `prefetch` | **19** | 1 | 0 | **−18% [−21%, −14%]** |
+| time | `locate` | 1 | 16 | 3 | +1% [−1%, +4%] |
+| tokens | `index` | 0 | 3 | 17 | **+51% [+37%, +66%]** |
+| tokens | `prefetch` | 9 | 11 | 0 | **−26% [−39%, −14%]** |
+| tokens | `locate` | 1 | 8 | 11 | +18% [+7%, +27%] |
+
+On the Messages-API agent with Haiku 5.5, `prefetch` is the only setup that cut time (19 of 20 repositories) and tokens (none used more), and it saved cost on 7 and cost more on 5.
+`locate` is the only setup that cost more on none (−7%), saves no time and raises total tokens (11 repositories used more). `index` raised tokens on 17 of 20 and saves no time.
+What this cannot say: `prefetch` here is the benchmark's (the ranking put in the prompt by the harness), and the installed hook measured about a third of it in Claude Code on eight
+repositories (time −11%, tokens −23%, cost −4%); it is one cheap model on one agent; and these twenty are the repositories the setups were looked at on.
+
 ## What went wrong along the way
 
 Recorded because a study that hides its errors is not worth reading.
