@@ -360,7 +360,7 @@ function impactView(map, relFile, depth, cwd) {
  */
 function architectureView(map) {
   const files = map.nodes.filter((n) => n.kind === 'file');
-  const groups = {};
+  const groups = Object.create(null); // no prototype: a directory may be called `constructor`
   let totalTokens = 0;
   for (const n of files) {
     const rel = n.id.slice(5);

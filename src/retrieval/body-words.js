@@ -150,7 +150,10 @@ function buildBodyWords(index, readSource, opts) {
   const df = new Map();
   let files = 0;
   const readable = [];
-  for (const file of index.keys()) {
+  for (const [file, sigs] of index) {
+    // A path-only entry (src/retrieval/bare-files.js) has no signatures and no words of its own: leaving it out of
+    // the count as well keeps every other file's words what they were, whoever built the cache.
+    if (Array.isArray(sigs) && sigs.length === 0) continue;
     let source = null;
     try { source = readSource(file); } catch (_) { source = null; }
     if (typeof source !== 'string') continue;

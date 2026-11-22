@@ -1,0 +1,204 @@
+#!/usr/bin/env node
+// Every number in the study, from one table. Offline, no key.
+//
+//   node benchmarks/agent-study/summarize.mjs                                  # one row per run series: change against its own baseline
+//   node benchmarks/agent-study/summarize.mjs --model claude-sonnet-5-5 --set unfamiliar
+//   node benchmarks/agent-study/summarize.mjs --route api --variant prefetch
+//   node benchmarks/agent-study/summarize.mjs --exclude-repos django,rails     # a sensitivity cut
+//   node benchmarks/agent-study/summarize.mjs --set change --tasks c04,c05,c06,c09   # only these questions or tasks
+//   node benchmarks/agent-study/summarize.mjs --study                          # the stet.sh study's columns: repetition 1 / repetition 2
+//   node benchmarks/agent-study/summarize.mjs --vs-placebo                     # SigMap against the size-matched placebo, as well as against nothing
+//   node benchmarks/agent-study/summarize.mjs --versus locate:index --set heldout   # one setup directly against another (the SigMap arms of the same questions)
+//   ... add --found-did to print the difference of the two series' file-found changes, with an interval that resamples questions
+//   node benchmarks/agent-study/summarize.mjs --versus a:b --adjusted --set heldout  # the same, but each series' change against its own baseline (cancels a dearer or cheaper hour)
+//   node benchmarks/agent-study/summarize.mjs --by-repo --set heldout         # repository level: how many repositories save, a pooled estimate that resamples repositories, the bar
+//   node benchmarks/agent-study/summarize.mjs --route claude-code --ask first   # only first asks (a question's first run in its batch); `repeat` for the rest
+//   node benchmarks/agent-study/summarize.mjs --runs path/to/runs.ndjson       # your own runs (same columns)
+//
+// data/runs.ndjson has one row per agent run (see README.md for the fields). A series is one invocation of the harness: one route
+// (Claude Code or the Messages API), model, question set and SigMap setup, with both arms. Arms are paired by (repo, question,
+// repetition); a pair with a failed run is dropped and counted, but a run stopped by the turn cap is a scored miss at the cost it incurred.
+// "typical task" = the geometric mean of the per-pair ratios, with its 95% paired bootstrap interval (scripts/lib/agent-ab-stats.mjs,
+// the stet.sh study's estimators); "whole batch" = total of one arm over total of the other. "~" = the interval includes zero.
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { geometricChange, workloadChange, makeRng, BOOTSTRAP_ITERATIONS, BOOTSTRAP_SEED } from '../../scripts/lib/agent-ab-stats.mjs';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const argv = process.argv.slice(2);
+const val = (name, dflt = null) => { const i = argv.indexOf(name); return i >= 0 && argv[i + 1] ? argv[i + 1] : dflt; };
+const file = val('--runs', path.join(here, 'data', 'runs.ndjson'));
+const want = { route: val('--route'), model: val('--model'), set: val('--set'), variant: val('--variant'), series: val('--series') };
+const dropRepos = new Set((val('--exclude-repos', '') || '').split(',').filter(Boolean));
+const onlyTasks = new Set((val('--tasks', '') || '').split(',').filter(Boolean));
+const STUDY = argv.includes('--study');
+const VS_PLACEBO = argv.includes('--vs-placebo');
+const BY_REPO = argv.includes('--by-repo');
+const VERSUS = val('--versus', null);
+const FOUND_DID = argv.includes('--found-did'); // with --versus --adjusted: also the difference of the two series' file-found changes, resampling questions
+const ADJUSTED = argv.includes('--adjusted'); // with --versus: compare each series' change against its OWN baseline, so a cheaper or dearer hour cancels
+const ASK = val('--ask', null); // first | repeat: Claude Code rows only (see to-runs.mjs)
+if (ASK && ASK !== 'first' && ASK !== 'repeat') { console.error('--ask is first or repeat'); process.exit(2); }
+
+const rows = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  .filter((r) => Object.entries(want).every(([k, v]) => !v || r[k] === v) && !dropRepos.has(r.repo) && (!onlyTasks.size || onlyTasks.has(r.task)) && (!ASK || r.ask === ASK));
+
+const tot = (r) => r.in + r.out + r.cacheRead + r.cacheWrite;
+const pct = (v) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
+const cell = (g) => `${pct(g.change)} [${pct(g.lo)}, ${pct(g.hi)}]${g.inNoise ? ' ~' : ''}`;
+const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const key = (r) => `${r.repo}/${r.task}|${r.run}`;
+
+/** Group rows into series (keeping the order they appear in) and pair the arms inside each. */
+function series() {
+  const by = new Map();
+  for (const r of rows) { if (!by.has(r.series)) by.set(r.series, []); by.get(r.series).push(r); }
+  const out = [];
+  for (const [name, rs] of by) {
+    const bad = new Set(rs.filter((r) => !r.ok).map(key));
+    const ok = rs.filter((r) => !bad.has(key(r)));
+    const m = new Map(ok.map((r) => [`${key(r)}|${r.arm}`, r]));
+    const keys = [...new Set(ok.map(key))].filter((k) => m.has(`${k}|with`) && m.has(`${k}|without`));
+    if (!keys.length) continue;
+    const head = rs[0];
+    out.push({ name, head, dropped: bad.size, keys, m, withRuns: keys.map((k) => m.get(`${k}|with`)), baseRuns: keys.map((k) => m.get(`${k}|without`)) });
+  }
+  return out;
+}
+
+const metrics = { cost: (r) => r.usd, tokens: tot, calls: (r) => r.calls, seconds: (r) => r.ms / 1000 };
+const pairsOf = (s, fn, rep) => s.keys.filter((k) => !rep || k.endsWith(`|${rep}`)).map((k) => ({ without: fn(s.m.get(`${k}|without`)), with: fn(s.m.get(`${k}|with`)) }));
+const label = (s) => `${s.head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${s.head.model} · ${s.head.set}`;
+
+const all = series();
+if (!all.length) { console.log('no runs match'); process.exit(0); }
+
+if (BY_REPO) {
+  // The unit is the repository. Per repository: the typical-task change in real cost, classed saves / no clear change / costs more by its 95%
+  // interval. Pooled: the geometric mean of the per-repository ratios, with an interval from resampling REPOSITORIES (10,000 times, seed 1), so a
+  // large repository cannot stand in for several small ones. The bar (docs-vp/guide/agent-study-protocol.md): the pooled interval entirely
+  // below zero; at least half of the repositories save and at most 15% cost more; the file found to within 2 points of the baseline.
+  const rng = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const repoRows = [];
+  console.log('| run | SigMap setup | repositories | pooled real cost (resampling repositories) | saves | no clear change | costs more | file found (baseline) | the bar |');
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|---|');
+  for (const sr of all) {
+    const byRepo = new Map();
+    for (const k of sr.keys) { const repo = sr.m.get(`${k}|with`).repo; if (!byRepo.has(repo)) byRepo.set(repo, []); byRepo.get(repo).push(k); }
+    const rs = [];
+    for (const [repo, ks] of byRepo) {
+      const pairs = ks.map((k) => ({ without: sr.m.get(`${k}|without`).usd, with: sr.m.get(`${k}|with`).usd }));
+      const g = geometricChange(pairs);
+      rs.push({ repo, pairs: pairs.length, ...g, cls: g.hi < 0 ? 'saves' : g.lo > 0 ? 'costs' : 'none', logr: Math.log(1 + g.change) });
+      repoRows.push({ series: sr.name, ...rs[rs.length - 1] });
+    }
+    const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const pooled = mean(rs.map((r) => r.logr));
+    const rand = rng(1); const boots = [];
+    for (let b = 0; b < 10000; b++) { let sum = 0; for (let i = 0; i < rs.length; i++) sum += rs[Math.floor(rand() * rs.length)].logr; boots.push(sum / rs.length); }
+    boots.sort((x, y) => x - y);
+    const lo = Math.exp(boots[Math.floor(0.025 * boots.length)]) - 1; const hi = Math.exp(boots[Math.floor(0.975 * boots.length)]) - 1; const ch = Math.exp(pooled) - 1;
+    const n = { saves: rs.filter((r) => r.cls === 'saves').length, none: rs.filter((r) => r.cls === 'none').length, costs: rs.filter((r) => r.cls === 'costs').length };
+    const wRuns = sr.withRuns; const bRuns = sr.baseRuns; const fw = wRuns.filter((r) => r.pass).length; const fb = bRuns.filter((r) => r.pass).length;
+    const diffPp = 100 * (fw / wRuns.length - fb / bRuns.length);
+    const fails = [];
+    if (!(hi < 0)) fails.push('pooled interval not below zero');
+    if (n.saves < rs.length / 2) fails.push(`only ${n.saves} of ${rs.length} repositories save`);
+    if (n.costs > 0.15 * rs.length) fails.push(`${n.costs} of ${rs.length} cost more`);
+    if (diffPp < -2) fails.push(`file found ${diffPp.toFixed(1)} points lower`);
+    console.log(`| ${label(sr)} | \`${sr.head.variant}\` | ${rs.length} | **${pct(ch)} [${pct(lo)}, ${pct(hi)}]**${lo < 0 && hi >= 0 ? ' ~' : ''} | ${n.saves} | ${n.none} | ${n.costs} | ${fw}/${wRuns.length} (${fb}/${bRuns.length}) | ${fails.length ? `not met: ${fails.join('; ')}` : 'met'} |`);
+  }
+  if (argv.includes('--per-repo')) {
+    console.log('\n| setup | repository | pairs | real cost | class |\n|---|---|---:|---:|---|');
+    for (const r of repoRows) console.log(`| ${r.series.replace(/^.*-heldout-/, '')} | ${r.repo} | ${r.pairs} | ${cell(r)} | ${r.cls} |`);
+  }
+  process.exit(0);
+}
+
+if (VERSUS) {
+  const [va, vb] = VERSUS.split(':');
+  const groups = new Map();
+  for (const sr of all) { const k = `${sr.head.route}|${sr.head.model}|${sr.head.set}`; if (!groups.has(k)) groups.set(k, {}); groups.get(k)[sr.head.variant] = sr; }
+  console.log(`| run | comparison | pairs | real cost | cost by repetition | total tokens | tool calls | seconds | file found |`);
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|---:|');
+  for (const [, g] of groups) {
+    if (!g[va] || !g[vb]) continue;
+    const head = g[va].head; const lab = `${head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${head.model} · ${head.set}`;
+    const common = g[va].keys.filter((x) => g[vb].m.has(`${x}|with`) && (!ADJUSTED || (g[va].m.has(`${x}|without`) && g[vb].m.has(`${x}|without`))));
+    const pairs = common.map((x) => ({ key: x, arm: g[va].m.get(`${x}|with`), base: g[vb].m.get(`${x}|with`), armBase: g[va].m.get(`${x}|without`), baseBase: g[vb].m.get(`${x}|without`) }));
+    // Adjusted: the value compared is each pair's with/without ratio in its own series, so the question is "did `a` change the cost more than `b` did".
+    const ratio = (w, wo, fn) => { const a = fn(w), b = fn(wo); return Number.isFinite(a) && Number.isFinite(b) && b > 0 ? a / b : null; };
+    const val2 = (p, fn) => (ADJUSTED ? { without: ratio(p.base, p.baseBase, fn), with: ratio(p.arm, p.armBase, fn) } : { without: fn(p.base), with: fn(p.arm) });
+    const gg = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => val2(p, fn)))]));
+    const reps = [...new Set(pairs.map((p) => p.arm.run))].sort((x, y) => x - y);
+    const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => val2(p, metrics.cost))).change)).join(' / ');
+    const hit = (xs) => xs.filter((r) => r.pass).length;
+    console.log(`| ${lab} | **\`${va}\` against \`${vb}\`${ADJUSTED ? ' (each against its own baseline)' : ''}** | ${pairs.length} | **${cell(gg.cost)}** | ${byRep} | ${cell(gg.tokens)} | ${cell(gg.calls)} | ${cell(gg.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
+    if (FOUND_DID && ADJUSTED) {
+      // Per question: the mean over repetitions of (a's found change - b's found change); the interval resamples questions, so five repetitions of one question are not five independent looks.
+      const byQ = new Map();
+      for (const p of pairs) { const q = p.key.split('|')[0]; const d = (Number(!!p.arm.pass) - Number(!!p.armBase.pass)) - (Number(!!p.base.pass) - Number(!!p.baseBase.pass)); (byQ.get(q) || byQ.set(q, []).get(q)).push(d); }
+      const qs = [...byQ.values()].map((v) => v.reduce((x, y) => x + y, 0) / v.length);
+      const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+      const rng = makeRng(BOOTSTRAP_SEED); const means = [];
+      for (let it = 0; it < BOOTSTRAP_ITERATIONS; it++) { let t = 0; for (let k = 0; k < qs.length; k++) t += qs[Math.floor(rng() * qs.length)]; means.push(t / qs.length); }
+      means.sort((x, y) => x - y);
+      const pts = (x) => `${x >= 0 ? '+' : ''}${(100 * x).toFixed(1)} points`;
+      console.log(`file found, difference of differences (\`${va}\` minus \`${vb}\`, each against its own baseline), ${qs.length} questions: ${pts(mean(qs))} [${pts(means[Math.floor(0.025 * means.length)])}, ${pts(means[Math.floor(0.975 * means.length)])}]`);
+    }
+  }
+  process.exit(0);
+}
+
+if (VS_PLACEBO) {
+  // For each route, model and question set that has a placebo series: every SigMap setup against no SigMap, the placebo against no SigMap, and
+  // the SigMap setup directly against the placebo (the two SigMap-arm runs of the same question and repetition, from separate invocations).
+  const groups = new Map();
+  for (const s of all) { const k = `${s.head.route}|${s.head.model}|${s.head.set}`; if (!groups.has(k)) groups.set(k, {}); groups.get(k)[s.head.variant] = s; }
+  console.log('| run | comparison | pairs | real cost | cost by repetition | total tokens | tool calls | seconds | file found, or tests passed |');
+  console.log('|---|---|---:|---:|---:|---:|---:|---:|---:|');
+  const row = (lab, comp, pairs, a, b) => {
+    const g = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairs.map((p) => ({ without: fn(p.base), with: fn(p.arm) })))]));
+    const hit = (xs) => xs.filter((r) => r.pass).length;
+    const reps = [...new Set(pairs.map((p) => p.arm.run))].sort((x, y) => x - y);
+    const byRep = reps.map((r) => pct(geometricChange(pairs.filter((p) => p.arm.run === r).map((p) => ({ without: p.base.usd, with: p.arm.usd }))).change)).join(' / ');
+    console.log(`| ${lab} | ${comp} | ${pairs.length} | **${cell(g.cost)}** | ${byRep} | ${cell(g.tokens)} | ${cell(g.calls)} | ${cell(g.seconds)} | ${hit(pairs.map((p) => p.arm))}/${pairs.length} (${hit(pairs.map((p) => p.base))}/${pairs.length}) |`);
+  };
+  for (const [k, g] of groups) {
+    if (!g.placebo) continue;
+    const head = g.placebo.head; const lab = `${head.route === 'api' ? 'Messages API' : 'Claude Code'} · ${head.model} · ${head.set}`;
+    const own = (sr) => sr.keys.map((x) => ({ arm: sr.m.get(`${x}|with`), base: sr.m.get(`${x}|without`) }));
+    for (const v of Object.keys(g).filter((x) => x !== 'placebo')) row(lab, `\`${v}\` against no SigMap`, own(g[v]));
+    row(lab, '`placebo` against no SigMap', own(g.placebo));
+    for (const v of Object.keys(g).filter((x) => x !== 'placebo')) {
+      const common = g[v].keys.filter((x) => g.placebo.m.has(`${x}|with`));
+      row(lab, `**\`${v}\` against \`placebo\`**`, common.map((x) => ({ arm: g[v].m.get(`${x}|with`), base: g.placebo.m.get(`${x}|with`) })));
+    }
+  }
+  process.exit(0);
+}
+
+if (STUDY) {
+  console.log('| run | what | tokens, whole batch R1 / R2 | tokens, typical task R1 / R2 | cost, whole batch R1 / R2 | cost, typical task R1 / R2 | cases with fewer tokens | saved tokens both times? |');
+  console.log('|---|---|---:|---:|---:|---:|---:|---|');
+  for (const s of all) {
+    const two = (fn, how) => [1, 2].map((r) => { const ps = pairsOf(s, fn, r); return how === 'whole' ? workloadChange(ps).change : geometricChange(ps).change; });
+    const f = (xs) => xs.map(pct).join(' / ');
+    const tw = two(tot, 'whole'); const tt = two(tot, 'typical'); const cw = two(metrics.cost, 'whole'); const ct = two(metrics.cost, 'typical');
+    const p = pairsOf(s, tot);
+    console.log(`| ${label(s)} | \`${s.head.variant}\`, ${s.name} | ${f(tw)} | ${f(tt)} | ${f(cw)} | ${f(ct)} | ${p.filter((x) => x.with < x.without).length} of ${p.length} | ${[...tw, ...tt].every((v) => v < 0) ? 'yes' : 'no'} |`);
+  }
+  process.exit(0);
+}
+
+console.log('| run | SigMap setup | pairs | real cost | total tokens | tool calls | seconds | file found, or tests passed (baseline) | baseline a run |');
+console.log('|---|---|---:|---:|---:|---:|---:|---:|---|');
+for (const s of all) {
+  const g = Object.fromEntries(Object.entries(metrics).map(([k, fn]) => [k, geometricChange(pairsOf(s, fn))]));
+  const hit = (xs) => xs.filter((r) => r.pass).length;
+  const caps = [...s.withRuns, ...s.baseRuns].filter((r) => r.limit).length;
+  console.log(`| ${label(s)} | \`${s.head.variant}\` (${s.name}) | ${s.keys.length}${s.dropped ? ` (${s.dropped} dropped)` : ''} | **${cell(g.cost)}** | ${cell(g.tokens)} | ${cell(g.calls)} | ${cell(g.seconds)} | ${hit(s.withRuns)}/${s.withRuns.length} (${hit(s.baseRuns)}/${s.baseRuns.length})${s.head.set === 'change' ? ' tests' : ''}${caps ? ` · ${caps} hit a cap` : ''} | ${mean(s.baseRuns.map((r) => r.calls)).toFixed(1)} calls, $${mean(s.baseRuns.map((r) => r.usd)).toFixed(4)} |`);
+}
+const usd = rows.reduce((a, r) => a + (r.usd || 0), 0);
+console.log(`\n${rows.length} runs, ${usd.toFixed(2)} USD by the agent's own count (Claude Code) or computed from usage x a price table (Messages API)${dropRepos.size ? `; repos left out: ${[...dropRepos].join(', ')}` : ''}`);

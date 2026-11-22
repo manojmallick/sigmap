@@ -1,0 +1,398 @@
+[
+ {
+  "repo": "sigmap-src",
+  "task": "h001",
+  "ok": true,
+  "answer": "I can't name these paths reliably. I don't have a verified copy of the SigMap repository, and I don't remember its file layout well enough to give exact repository-relative paths without risking invented ones.\n\nTo find the right files, search the repo for the redaction logic:\n\n```\ngrep -rniE \"secret|password|api[_-]?key|token|credential|redact|mask\" --include=*.js .\n```\n\nThen check the matches in `gen-context.js` and any helper modules it requires, since the filtering is most likely applied where the output is assembled. If you paste the file list or the relevant snippets, I can rank the files and explain how the filtering works.",
+  "usd": 0.00052776,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h002",
+  "ok": true,
+  "answer": "I don't have a reliable record of SigMap's internal file layout, so I can't name its most-depended-on files with confidence. The only file I can tie to the question is the entry point you named:\n\n`gen-context.js`\n\nIt is likely the hub, since a CLI tool's main script usually requires the helper modules, but that is an inference, not something I've verified.\n\nTo find the real answer, run this from the repo root and count how often each local module is required or imported:\n\n```\ngrep -rhoE \"require\\(['\\\"]\\.{1,2}/[^'\\\"]+['\\\"]\\)|from ['\\\"]\\.{1,2}/[^'\\\"]+['\\\"]\" --include=*.js . | sort | uniq -c | sort -rn\n```\n\nFiles at the top of that count are the ones the rest of the repo depends on most. If you paste the output or the file list, I can rank them and explain each one.",
+  "usd": 0.00064546,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h003",
+  "ok": true,
+  "answer": "I can't reliably name the files for this. I don't have a dependable map of the sigmap repository's internal layout, and I have no copy of the code here.\n\nThe only path I can anchor to is the one your question names:\n\n`gen-context.js`\n\nIt's the entry point for the code-signature tool, so an argument-count check on a suggested call would most likely live there or in a helper it requires. I haven't verified that, though. To confirm, search the repo for the function name in the suggested call and read its definition and every call site, then compare the parameter count with the arguments passed.",
+  "usd": 0.00056426,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h004",
+  "ok": true,
+  "answer": "I can't name those files reliably. I don't have a dependable map of the SigMap repository's layout, and any paths I listed would be guesses presented as fact.\n\nTo find the implementation, search the repo for terms like `traceback`, `stacktrace`, `exception`, or `stack` (for example `git grep -niE \"traceback|stack.?trace|exception\" -- '*.js'`), then check the hits that also touch ranking or scoring. If you paste the relevant `gen-context.js` section or the file listing, I can point to the exact files and lines.",
+  "usd": 0.00050206,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h005",
+  "ok": true,
+  "answer": "I don't have reliable knowledge of SigMap's file layout, so I can't name the files that implement this without guessing. I also have no tools here to check the repository.\n\nTo find them, search the repo for naming-convention terms, for example `grep -rniE \"naming|convention|camel|snake|casing|outlier\" --include=*.js .` from the project root, and look for a module that computes the dominant identifier style and flags mismatches.",
+  "usd": 0.00046216,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h006",
+  "ok": true,
+  "answer": "I can't name these files reliably. I have no copy of the repository, and I don't have a dependable memory of SigMap's file layout or whether it computes per-query cost at all. Any paths I listed would be guesses, and you could mistake them for real locations.\n\nTo find the answer, search the repo for pricing and token-cost terms, for example:\n\n- `grep -rniE \"price|pricing|cost|per.?1[kKmM]|usd|\\\\\\$[0-9]\" --include=*.js .`\n- `grep -rniE \"input_tokens|output_tokens|tokens.*cost|model.*rate\" .`\n\nIf the cost logic exists, the hits should show the price table and the function that multiplies token counts by it. If the search finds nothing, the tool probably doesn't estimate per-query cost, and the question doesn't apply to it.",
+  "usd": 0.00057186,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h007",
+  "ok": true,
+  "answer": "I can't verify these paths or identify the function from here, so treat this as a guess. Tell me the function name and I can narrow it down, or check the repo with grep for its callers.\n\n`gen-context.js`\n`src/extractors/index.js`\n`src/extractors/javascript.js`\n`src/extractors/typescript.js`\n`test/gen-context.test.js`\n\nThe likeliest breakage from changing a function is in its callers and extractors, so `gen-context.js` (the entry point that wires the pipeline together) is listed first, followed by the language extractors that probably share its output shape and the tests that would catch regressions.",
+  "usd": 0.00059416,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js",
+   "src/extractors/index.js",
+   "src/extractors/javascript.js",
+   "src/extractors/typescript.js",
+   "test/gen-context.test.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h008",
+  "ok": true,
+  "answer": "I can't name those files reliably. I don't have a dependable memory of how SigMap's `remember` feature is laid out, and with no tools or source copy, any paths I listed would be guesses.\n\nTo find them, search the repo for the command name and for branch-related storage:\n\n```\ngrep -rn \"remember\" --include=*.js . | grep -v node_modules\ngrep -rln \"branch\" --include=*.js . | grep -v node_modules\n```\n\nThe first search should find the CLI command registration and its handler. The second should find code that keys stored state to the current git branch, which is the likely storage side. Once you share those results or the relevant file contents, I can name the implementing files and explain how they fit together.",
+  "usd": 0.00058376,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h009",
+  "ok": true,
+  "answer": "I can't verify these paths. I have no copy of the repository and no tools to read it, so this is a guess based on how such CLI tools are usually organized, not on the actual layout:\n\n`gen-context.js`\n`src/watch.js`\n`lib/watcher.js`\n\nWhy: the `--watch` entry point is most likely in `gen-context.js`, with the file-watching and background logic in a separate watcher module, but I can't confirm the names or that a stop mechanism exists. Checking the repo's `gen-context.js` for watch-related flags and its `src/` or `lib/` directories would settle it.",
+  "usd": 0.00061136,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js",
+   "src/watch.js",
+   "lib/watcher.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h010",
+  "ok": true,
+  "answer": "`gen-context.js`\n\nThis is the most likely location because the tool is described as a single generator script, so the signature formatting and any line-length truncation for token savings would probably be there. I haven't checked this against the repository, and the project may have split extraction into other modules, so grepping for \"signature\" or truncation logic would confirm it.",
+  "usd": 0.00062666,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h011",
+  "ok": true,
+  "answer": "I can't name the files for this. I don't have a reliable memory of the sigmap repository's file layout, and I have no tools to read it, so any paths I listed would be guesses.\n\nTo find the implementation, search the repo for terms that would likely appear in code comparing answers with and without grounding:\n\n- `grounding`, `grounded`, `ungrounded`\n- `baseline`, `without_context`, `no_context`, `with_context`\n- `eval`, `benchmark`, `compare`\n\nIf you paste the output of `git grep -il -E \"grounding|baseline|with_context|no_context\"` or the repo's file tree, I can pick the five most relevant files and explain each one.",
+  "usd": 0.00055006,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h012",
+  "ok": true,
+  "answer": "I can't name the files for this with confidence. I don't have reliable knowledge of SigMap's internal file layout, and I have no copy of the repository to check against. Any paths I listed would be guesses that could be wrong.\n\nTo find the real locations, search the repo for the client config targets and the MCP server registration:\n\n```\ngrep -rniE \"cursor|zed|mcpServers|context_servers\" --include=\"*.js\" --include=\"*.json\" --include=\"*.md\" .\n```\n\nRegistration with Cursor usually means writing an `mcpServers` entry to `~/.cursor/mcp.json` or `.cursor/mcp.json`, and Zed usually means a `context_servers` entry in `settings.json`. Searching for those keys should surface the implementing file quickly.",
+  "usd": 0.0005984600000000001,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "~/.cursor/mcp.json",
+   ".cursor/mcp.json",
+   "settings.json"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h013",
+  "ok": true,
+  "answer": "`gen-context.js`\n`CONTRIBUTING.md`\n`package.json`\n`README.md`\n\nThese are guesses, not verified paths: I don't have reliable knowledge of SigMap's file layout, so I can't confirm which files define the existing module conventions a new file should follow. Checking the repo's source modules and test directory would settle it.",
+  "usd": 0.00055586,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js",
+   "CONTRIBUTING.md",
+   "package.json",
+   "README.md"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h014",
+  "ok": true,
+  "answer": "I don't have a reliable memory of this repository's file layout or of where its \"did you mean\" logic lives, so I can't name the implementing files without guessing. The one path I'd check first is `gen-context.js`, since the question identifies it as the core tool, but I can't confirm it contains the suggestion logic.\n\nTo find the real files, search the repo for terms a nearest-name feature would use: `levenshtein`, `editDistance`, `did you mean`, `closest`, `suggest`, or `fuzzy`. The file that matches those terms and is called from the symbol-lookup path is the one to read.",
+  "usd": 0.0005878599999999999,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h015",
+  "ok": true,
+  "answer": "I can't name the files for this one. I don't have reliable knowledge of SigMap's repository layout, and I have no copy of the code to check against, so any paths I listed would be guesses.\n\nTo find the implementation, search the repo for the CI-output handling:\n\n```\ngrep -rniE \"ci|failing|failure|error\" --include=\"*.js\" --include=\"*.yml\" --include=\"*.sh\" . | grep -iE \"log|output|trim|filter\"\n```\n\nAlso check `.github/workflows/` for the step that runs the tests, since a filter for failing lines is often a small script or a pipeline step there.\n\nI can give you the list if you paste the relevant file contents or the grep output here.",
+  "usd": 0.00060956,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h016",
+  "ok": true,
+  "answer": "None of the files in SigMap implement this, because the question is about this session's token usage, which the harness tracks, not the repository. I can't cite a file for it.\n\nThe session figures I can see are:\n- Tokens remaining: 15,000,000. This is a remaining balance, and no starting value is given, so I can't calculate how many tokens have been spent.\n- USD budget: $0.30 remaining of $0.30, which suggests $0 has been spent so far by that counter.",
+  "usd": 0.00064696,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "0.30"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h017",
+  "ok": true,
+  "answer": "I can't answer this reliably. I don't have a dependable picture of SigMap's file layout, and I have no copy of the repository here, so any paths I listed would be guesses.\n\nTo get the real answer, you could:\n\n- Paste the relevant source (or the file tree plus `gen-context.js`), and I'll trace how the natural-language question becomes weighted scoring signals.\n- Run `grep -rn -i \"weight\\|score\\|signal\\|query\" --include=*.js .` in the repo, which should surface the scoring and query-parsing code quickly.\n- Give me read access to the repo, and I can find the files and cite `file_path:line_number` for each step.",
+  "usd": 0.00053366,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h018",
+  "ok": true,
+  "answer": "I don't have reliable knowledge of SigMap's file layout, so these paths are unverified guesses, not recalled facts. Check them against the repository before relying on them.\n\n`gen-context.js`\n`src/scanner.js`\n`src/walk.js`\n`lib/files.js`\n`src/discover.js`\n\nThe directory walk is most likely in the top-level `gen-context.js` entry point or in a small scanner module it calls, since that is where a tool like this would enumerate files and filter out ignored paths.",
+  "usd": 0.00052246,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js",
+   "src/scanner.js",
+   "src/walk.js",
+   "lib/files.js",
+   "src/discover.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h019",
+  "ok": true,
+  "answer": "I can't answer this reliably from memory. I don't have a dependable picture of SigMap's file layout, and I can't open the repository here, so any paths I listed would be guesses.\n\nTo find the implementation, search the repo for terms that usually go with this feature:\n\n```\ngrep -rniE \"feedback|history|usage|boost|weight|score\" --include=*.js .\n```\n\nThe most likely starting point is `gen-context.js`, since the question names it, but I haven't verified that it contains the run-history logic. If you paste the file, or the output of that grep, I can name the implementing files and explain how the weighting works.",
+  "usd": 0.00059236,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h020",
+  "ok": true,
+  "answer": "I can't verify the file layout of SigMap from memory, so these are unverified guesses, most likely first:\n\n`gen-context.js`\n`src/monorepo.js`\n`src/workspaces.js`\n`src/detect.js`\n`src/package-scope.js`\n\nGrepping the repo for `workspaces`, `pnpm-workspace`, `lerna`, and `packages/` would confirm the real files. The likely pattern is that a workspace-detection module reads the root manifest and maps each file to the nearest package directory, and `gen-context.js` calls it.",
+  "usd": 0.0006226599999999999,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js",
+   "src/monorepo.js",
+   "src/workspaces.js",
+   "src/detect.js",
+   "src/package-scope.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h021",
+  "ok": true,
+  "answer": "I can't answer this reliably. This conversation has no earlier question, so I don't know which \"previous question's files\" you mean. I also don't have a reliable map of the SigMap repository's internal layout, and I have no tools to read the code.\n\nThe only path I can name with any confidence is the entry point you cited:\n\n`gen-context.js`\n\nI can't tell you whether it implements the follow-up behavior, and I'd be guessing at any other file names. If you paste the previous question, or the relevant file contents, I can identify the implementing files from that. Or you can check with `git grep` or `rg` in a clone of the repository.",
+  "usd": 0.00061156,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h022",
+  "ok": true,
+  "answer": "I don't have a reliable copy of the SigMap source, so I can't name the files that implement Django or Rails detection without guessing. Any paths I listed would likely be invented.\n\nTo find them, search the repository for framework markers, such as `manage.py`, `django`, `INSTALLED_APPS`, `Gemfile`, `config/routes.rb`, and `rails`. The files that contain those strings in detection logic are the ones to read.",
+  "usd": 0.00053196,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "manage.py",
+   "config/routes.rb"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h023",
+  "ok": true,
+  "answer": "I can't name these paths with confidence. I don't have a reliable memory of SigMap's internal file layout, and I have no copy of the repository to check against.\n\nThe one file I'd expect to be involved is the entry point named in the question:\n\n`gen-context.js`\n\nIt most likely holds the logic that compares each source file's modification time or content hash against a stored record and skips unchanged files. I'd still treat that as unverified until you check it.\n\nTo confirm the real answer, search the repo for `mtime`, `statSync`, `hash`, `createHash`, or `cache`, and check for a cache or manifest file that records per-file state between runs.",
+  "usd": 0.00061326,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h024",
+  "ok": true,
+  "answer": "I don't know how many files were left out when the budget was applied, and I can't name the implementing files with confidence from memory. I'd be guessing at both the count and the paths, so I haven't given a number or a list.\n\nThe question names `gen-context.js`, so that is the most likely place to find the budget logic. I can't confirm its repository-relative path, so please check it.\n\nTo answer this, search the repo for the budget logic (for example `grep -rn \"budget\" .`) and look for where files are dropped or skipped and where a count is recorded or printed. That should give you both the count and the implementing files.",
+  "usd": 0.00065096,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h025",
+  "ok": true,
+  "answer": "I can't name the files for this. I don't have reliable knowledge of the SigMap repository's file layout, and I have no tools to read the code, so any paths I listed would be guesses.\n\nTo find the implementation, search the repo for terms like `tier`, `model`, `haiku`, `sonnet`, and `opus`, for example `grep -rniE \"tier|haiku|sonnet|opus\" --include=*.js .`. If you paste the relevant part of `gen-context.js` or the file listing, I can point to the file that makes the model-tier decision and explain why.",
+  "usd": 0.00050626,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h026",
+  "ok": true,
+  "answer": "I don't have reliable knowledge of SigMap's file layout, and I have no tools to check the repository, so I can't name the implementing files with confidence. Any paths I listed would be guesses.\n\nIf you can share the file tree or grep results for `TODO`, `FIXME`, or `XXX`, I can identify the real files. Running `grep -rn \"TODO\\|FIXME\" --include=*.js .` in a clone of the repo would also show where comment-marker scanning happens.",
+  "usd": 0.00057146,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h027",
+  "ok": true,
+  "answer": "I can't verify this one. I have no tools here and no copy of the repository, and I don't reliably remember its internal file layout.\n\nThe question names `gen-context.js` as the code-signature tool, so the most likely location for the inheritance mapping is that file:\n\n`gen-context.js`\n\nI'm not confident about any other paths, so I won't list any. To get a verified answer, run `grep -rn \"extends\" --include=*.js` in a checkout of the repo. Class-inheritance logic should show up as `class X extends Y` lines or as code that builds parent-child maps from them.",
+  "usd": 0.00061286,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h028",
+  "ok": true,
+  "answer": "I can't name these files reliably. I don't have a dependable memory of SigMap's module layout, and with no tools I can't read the repository, so any paths I listed would be guesses.\n\nTo find the cycles, run a circular-dependency check on the repo, for example `npx madge --circular --extensions js .` from the repository root. If the project has no dependency tools, a short script that parses `require(...)` calls in each file and runs a depth-first search for back edges will find them. Either command will report the exact file paths in each cycle. If you can share the file list or the `require` lines from `gen-context.js` and its neighbors, I can trace the cycles from those.",
+  "usd": 0.00059756,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h029",
+  "ok": true,
+  "answer": "I can't verify this from memory. I don't have a reliable map of sigmap's file layout, and the camelCase logic could sit in the main script or in a helper module. The most likely candidate is:\n\n`gen-context.js`\n\nIt's the tool's entry point, so if identifier tokenization happens in the main script, the camelCase split (typically a regex like `/([a-z0-9])([A-Z])/`) would most likely live there.\n\nTo settle it, grep the repo for `[A-Z]` in regex literals or for `split`/`toLowerCase` near identifier handling, and look for any helper in a `src/` or `lib/` directory.",
+  "usd": 0.00058686,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": [
+   "gen-context.js"
+  ]
+ },
+ {
+  "repo": "sigmap-src",
+  "task": "h030",
+  "ok": true,
+  "answer": "I don't have reliable knowledge of SigMap's file layout, so I can't name the files that implement this without guessing. Wrapping context for reuse between calls is prompt caching, which in the Anthropic API means marking content blocks with `cache_control`. To find the implementation, run this in a clone of the repo:\n\n```\ngrep -rn \"cache_control\\|cache-control\\|ephemeral\" --include=*.js .\n```\n\nThe matching file that builds the request body for the Anthropic API is the one to read first. The `cache_control` marker and the code around it will show whether caching is actually applied.",
+  "usd": 0.00059156,
+  "turns": 1,
+  "pass": false,
+  "rank": null,
+  "named": []
+ }
+]

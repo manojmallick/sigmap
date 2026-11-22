@@ -63,7 +63,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **92.8% vs 40.0% single-shot grep baseline** — 2.32× measured lift on the honest corpus (125 tasks / 19 repos)
+- **92.8% vs 39.2% single-shot grep baseline** — 2.37× measured lift on the honest corpus (125 tasks / 19 repos)
 - **56.7% hit@5 on repositories we do not control** — the third-party corpus: 118 of 208 questions over 35 repos, 95% interval 49.9–63.3%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
 - **95.2% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
@@ -134,11 +134,11 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.85-main (21 repositories, including R language)
-Date      : 2026-10-28
+Benchmark : sigmap-v8.88-main (21 repositories, including R language)
+Date      : 2026-11-21
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
+Honest vs grep : 92.8% vs 39.2% grep baseline — 2.37× lift (125 tasks / 19 repos)
 Third-party    : 56.7% hit@5 (118 of 208 questions / 35 repos, 95% interval 49.9–63.3%)
 Map vs repo    : 95.2% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
@@ -243,6 +243,8 @@ sigmap --mcp
 ```
 
 Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. All 22 are advertised unless `mcp.tools` says otherwise: `"core"` is seven of them (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) for about 0.9k tokens of definitions where all 22 cost about 2.5k, and `sigmap --init` writes it into a new config. Full reference: [llms-full.txt](llms-full.txt).
+
+A project set up with `sigmap --init` starts on the `index` strategy and advertises only two of these tools, `query_context` and `get_lines` (the setup the [agent study](https://sigmap.io/guide/choosing-a-setup#what-a-new-install-starts-on) measured; it drops the impact, callee and verification tools). Set `"mcp": { "tools": "core" }` or `"all"` in `gen-context.config.json` for more; a project with no config advertises all of them.
 
 SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
 

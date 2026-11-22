@@ -1,0 +1,63 @@
+Stage I: 20 repositories, 222 questions, outcome api · claude-haiku-5-5 · heldout
+
+| repository | language | n | lead5 | grep5 | headroom | files | cost index | cost prefetch | cost locate | time prefetch | tokens prefetch |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| GDQuest__GDScript-formatter | rust | 12 | 50% | 92% | -42% | 297 | -19% S | -31% S | -18% S | -32% S | -47% S |
+| TeleBoxOrg__TeleBox | typescript | 12 | 33% | 33% | 0% | 120 | +8% | -2% | +3% | -11% S | -11% |
+| chatmail__relay | python | 10 | 60% | 60% | 0% | 187 | +0% | +12% C | +3% | -9% S | +2% |
+| conda__constructor | python | 12 | 50% | 50% | 0% | 198 | +16% C | +20% C | -3% | -12% S | +8% |
+| crossplane__upjet | go | 10 | 100% | 80% | 20% | 308 | -17% S | -19% S | -12% S | -24% S | -43% S |
+| dromara__mica-mqtt | java | 12 | 33% | 67% | -33% | 525 | -8% | +9% | -14% S | -6% S | -1% |
+| fastify__fastify-static | javascript | 8 | 100% | 100% | 0% | 81 | +5% | +6% | -12% | -7% | -8% |
+| flamingock__flamingock-java | java | 11 | 100% | 82% | 18% | 1205 | -37% S | -64% S | -42% S | -35% S | -81% S |
+| intaro__pinboard | php | 9 | 78% | 78% | 0% | 235 | +7% | +19% C | +9% | -11% S | +3% |
+| ionos-cloud__cluster-api-provider-proxmox | go | 9 | 89% | 78% | 11% | 320 | +24% C | +31% C | -3% | -19% S | +9% |
+| livekit__sip | go | 12 | 75% | 58% | 17% | 112 | +6% | +11% | +5% | -24% S | -9% |
+| martin-georgiev__postgresql-for-doctrine | php | 12 | 75% | 25% | 50% | 2373 | +4% | -18% S | -11% | -14% S | -33% S |
+| openscad__openscad-playground | typescript | 12 | 83% | 83% | 0% | 150 | +2% | -1% | -7% | -11% S | -14% |
+| ruby__irb | ruby | 10 | 100% | 60% | 40% | 145 | -9% | -1% | -12% | -21% S | -24% S |
+| shugo__textbringer | ruby | 12 | 100% | 100% | 0% | 221 | +13% | -16% S | -4% | -14% S | -36% S |
+| statelyai__agent | typescript | 12 | 50% | 58% | -8% | 990 | -5% | -27% S | -10% | -26% S | -46% S |
+| stefankoegl__python-json-patch | python | 12 | 92% | 100% | -8% | 31 | +2% | +19% C | +9% | -17% S | -11% |
+| sventorben__keycloak-restrict-client-auth | java | 12 | 75% | 58% | 17% | 127 | +11% | -20% S | -1% | -15% S | -45% S |
+| timescale__timescaledb-toolkit | rust | 11 | 91% | 91% | 0% | 209 | -3% | -3% | +4% | -23% S | -26% S |
+| tprouvot__Salesforce-Inspector-reloaded | javascript | 12 | 92% | 50% | 42% | 260 | -8% | +0% | -10% | -16% S | -17% |
+
+(S = the setup saves on that repository, C = it costs more, by the 95% interval; a blank is no clear change)
+
+PRIMARY (the only test with a bar): Spearman rho between headroom and the change in real cost of prefetch, n = 20:
+  rho -0.13  95% interval [-0.57, 0.36]  (10000 of 10000 resamples usable)
+  bar: rho <= -0.5 and the interval entirely below zero  ->  DOES NOT PASS
+
+Secondary, reported with no bar (rho [95% interval]; a negative rho means a bigger saving as the feature grows):
+
+| feature | measure | index | prefetch | locate |
+|---|---|---:|---:|---:|
+| headroom (primary row: prefetch) | cost | -0.03 [-0.50, 0.52] | -0.13 [-0.57, 0.36] | -0.13 [-0.65, 0.41] |
+| headroom | time | 0.03 [-0.45, 0.50] | -0.22 [-0.71, 0.30] | -0.32 [-0.72, 0.19] |
+| headroom | tokens | -0.02 [-0.50, 0.55] | -0.16 [-0.60, 0.34] | -0.25 [-0.73, 0.33] |
+| lead5 | cost | -0.19 [-0.66, 0.32] | -0.10 [-0.53, 0.38] | -0.17 [-0.65, 0.34] |
+| lead5 | time | -0.27 [-0.68, 0.18] | -0.25 [-0.71, 0.29] | -0.12 [-0.57, 0.44] |
+| lead5 | tokens | -0.18 [-0.61, 0.32] | -0.21 [-0.63, 0.29] | -0.10 [-0.54, 0.38] |
+| grep5 | cost | -0.18 [-0.58, 0.28] | -0.05 [-0.47, 0.40] | -0.10 [-0.54, 0.37] |
+| grep5 | time | -0.32 [-0.68, 0.11] | -0.08 [-0.52, 0.34] | 0.10 [-0.39, 0.57] |
+| grep5 | tokens | -0.13 [-0.51, 0.30] | -0.12 [-0.50, 0.32] | 0.10 [-0.37, 0.54] |
+| files | cost | -0.35 [-0.70, 0.10] | -0.36 [-0.73, 0.14] | -0.57 [-0.86, -0.12] |
+| files | time | 0.21 [-0.28, 0.60] | -0.32 [-0.73, 0.19] | -0.14 [-0.59, 0.37] |
+| files | tokens | -0.50 [-0.78, -0.04] | -0.32 [-0.71, 0.17] | -0.54 [-0.85, -0.04] |
+
+By goal (descriptive, added after the test and not part of it; the unit is the repository, an S/none/C count by each repository's own 95% interval):
+
+| goal | setup | saves | no clear change | costs more | pooled typical-task change [95% interval, resampling repositories] |
+|---|---|---:|---:|---:|---:|
+| cost | `index` | 3 | 15 | 2 | -1% [-8%, +5%] |
+| cost | `prefetch` | 7 | 8 | 5 | -7% [-19%, +4%] |
+| cost | `locate` | 4 | 16 | 0 | -7% [-13%, -2%] |
+| time | `index` | 1 | 15 | 4 | +2% [0%, +5%] |
+| time | `prefetch` | 19 | 1 | 0 | -18% [-21%, -14%] |
+| time | `locate` | 1 | 16 | 3 | +1% [-1%, +4%] |
+| tokens | `index` | 0 | 3 | 17 | +51% [+37%, +66%] |
+| tokens | `prefetch` | 9 | 11 | 0 | -26% [-39%, -14%] |
+| tokens | `locate` | 1 | 8 | 11 | +18% [+7%, +27%] |
+
+What follows (decided before the run): sigmap advise prints the facts and makes no call, and says that no offline signal predicted the saving on these repositories.

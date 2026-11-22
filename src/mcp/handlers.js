@@ -352,7 +352,11 @@ function explainFile(args, cwd) {
     if (sigs && sigs.length > 0) {
       lines.push(...sigs);
     } else {
-      lines.push(_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_');
+      let pathOnly = false;
+      try { pathOnly = require('../retrieval/sig-index-store').readFullIndexMeta(cwd).bare.includes(targetRel); } catch (_) { /* no index */ }
+      lines.push(pathOnly
+        ? '_No signatures to list: the extractor reads nothing from this file, so it is ranked by its path only (query_context can return it)._'
+        : (_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_'));
     }
     indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
   } catch (_) {
@@ -427,7 +431,7 @@ function listModules(args, cwd) {
       return 'No context file found. Run: node gen-context.js';
     }
 
-    const groups = {};
+    const groups = Object.create(null); // no prototype: a directory may be called `constructor`
     for (const [rel, sigs] of index.entries()) {
       const parts = rel.replace(/\\/g, '/').split('/');
       const mod = parts.length > 1 ? parts[0] : '.';
@@ -472,7 +476,7 @@ function queryContext(args, cwd) {
   try {
     const { rank, buildSigIndex, formatRankTable } = require('../retrieval/ranker');
     const { buildRankingGraph } = require('../graph/builder');
-    const index = buildSigIndex(cwd);
+    const index = buildSigIndex(cwd, { bare: true }); // a file with no signatures can still be ranked on its path
     if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
     const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
