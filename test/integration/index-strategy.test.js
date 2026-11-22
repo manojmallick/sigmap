@@ -249,10 +249,13 @@ test('full remains the default — this ships opt-in', () => {
     'the default strategy changed; #1a is meant to be opt-in until v9');
 });
 
-test('the repo\'s own committed config still uses full', () => {
+// SigMap's own repository runs on `index`, as a new install does (#1071). This used to pin `full`, back when `index` was opt-in
+// and the repo committed no non-default strategy. It is a decision, not a default: the DEFAULTS test above still says `full`, so an
+// existing install resolves to what it always did, and this pin moves only together with the committed config.
+test('the repo\'s own committed config uses index, as a new install does', () => {
   const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'gen-context.config.json'), 'utf8'));
-  assert.strictEqual(cfg.strategy, 'full',
-    'the SigMap repo committed a non-default strategy');
+  assert.strictEqual(cfg.strategy, 'index',
+    'the SigMap repo is meant to run on the strategy a new install starts on (#1071); change this pin and the config together');
 });
 
 test('index is offered in the CLI help alongside the other strategies', () => {
