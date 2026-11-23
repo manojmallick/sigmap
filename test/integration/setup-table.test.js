@@ -37,6 +37,9 @@ const hyphen = (s) => s.replace(/−/g, '-'); // the pages print U+2212 for a mi
 const minus = (n) => (n < 0 ? `−${Math.abs(n)}%` : `+${n}%`); // the way the pages print a signed whole percentage
 const num = (n) => n.toLocaleString('en-US');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// `sigmap --watch` and `sigmap daemon start` need `fs.watch(dir, { recursive: true })`, which throws ERR_FEATURE_UNAVAILABLE_ON_PLATFORM on Linux before Node 20
+// (the Node 18 job found it; live-overlay.test.js skips its watcher tests by the same rule)
+const RECURSIVE_WATCH = !(process.platform === 'linux' && Number(process.versions.node.split('.')[0]) < 20);
 const script = (name, ...args) => {
   const r = spawnSync(process.execPath, [path.join(ROOT, 'benchmarks', 'agent-study', name), ...args], { cwd: path.join(ROOT, 'benchmarks', 'agent-study'), encoding: 'utf8', timeout: 120000 });
   assert.strictEqual(r.status, 0, `${name} ${args.join(' ')}: ${(r.stdout + r.stderr).slice(-300)}`);
@@ -158,7 +161,7 @@ const tree = (dir) => {
     assert.ok(/`--init` also lists copilot, codex, claude and gemini in `outputs`, so `sigmap` writes `CLAUDE.md`, as in the measured runs, and adds a short "Creation workflow" block to it, which they did not have/.test(askRow), 'and the row says so');
   });
 
-  await test('`query_context` does not refresh the index; `sigmap --watch` and the post-commit hook do (runs)', async () => {
+  await test('`query_context` does not refresh the index; the post-commit hook does, and `sigmap --watch` does where the platform has a recursive `fs.watch` (runs)', async () => {
     const edited = (n) => `function zebraQuokka${n}(x) { return x; }\nmodule.exports = { zebraQuokka${n} };\n`;
     const query = (ctx, n) => ctx.mcp('query_context', { query: `zebraQuokka${n}` });
     await withProject({ ...SRC, 'gen-context.config.json': LOCATE }, async (ctx) => {
@@ -168,15 +171,30 @@ const tree = (dir) => {
       assert.ok(/No matching files found/.test(before) && !/\| 1 \| src\/later\.js \|/.test(before), `not found before \`sigmap\` runs again: ${before.slice(0, 200)}`); // the stale-index banner names the file, which is not a result
       ctx.sigmap();
       assert.ok(/\| 1 \| src\/later\.js \|/.test(query(ctx, 'A')), 'ranked first after it');
-      // `sigmap --watch` keeps it current as you save
-      const watcher = spawn(process.execPath, [path.join(ROOT, 'gen-context.js'), '--watch'], { cwd: ctx.dir, env: ctx.env, stdio: 'ignore' });
-      try {
-        await sleep(2500);
-        fs.writeFileSync(path.join(ctx.dir, 'src', 'watched.js'), edited('B'));
-        const deadline = Date.now() + 25000;
-        while (Date.now() < deadline && !ctx.read('.context/sig-index.json').includes('zebraQuokkaB')) await sleep(300);
-        assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaB'), '--watch put the new file in the index while it ran');
-      } finally { watcher.kill('SIGTERM'); await sleep(300); }
+      if (RECURSIVE_WATCH) {
+        // `sigmap --watch` keeps it current as you save
+        const watcher = spawn(process.execPath, [path.join(ROOT, 'gen-context.js'), '--watch'], { cwd: ctx.dir, env: ctx.env, stdio: 'ignore' });
+        try {
+          await sleep(2500);
+          fs.writeFileSync(path.join(ctx.dir, 'src', 'watched.js'), edited('B'));
+          const deadline = Date.now() + 25000;
+          while (Date.now() < deadline && !ctx.read('.context/sig-index.json').includes('zebraQuokkaB')) await sleep(300);
+          assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaB'), '--watch put the new file in the index while it ran');
+        } finally { watcher.kill('SIGTERM'); await sleep(300); }
+      } else {
+        // no recursive `fs.watch` (Linux before Node 20): `--watch` does one full run and then stops on it, and `daemon start` says it started anyway; the row says so
+        const w = ctx.sigmap('--watch');
+        assert.strictEqual(w.status, 1, `--watch exits 1: ${w.stdout}${w.stderr}`.slice(-300));
+        assert.ok(/watching for changes/.test(w.stderr) && /ERR_FEATURE_UNAVAILABLE_ON_PLATFORM/.test(w.stderr), '--watch says it is watching, then stops on the missing recursive watch');
+        const started = ctx.sigmap('daemon', 'start');
+        try {
+          assert.ok(started.status === 0 && /daemon started/.test(`${started.stdout}${started.stderr}`), `daemon start says it started: ${started.stdout}${started.stderr}`.slice(-300));
+          const deadline = Date.now() + 30000;
+          let status = ctx.sigmap('daemon', 'status');
+          while (Date.now() < deadline && status.status === 0) { await sleep(500); status = ctx.sigmap('daemon', 'status'); }
+          assert.strictEqual(status.status, 1, 'and the daemon is gone again');
+        } finally { ctx.sigmap('daemon', 'stop'); }
+      }
       // the post-commit hook `sigmap --setup` installs refreshes it after each commit
       require(path.join(ROOT, 'src', 'util', 'post-commit-hook.js')).installPostCommitHook(ctx.dir, path.join(ROOT, 'gen-context.js'));
       fs.writeFileSync(path.join(ctx.dir, 'src', 'committed.js'), edited('C'));
@@ -185,7 +203,8 @@ const tree = (dir) => {
       assert.strictEqual(c.status, 0, c.stderr);
       assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaC'), 'the commit refreshed it');
     });
-    assert.ok(/`query_context` does not refresh the index, so run `sigmap` again after edits \(`sigmap --watch` or `sigmap daemon start` keeps it current as you save; the post-commit hook that `sigmap --setup` installs refreshes it after each commit\)/.test(askRow), 'and the row says so');
+    assert.ok(/`query_context` does not refresh the index, so run `sigmap` again after edits \(`sigmap --watch` or `sigmap daemon start` keeps it current as you save; the post-commit hook that `sigmap --setup` installs refreshes it after each commit\)\. The watcher needs a recursive `fs\.watch`, which Linux has from Node 20: on Linux with Node 18 `--watch` stops with an error after one full run and `daemon start` still says it started\./.test(askRow), 'and the row says so, and which platforms the watcher needs');
+    assert.ok(/fs\.watch\(abs, \{ recursive: true \}/.test(read('gen-context.js')) && /Needs a recursive `fs\.watch`: macOS, Windows, and Linux with Node 20 or newer\./.test(read('docs-vp/guide/cli.md')), 'that condition is the code\'s, and the CLI page says the same');
     assert.ok(/daemon start\|stop\|status/.test(read('gen-context.js')), 'the daemon the row names exists');
   });
 
