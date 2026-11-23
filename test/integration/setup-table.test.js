@@ -78,6 +78,21 @@ function withProject(files, fn) {
   return result;
 }
 
+/** `sigmap --watch` in the project, its stderr kept. Resolves once the watcher says it is watching (`.context/live.json` is written after the watchers exist); fails with its own error if it dies first. */
+async function startWatcher(ctx) {
+  const child = spawn(process.execPath, [path.join(ROOT, 'gen-context.js'), '--watch'], { cwd: ctx.dir, env: ctx.env, stdio: ['ignore', 'ignore', 'pipe'] });
+  let err = '';
+  child.stderr.on('data', (d) => { err = (err + d).slice(-2000); });
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline && !ctx.exists('.context/live.json')) {
+    assert.strictEqual(child.exitCode, null, `the watcher died while starting: ${err.slice(-300)}`);
+    await sleep(200);
+  }
+  assert.ok(ctx.exists('.context/live.json'), `the watcher never said it was watching: ${err.slice(-300)}`);
+  await sleep(300);
+  return { child, stderr: () => err, stop: async () => { child.kill('SIGTERM'); await sleep(300); } };
+}
+
 const SRC = { 'src/a.js': 'function alpha(x) { return x; }\nmodule.exports = { alpha };\n' };
 const LOCATE = '{"srcDirs":["src"],"outputs":["copilot"],"strategy":"index","mcp":{"tools":"locate"}}\n';
 /** Eight files of forty functions each, all named like the prompt: the hook's block is cut at its cap. */
@@ -173,26 +188,32 @@ const tree = (dir) => {
       assert.ok(/\| 1 \| src\/later\.js \|/.test(query(ctx, 'A')), 'ranked first after it');
       if (RECURSIVE_WATCH) {
         // `sigmap --watch` keeps it current as you save
-        const watcher = spawn(process.execPath, [path.join(ROOT, 'gen-context.js'), '--watch'], { cwd: ctx.dir, env: ctx.env, stdio: 'ignore' });
+        const w = await startWatcher(ctx);
         try {
-          await sleep(2500);
           fs.writeFileSync(path.join(ctx.dir, 'src', 'watched.js'), edited('B'));
           const deadline = Date.now() + 25000;
-          while (Date.now() < deadline && !ctx.read('.context/sig-index.json').includes('zebraQuokkaB')) await sleep(300);
-          assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaB'), '--watch put the new file in the index while it ran');
-        } finally { watcher.kill('SIGTERM'); await sleep(300); }
+          while (Date.now() < deadline && w.child.exitCode === null && !ctx.read('.context/sig-index.json').includes('zebraQuokkaB')) await sleep(300);
+          assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaB'), `--watch put the new file in the index while it ran: ${w.stderr().slice(-300)}`);
+        } finally { await w.stop(); }
       } else {
-        // no recursive `fs.watch` (Linux before Node 20): `--watch` does one full run and then stops on it, and `daemon start` says it started anyway; the row says so
+        // no recursive `fs.watch` (Linux before Node 20): `--watch` and `--setup` do their work and then stop on it, and `daemon start` says it started anyway; the row says so
+        const stops = /ERR_FEATURE_UNAVAILABLE_ON_PLATFORM/;
+        fs.writeFileSync(path.join(ctx.dir, 'src', 'viaWatch.js'), edited('D'));
         const w = ctx.sigmap('--watch');
-        assert.strictEqual(w.status, 1, `--watch exits 1: ${w.stdout}${w.stderr}`.slice(-300));
-        assert.ok(/watching for changes/.test(w.stderr) && /ERR_FEATURE_UNAVAILABLE_ON_PLATFORM/.test(w.stderr), '--watch says it is watching, then stops on the missing recursive watch');
+        assert.strictEqual(w.status, 1, `--watch exits 1 (if it ran to the timeout, this platform may have a recursive watch after all): ${w.status} ${w.signal} ${w.stdout}${w.stderr}`.slice(-400));
+        assert.ok(/watching for changes/.test(w.stderr) && stops.test(w.stderr), '--watch says it is watching, then stops on the missing recursive watch');
+        assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaD'), 'after one full run, which indexed the new file');
+        const setup = ctx.sigmap('--setup');
+        assert.ok(setup.status === 1 && stops.test(setup.stderr) && ctx.exists('.git/hooks/post-commit'), `--setup installs the hook, then stops on it: ${setup.status} ${setup.stderr}`.slice(-400));
         const started = ctx.sigmap('daemon', 'start');
         try {
           assert.ok(started.status === 0 && /daemon started/.test(`${started.stdout}${started.stderr}`), `daemon start says it started: ${started.stdout}${started.stderr}`.slice(-300));
           const deadline = Date.now() + 30000;
+          while (Date.now() < deadline && !stops.test(ctx.read('.context/daemon.log'))) await sleep(500);
+          assert.ok(stops.test(ctx.read('.context/daemon.log')), 'the daemon died of it (its own log says so)');
           let status = ctx.sigmap('daemon', 'status');
-          while (Date.now() < deadline && status.status === 0) { await sleep(500); status = ctx.sigmap('daemon', 'status'); }
-          assert.strictEqual(status.status, 1, 'and the daemon is gone again');
+          for (let i = 0; i < 20 && status.status === 0; i++) { await sleep(500); status = ctx.sigmap('daemon', 'status'); }
+          assert.ok(status.status === 1 && /daemon not running/.test(`${status.stdout}${status.stderr}`), `and \`daemon status\` says it is not running: ${status.stdout}${status.stderr}`.slice(-200));
         } finally { ctx.sigmap('daemon', 'stop'); }
       }
       // the post-commit hook `sigmap --setup` installs refreshes it after each commit
@@ -203,7 +224,7 @@ const tree = (dir) => {
       assert.strictEqual(c.status, 0, c.stderr);
       assert.ok(ctx.read('.context/sig-index.json').includes('zebraQuokkaC'), 'the commit refreshed it');
     });
-    assert.ok(/`query_context` does not refresh the index, so run `sigmap` again after edits \(`sigmap --watch` or `sigmap daemon start` keeps it current as you save; the post-commit hook that `sigmap --setup` installs refreshes it after each commit\)\. The watcher needs a recursive `fs\.watch`, which Linux has from Node 20: on Linux with Node 18 `--watch` stops with an error after one full run and `daemon start` still says it started\./.test(askRow), 'and the row says so, and which platforms the watcher needs');
+    assert.ok(askRow.includes('`query_context` does not refresh the index, so run `sigmap` again after edits (`sigmap --watch` or `sigmap daemon start` keeps it current as you save; the post-commit hook that `sigmap --setup` installs refreshes it after each commit). The watcher needs a recursive `fs.watch`, which Node 18 on Linux does not have. There `--watch` and `--setup` stop with an error after one full run (`--setup` has installed the hook by then), and `daemon start` prints "daemon started" although the daemon exits after that run. The hook, or `sigmap` after edits, is what keeps the index current there.'), 'and the row says so, and where the watcher cannot run');
     assert.ok(/fs\.watch\(abs, \{ recursive: true \}/.test(read('gen-context.js')) && /Needs a recursive `fs\.watch`: macOS, Windows, and Linux with Node 20 or newer\./.test(read('docs-vp/guide/cli.md')), 'that condition is the code\'s, and the CLI page says the same');
     assert.ok(/daemon start\|stop\|status/.test(read('gen-context.js')), 'the daemon the row names exists');
   });
@@ -227,7 +248,7 @@ const tree = (dir) => {
     withProject(SRC, (ctx) => { ctx.sigmap(); assert.ok(/src\/a\.js/.test(ctx.sigmap('ask', 'where is alpha defined').stdout), '`sigmap ask` prints a ranking'); });
   });
 
-  await test('the hook: needs an index, needs no MCP server, never refreshes the index, and is cut at about 8 KiB (runs)', () => {
+  await test('the hook: needs an index, needs no MCP server, never refreshes the index (a watcher does), and is cut at about 8 KiB (runs)', async () => {
     withProject(BIG, (ctx) => {
       assert.strictEqual(ctx.hook(BIG_PROMPT, 's-noindex').stdout, '', 'no index: it prints nothing');
       assert.ok(!ctx.exists('.context'), 'and writes nothing');
@@ -239,13 +260,24 @@ const tree = (dir) => {
       assert.ok(bytes > 6000 && bytes <= 8 * 1024 + 64, `the block is cut at its cap, not by the fixture's size: ${bytes} bytes`);
       assert.ok(/left out to keep this short/.test(out.additionalContext), 'and says what it left out');
     });
-    withProject({ ...SRC, 'src/b.js': 'function beta(x) { return x; }\nmodule.exports = { beta };\n' }, (ctx) => {
+    await withProject({ ...SRC, 'src/b.js': 'function beta(x) { return x; }\nmodule.exports = { beta };\n' }, async (ctx) => {
       ctx.sigmap();
-      fs.writeFileSync(path.join(ctx.dir, 'src', 'zeta.js'), 'function zetaQuasarWidget(x) { return x; }\nmodule.exports = { zetaQuasarWidget };\n');
-      const fired = ctx.hook('where is zetaQuasarWidget defined in this project', 's-stale');
-      assert.strictEqual(fired.status, 0);
-      const text = fired.stdout ? JSON.parse(fired.stdout).hookSpecificOutput.additionalContext : '';
-      assert.ok(!/zeta/i.test(text) && !/older than|stale/i.test(text), 'a file added after the last `sigmap` run is not ranked, and the hook does not say the index is stale');
+      const widget = (n) => `function ${n}QuasarWidget(x) { return x; }\nmodule.exports = { ${n}QuasarWidget };\n`;
+      const prompt = (n) => `where is alpha defined, and where is ${n}QuasarWidget implemented`; // names an indexed file too, so the hook has a list to print
+      const block = (n, session) => { const r = ctx.hook(prompt(n), session); assert.strictEqual(r.status, 0); return r.stdout ? JSON.parse(r.stdout).hookSpecificOutput.additionalContext : ''; };
+      fs.writeFileSync(path.join(ctx.dir, 'src', 'zeta.js'), widget('zeta'));
+      const text = block('zeta', 's-stale');
+      assert.ok(/src\/a\.js/.test(text), 'control: the hook ranks what the index holds, so an empty block cannot stand for "not ranked"');
+      assert.ok(!/zeta/i.test(text) && !/older than|stale/i.test(text), 'with no watcher running, a file added after the last `sigmap` run is not ranked, and the hook does not say the index is stale');
+      if (RECURSIVE_WATCH) {
+        const w = await startWatcher(ctx);
+        try {
+          fs.writeFileSync(path.join(ctx.dir, 'src', 'eta.js'), widget('eta'));
+          const deadline = Date.now() + 20000;
+          while (Date.now() < deadline && w.child.exitCode === null && !/etaQuasarWidget/.test(ctx.read('.context/overlay.json'))) await sleep(200);
+          assert.ok(/src\/eta\.js/.test(block('eta', 's-watched')), `with a watcher running it is: the hook ranks through the live overlay (${w.stderr().slice(-200)})`);
+        } finally { await w.stop(); }
+      }
     });
     assert.ok(/run `sigmap` first and again after edits \(the hook never refreshes the index and does not warn when it is stale\), then restart Claude Code/.test(hookRow) && /on each substantive prompt it puts up to five ranked files in front of the model \(at most about 8 KiB each\), and it needs no MCP server/i.test(hookRow), 'and the row says so');
   });
@@ -406,7 +438,7 @@ const tree = (dir) => {
     const cli = read('docs-vp/guide/cli.md');
     for (const stale of ['about 1.4k tokens', 'about 0.2 s when it ranks', 'personal, uncommitted settings', '**The hooks cannot hurt a session.**', '**The hook handler cannot hurt a session.**', 'names the same files as the last block', 'is fetched on each ranking', 'until you run `hooks install claude` again', 'and a failure is silence — it exits `0`']) assert.ok(!cli.includes(stale), `cli.md still says "${stale}"`);
     assert.ok(/SigMap does not add it to `\.gitignore`/.test(cli) && /exit 1; 127 when `node` is not on `PATH`\) until you re-run the same `hooks install claude` command with the same `--stop`, `--prefetch` and `--shared` flags/.test(cli) && /\*\*The session hooks cannot hurt a session\.\*\*/.test(cli) && /eight repositories picked after earlier results, 348 first-ask pairs/.test(cli), 'cli.md: the corrected settings file, failure mode, claim and clean-comparison description');
-    assert.ok(/unless an agent reported it through an MCP notify tool, which only the full tool set has/.test(cli) && /a failure of the work itself is silence — the handler exits `0`/.test(cli), 'cli.md: the live-overlay exception and the scope of "a failure is silence"');
+    assert.ok(/not ranked \(unless a watcher is running, or an agent reported it through an MCP notify tool, which only the full tool set has\)/.test(cli) && /a failure of the work itself is silence — the handler exits `0`/.test(cli), 'cli.md: the live-overlay exceptions (a running watcher, an MCP notify call) and the scope of "a failure is silence"');
     assert.ok(/at most once an hour \(it is cached in `\.context\/config-cache\/`\)/.test(cli) && /BASE_CONFIG_TTL_MS\s*=\s*60\s*\*\s*60\s*\*\s*1000/.test(read('src/config/loader.js')), 'cli.md: a remote extends is cached for an hour (the constant is pinned)');
     assert.ok(/roughly half a second when it ranks and 0\.2 to 0\.3 s when it skips, timed by hand on a loaded laptop; no committed script times it/.test(cli), 'cli.md says the hook\'s speed is a hand timing');
     const strategies = read('docs-vp/guide/strategies.md');
