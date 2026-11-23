@@ -16,18 +16,18 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
 
 ## The short answer
 
-- **Across twenty repositories SigMap was never tuned on, no setup met the bar set beforehand for "saves reliably".** Haiku 5.5, real cost,
+- **Across twenty repositories held out when the runs were made, no setup met the bar set beforehand for "saves reliably".** Haiku 5.5, real cost,
   the repository as the unit (pooled by resampling repositories): `index` **−1% [−8, +5]** (3 repositories save, 15 no clear change, 2 cost
   more), `prefetch` **−7% [−19, +4]** (7 / 8 / 5), `locate` **−7% [−13, −2]** (4 / 16 / 0). The bar needed a pooled interval below zero,
   half the repositories saving and at most 15% costing more. Only `locate` has a pooled interval below zero, and a small one.
 - **It saves where the work it replaces is expensive.** On SigMap's own source, which the models have not read and where its ranker was
-  tuned, `index` cut the real cost of a task by **28% to 44%** on every model and both agents. Among the twenty unseen repositories the
-  savings are in the ones where the unaided agent already spends the most (for `prefetch`, a rank correlation of 0.66 between a repository's
-  baseline cost per run and the saving; it is not size or language), and the biggest is `flamingock-java` (−37%, −64%, −42% for `index`,
+  tuned, `index` cut the real cost of a task by **28% to 44%** on every model and both agents. Among the twenty held-out repositories the
+  savings are in the ones where the unaided agent already spends the most (for `prefetch`, a rank correlation of about 0.6 between a repository's
+  baseline cost per run and the saving; for `prefetch` there is no clear link to size, rank correlation −0.36 [−0.73, +0.14], and language was not tested), and the biggest is `flamingock-java` (−37%, −64%, −42% for `index`,
   `prefetch`, `locate`). Where the unaided agent finds the file in about four calls there is little to remove.
 - **It is not just text in the prompt.** A size-matched block of generic search guidance, with no SigMap in it, did not produce the saving:
   against that placebo `index` is still −38% and −27% (Sonnet 5.5, unfamiliar and famous questions) and −46% and −37% (Haiku 5.5). On
-  Haiku 5.5 the placebo on its own *raised* cost by 7% to 17%. On the first five unseen repositories the Sonnet comparison is inside the noise.
+  Haiku 5.5 the placebo on its own *raised* cost by 7% to 17%. On the first five held-out repositories the Sonnet comparison is inside the noise.
 - **`index` adds tokens it rarely earns back.** Pooled over the twenty repositories Haiku 5.5's total tokens were **+51%** with `index`
   (tool calls −15%, time +3%). A smaller tool list helps: `locate`, which keeps only the two tools agents used (`query_context` and
   `get_lines`), is **−4% [−7, −2]** against `index` for Haiku 5.5 (−3, −3, −9, −2 in the four repetitions) and **−10% [−16, −4]** for Sonnet 5.5
@@ -36,7 +36,7 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
   ranking after the question, with no tools and no standing section: pooled over the twenty repositories cost −8% [−11, −4], total tokens
   −27%, tool calls −44% and time −18%, but it was clearly dearer on five of them (up to +31%) and the file was found in 798 runs of 888
   against 809 without it.
-- **The installed hook saves about a third of what the same text saves when it is in the prompt.** On a clean comparison (Haiku 5.5, eight of
+- **The installed hook keeps about a third of the cost saving that the same text gives in the prompt.** On a clean comparison (Haiku 5.5, eight of
   the twenty repositories, every run a first ask, the hook and the prompt text ranking the identical question; 348 pairs each): the text in the
   prompt took real cost **−12% [−15, −9]**, tool calls −54%, time −22% and total tokens −32%, but the file was found in 315 runs of 348 against
   328 without it; the hook took cost **−4% [−7, −1]**, tool calls −41%, time −11% and tokens −23%, found 321 against 326. Pair for pair the hook cost
@@ -57,8 +57,8 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
   that the agent is told to call first (`skill-always`, +25%) cost more than no SigMap on Haiku 5.5. A skill the agent may call or not
   was never called and changed nothing.
 - **By goal, on the twenty repositories (Messages-API agent, Haiku 5.5): `prefetch` is the only setup that cut time and tokens.** Time on 19 of 20 repositories (**−18% [−21, −14]**), tokens
-  **−26% [−39, −14]** with none using more; it saved cost on 7 and cost more on 5. `locate` is the only one that cost more on none (−7%) and saves no time; `index` raised tokens on 17 of 20
-  (+51%) and saves no time. The installed hook is about a third of the benchmark's `prefetch`. Per repository and measure: [Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository).
+  **−26% [−39, −14]** with none clearly using more; it saved cost on 7 and cost more on 5. `locate` is the only one that cost more on none (−7%) and saves no time; `index` raised tokens on 17 of 20
+  (+51%) and saves no time. The installed hook keeps about a third of the benchmark's `prefetch` cost saving. Per repository and measure: [Stage I](/guide/agent-study-protocol#stage-i-can-an-offline-signal-say-which-setup-suits-a-repository).
 - **Nothing SigMap can compute offline predicted which repositories save.** The share of a repository's questions whose file is in SigMap's first five, the same for a single-shot grep, their
   difference and the repository's size: none tracked the saving (the pre-registered test, headroom against `prefetch` cost: ρ = −0.13 [−0.57, +0.36], bar −0.50 with the interval below zero).
   To find out for a project, measure it: [choosing a setup](/guide/choosing-a-setup).
@@ -87,9 +87,9 @@ Two things the study led to are now in SigMap, a tool profile and a hook. `sigma
   the impact, callee and verification tools and the study did not test those. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all). `sigmap --init` writes it for a new project; an existing config keeps what it has.
 - **`sigmap hooks install claude --prefetch`** is the route that needs no tools at all. A Claude Code `UserPromptSubmit` hook runs
   `sigmap ask` on each substantive prompt and hands the model the ranking as context before the turn starts. The study's `prefetch` puts
-  the same text in the prompt itself; the installed hook was measured separately (`prefetch-hook`) and **its saving is not established**
-  ([the real hook](#the-real-hook-and-the-same-text-in-the-prompt)). It skips slash commands and prompts under four words, never repeats a block already in the conversation, and caps the block
-  at 8 KiB. See [the prefetch hook](/guide/cli#the-prefetch-hook) for what it does and does not do.
+  the same text in the prompt itself; the installed hook was measured separately (`prefetch-hook`): its time, total-token and tool-call reductions held in every repetition, and its **cost saving is small (−4%) and not clear when each question or repository counts once**
+  ([the real hook](#the-real-hook-and-the-same-text-in-the-prompt)). It skips slash commands and prompts under four words, does not inject the same ranked list twice in a row in one session, and caps the block
+  at about 8 KiB. See [the prefetch hook](/guide/cli#the-prefetch-hook) for what it does and does not do.
 
 **What the model carries.** With `strategy: "index"` the `CLAUDE.md` section is a map of about 0.8k tokens (761 on the API's
 token counter): the modules and how many files and signatures each holds, the entry points, and how to ask. It contains no signatures.
@@ -207,13 +207,13 @@ turn on the API's token counter; the placebo adds 2,170. Same questions, same re
 | Haiku 5.5 · famous | +7% [+1, +13] | −33% [−37, −29] | **−37%** [−40, −34] (−34 −38 −38 −38) |
 | Sonnet 5.5 · unfamiliar | −11% [−18, −4] | −44% [−53, −34] | **−38%** [−47, −27] (−38 −37) |
 | Sonnet 5.5 · famous | −4% [−11, +5] ~ | −28% [−35, −21] | **−27%** [−34, −20] (−27 −28) |
-| Haiku 5.5 · unseen repositories | +11% [+5, +17] | −7% [−12, 0] | **−19%** [−24, −14] (−21 −15 −18 −22) |
-| Sonnet 5.5 · unseen repositories | −1% [−10, +8] ~ | −8% [−18, +2] ~ | −7% [−16, +2] ~ |
+| Haiku 5.5 · held-out repositories | +11% [+5, +17] | −7% [−12, 0] | **−19%** [−24, −14] (−21 −15 −18 −22) |
+| Sonnet 5.5 · held-out repositories | −1% [−10, +8] ~ | −8% [−18, +2] ~ | −7% [−16, +2] ~ |
 
 The rule written before the runs: if the interval for `index` against the placebo is entirely below zero and every repetition points the
 same way, the saving cannot be explained by the prompt text. That holds in five of the six rows. The generic guidance on its own did not
 save on the famous questions and, on Haiku 5.5, made things *more* expensive (total tokens +60%: it adds tokens). So the placebo is
-a poor stand-in for "nothing" and a fair test of "text instead of an index". On the unseen repositories with Sonnet 5.5 the data cannot
+a poor stand-in for "nothing" and a fair test of "text instead of an index". On the held-out repositories with Sonnet 5.5 the data cannot
 tell SigMap from the guidance: both are near zero.
 
 ### First round: five repositories SigMap was not tuned on
@@ -251,7 +251,7 @@ What this says, without rounding it up:
   `index`, but that is `flamingock-java` at −37% and −32% averaged with `agent` at −5% and −2%.
 - **On Haiku 5.5, `index` can cost more.** +24% on `cluster-api-provider-proxmox`, where it added tokens (+137%) without removing enough
   turns. That is the turn arithmetic of the first results again: a standing 2.3k tokens must buy back at least as many turns as it costs.
-- **Time and tokens do not follow cost.** `index` raised total tokens on the unseen set for both models while cost fell slightly; only
+- **Time and tokens do not follow cost.** `index` raised total tokens on the held-out set for both models while cost fell slightly; only
   `prefetch` lowered tokens, tool calls and seconds together.
 
 ### Twenty repositories, and a two-tool tool list
@@ -303,9 +303,9 @@ calls and seconds (−8% cost [−11, −4] pooled over questions); by repositor
 
 What it says, and does not:
 
-- **There is no pattern by size or language.** The largest repository saves with `prefetch` and not with `index`; a 300-file Rust and a
+- **There is no clear pattern by size for `prefetch`, and language was not tested.** The largest repository saves with `prefetch` and not with `index`; a 300-file Rust and a
   370-file Go repository save with all three; a 320-file Go repository costs 24% to 31% more. One thing does track the saving: where the
-  unaided agent already spends the most per question, `prefetch` saves more (rank correlation 0.66 across the twenty; 0.33 for `index`,
+  unaided agent already spends the most per question, `prefetch` saves more (rank correlation about 0.6 across the twenty; 0.33 for `index`,
   0.38 for `locate`). It is an exploratory look, not a test, but it is the turn arithmetic of the first results again: the setup pays
   its fixed cost on every turn and gets it back only if it removes turns.
 - **`locate` is the only setup that never clearly costs more**, and the direct comparison with `index` is clean: −4% [−7, −2] over 887
@@ -412,7 +412,7 @@ ranking, where the header only throws away the saving (−8.7% became +1.0%). Th
 [protocol](/guide/agent-study-protocol#afterwards-focusing-the-query-for-long-prompts-a-product-fix-measured-offline).
 
 Reproduce: `node benchmarks/agent-study/summarize.mjs --set heldout-q --by-repo`, `--versus prefetch-hook:prefetch [--adjusted]`, and
-`node benchmarks/agent-study/trace-analysis.mjs`. The hook rounds ran on a logged-in session, not API credit (about $13 by Claude Code's own count).
+`node benchmarks/agent-study/trace-analysis.mjs`. The hook rounds ran on a logged-in session, not API credit (by Claude Code's own count about $13 for the first two series, the first comparison and the clean one, and about $36 for all four, adding the wrapped-prompt and thin-ranking runs).
 
 ### Retrieval on the weak repositories (offline)
 
@@ -465,7 +465,7 @@ repository the ranker was tuned on.
 ## Where this can mislead
 
 - **The unfamiliar set is one repository, and it is SigMap's own.** Its ranker was tuned on questions like these, so −28% to −44% is the
-  best case. The twenty unseen repositories are the correction: −1% for `index` and −7% for `prefetch` and `locate`, none meeting the bar.
+  best case. The twenty held-out repositories are the correction: −1% for `index` and −7% for `prefetch` and `locate`, none meeting the bar.
   Twenty repositories picked by a star-order rule is still a modest sample of repositories, the labels are the files a commit happened to
   touch, the questions are the commits' titles (some are poor questions), and everything in the second round is one cheap model (Haiku
   5.5; Sonnet 5.5 only on the first five). Run the study on your own repository (below) before quoting any of it.

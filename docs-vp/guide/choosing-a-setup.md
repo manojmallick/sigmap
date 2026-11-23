@@ -1,6 +1,6 @@
 ---
 title: Choosing a setup
-description: Which way to give an agent SigMap saves tokens, time or cost, by goal, with the measured record of each on twenty unseen repositories, what not to use, and three ways to find out which one suits your project.
+description: Which way to give an agent SigMap saves tokens, time or cost, by goal, with the measured record of each on twenty held-out repositories, what not to use, and three ways to find out which one suits your project.
 head:
   - - meta
     - property: og:title
@@ -24,24 +24,25 @@ out for your own project, because nothing SigMap can compute offline predicted w
 
 ## The short answer, by goal
 
-What each did on the twenty repositories the study held out (repositories SigMap was never tuned on; Messages-API agent, Haiku 5.5; the unit is the repository):
+What each did on the twenty repositories the study held out (held out when the runs were made, and looked at again since; the `locate` profile itself was chosen after the first five had been run; Messages-API agent, Haiku 5.5; the unit is the repository, and a count of repositories is by each one's own 95% interval, so it can move by one with the resampling seed):
 
 | If you care most about | Use | What it did |
 |---|---|---|
 | **Time** | the prefetch route | time **−18%** [−21%, −14%], and **19 of the 20 repositories** saved time; no repository was slower |
-| **Total tokens** | the prefetch route | **−26%** [−39%, −14%]; 9 repositories used fewer, **none used more** |
-| **Not paying more** | `strategy: "index"` with `mcp.tools: "locate"` | cost **−7%** [−13%, −2%]; **none of the 20 cost more**, 4 saved. It saves no time (+1%) and total tokens rise (+18%) |
+| **Total tokens** | the prefetch route | **−26%** [−39%, −14%]; 9 repositories clearly used fewer, **none clearly used more** |
+| **Not paying more** | `strategy: "index"` with `mcp.tools: "locate"` | cost **−7%** [−13%, −2%]; **none of the 20 clearly cost more**, 4 saved. It saves no time (+1%) and total tokens rise (+18%) |
 | **Cost, with upside and risk** | the prefetch route | cost −7% [−19%, +4%]: 7 repositories saved, **5 cost more** (up to +31%) |
-| **Nothing** | `strategy: "index"` alone | cost −1% [−8%, +5%], time +2%, tokens **+51%** (17 of 20 used more) |
+| **Nothing** | `strategy: "index"` with the seven-tool `mcp.tools: "core"` | cost −1% [−8%, +5%], time +2%, tokens **+51%** (17 of 20 clearly used more) |
 
 "The prefetch route" is the ranking put in front of the model before its first turn. Two things deliver it, and they are not equal: the benchmark's version puts the text in the
-prompt itself (the row above), and the installed hook (`sigmap hooks install claude --prefetch`) hands it over as a separate system reminder, which the agent checks less. On a clean
-comparison in Claude Code (Haiku 5.5, eight repositories, 348 first asks) **the installed hook took time −11%, total tokens −23%, tool calls −41% and cost −4% [−7%, −1%]**, about a third
-of what the same text saves in the prompt. So expect the smaller numbers from the hook and read the table as the ceiling.
+prompt itself (the rows above), and the installed hook (`sigmap hooks install claude --prefetch`) hands it over as a separate system reminder, and its runs made 28% more tool calls than the same text in the prompt did (the traces suggest the agent re-checks the list; that is a reading, not a tested cause). On a clean
+comparison in Claude Code (Haiku 5.5, eight repositories picked after earlier results, 348 first asks) **the installed hook took time −11%, total tokens −23%, tool calls −41% and cost −4% [−7%, −1%]**; the cost interval
+includes zero counting each repository once ([−14%, +5%]). The same text in the prompt, on the same questions in Claude Code, took cost −12%, time −22%, tokens −32% and tool calls −54%:
+the hook keeps about a third of the cost saving, half of the time saving and 70% to 77% of the token and tool-call reductions (ratios of point estimates, which carry wide intervals: the hook's own cost saving is unclear by repository). The table above is another agent on other repositories, so it is not a ceiling for the hook.
 
 ## What a new install starts on
 
-`sigmap --init` writes `{ "strategy": "index", "mcp": { "tools": "locate" } }` into a **new** project's `gen-context.config.json`. A project that already has a config keeps it byte for byte, and a
+`sigmap --init` writes `{ "strategy": "index", "mcp": { "tools": "locate" } }` into a **new** project's `gen-context.config.json` (it copies the whole example config, with that pair among its keys; it builds no index and registers no client, so run `sigmap` once, then `sigmap mcp install <client>`). A project that already has a config keeps it byte for byte, and a
 project with no config at all keeps what it had: strategy `full` and every tool. The choice rests on three pre-registered runs of exactly this setup against no SigMap in Claude Code (`--bare`, an
 API key, one question per run, the repository as the unit), in which no repository clearly cost more:
 
@@ -53,21 +54,22 @@ API key, one question per run, the repository as the unit), in which no reposito
 
 Read it with its limits. With Sonnet the saving is in the price, not the token count: total tokens per run rose 9% while the mean cost per run fell 12%. On the large repositories the file was found 4.2 points less
 often with SigMap, inside the pre-registered limit of 5 but not far inside it; an interval computed afterwards, [−7.8, −1.0] points, does not rule out a larger loss. Not measured: a logged-in
-session or a subscription allowance (the runs were API-billed), Opus, repositories above 7,756 files, Python or JavaScript repositories above about 2,400 files, answer quality beyond which
+session or a subscription allowance for this setup (the runs were API-billed), Opus, repositories above 7,756 files, Python or JavaScript repositories above about 260 files, answer quality beyond which
 file was named, editing work, and the `ask` command and the prefetch hook that go with it. `locate` is for *where is this implemented?* questions: it drops the impact, callee and
-verification tools. To get them back, set `"mcp": { "tools": "core" }`; to go back to the old behaviour, set `"strategy": "full"` and `"mcp": { "tools": "all" }`. The runs, the bar and the code
+verification MCP tools (`sigmap verify`, `--impact` and `--callers` still run from the shell). To get the MCP tools back, set `"mcp": { "tools": "core" }`; to go back to the old behaviour, set `"strategy": "full"` and `"mcp": { "tools": "all" }`. The runs, the bar and the code
 that applies it are in [the agent study](/guide/agent-study) (`benchmarks/agent-study/`).
 
 ## What each setup is
 
-- **The prefetch hook** (opt-in): `sigmap hooks install claude --prefetch` adds a `UserPromptSubmit` hook that runs `sigmap ask` on each substantive prompt and gives the model the top
-  five files with signatures and `:start-end` anchors. It needs no MCP server and adds no tool definitions. It stays silent for slash commands, prompts under four words, a prompt it cannot read
+- **The prefetch hook** (opt-in, Claude Code only): `sigmap hooks install claude --prefetch` adds a `UserPromptSubmit` hook that runs `sigmap ask` on each substantive prompt and gives the model up to five
+  ranked files with signatures and `:start-end` anchors, in at most about 8 KiB. It always comes with the `SessionStart` and `SessionEnd` hooks: they record each session in `.context/sessions.ndjson`, and `SessionStart` also hands the model a summary of the last session (up to about 400 tokens) when one is on record. The figures on this page were measured with the `UserPromptSubmit` hook alone.
+  It needs no MCP server and adds no tool definitions. It needs an index (run `sigmap` first) and never refreshes it, so a stale one is used silently. It stays silent for slash commands, prompts under four words, a prompt it cannot read
   (under 90% ASCII letters) and a project with no index. `SIGMAP_PREFETCH=0` turns it off. See [the prefetch hook](/guide/cli#the-prefetch-hook).
 - **`index` plus `locate`** (what `sigmap --init` writes for a new project, above): `{ "strategy": "index", "mcp": { "tools": "locate" } }` in `gen-context.config.json`, and the MCP server registered
   (`sigmap mcp install <client>`). The model carries a short map and two tools, `query_context` and `get_lines`, about 426 tokens of definitions a turn (the API's own counter). It drops the impact, callee and
   verification tools, so it is for *where is this implemented?* questions. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
-- **`index` plus `core`** (opt-in): seven tools, about 1,505 tokens of definitions a turn (same counter), for an agent that also edits and checks code. The study measured location questions,
-  not editing, so it does not say whether `core` pays for an editing agent.
+- **`index` plus `core`** (opt-in): seven tools, about 1,505 tokens of definitions a turn (same counter), for an agent that also checks impact and verifies code through MCP. The study measured it on where-is-it questions, where it saved no cost (−1%) and used 51% more tokens (the "Nothing" row above), and on nine editing tasks,
+  where patch quality could not be judged (cost −7% [−17%, +3%] with Haiku 5.5, not clear); nothing says whether `core` pays for an editing agent. Under `index`, `read_context` returns the map and no signatures.
 
 ## What not to use
 
@@ -76,8 +78,8 @@ and a skill the agent is told to call first **+25%**. A skill the agent may call
 
 ## Where it saves more, and where it does not
 
-- **More:** code the model has not read (on SigMap's own source `index` cut a task's cost 28% to 44% on every model); a weaker model (Haiku 4.5 saved 29% even on famous frameworks); and
-  repositories where the unaided agent already spends a lot per question (for `prefetch`, a rank correlation of 0.66 between a repository's baseline cost per run and its saving; you
+- **More:** code the model has not read (on SigMap's own source, one repository and the one its ranker was tuned on, `index` cut a task's cost 28% to 44% on every model); a weaker model (Haiku 4.5 saved 29% even on famous frameworks); and
+  repositories where the unaided agent already spends a lot per question (for `prefetch`, a rank correlation of about 0.6 between a repository's baseline cost per run and its saving; you
   cannot see that cost without running the baseline, which is why it does not help you choose in advance).
 - **Less:** famous frameworks with a strong model in Claude Code (+3% to +4%, the model already knows where things are), and small repositories where the agent finds the file in about
   four calls.
@@ -89,7 +91,7 @@ and a skill the agent is told to call first **+25%**. A skill the agent may call
 Nothing offline predicts the saving, so there are three ways to know, from cheapest to most reliable.
 
 **1. Ask SigMap what it can tell you for free.** `sigmap advise` runs offline and spends nothing. It reports what each setup adds to a turn in your project, how often SigMap's first five
-files hold the file a recent change of yours touched against a single-shot grep, and whether your prompts are readable by the hook. It makes **no call and prints no percentage**, and says so:
+files hold the file a recent change of yours touched against a single-shot grep, and whether your prompts are readable by the hook. It makes **no call and prints no forecast for your project** (it does print the study's own figures), and says so:
 in the study the numbers it reports did not predict the saving.
 
 ```
@@ -141,5 +143,5 @@ builder is `node scripts/build-heldout-set.mjs --out <dir> --repos owner/name`. 
 
 ## What this page does not say
 
-Twenty repositories, one cheap model and one agent (the Messages-API agent); the installed hook was measured on eight repositories in Claude Code, picked after earlier results. The question stage
+Twenty repositories, one model (Haiku 5.5) on all of them, Sonnet 5.5 on five of them in the Messages-API agent and on all twenty for `locate` in Claude Code, Haiku 4.5 only on SigMap's own source and the well-known frameworks, and two agents (the Messages-API agent and Claude Code). The clean comparison of the installed hook with the same text in the prompt ran on eight repositories picked after earlier results (the hook against its own baseline also ran on all twenty), in Claude Code with Haiku 5.5. The question stage
 scores whether the agent names the right file, not the quality of anything it writes, so nothing here says whether SigMap changes the quality of a patch. See [Where this can mislead](/guide/agent-study#where-this-can-mislead).
