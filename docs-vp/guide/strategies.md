@@ -35,6 +35,8 @@ Every strategy's always-on file carries the same `## SigMap commands` block (~22
 
 ## Best strategy by task
 
+This table, and the scenarios and "Winner" lines further down, are design intent, not measurement: no agent run exists for `per-module` or `hot-cold`, and the one measured record for `full` is the old default (`current`), which cost +9% against no SigMap in Claude Code with Haiku 5.5 on well-known frameworks. The setups that were measured, and what they did, are in [Choosing a setup](/guide/choosing-a-setup).
+
 | Task | Best strategy | Why |
 |---|---|---|
 | Daily coding with `ask` | `full` | Fastest default path with no extra workflow steps |
