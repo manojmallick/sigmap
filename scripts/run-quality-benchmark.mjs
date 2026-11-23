@@ -144,7 +144,8 @@ for (const repo of tokenData.repos) {
   const fitsModels     = MODELS.filter(m => repo.rawTokens <= m.limit).map(m => m.name);
 
   // Forced-assumption files: when raw overflows smallest model, LLM can only see
-  // floor(contextWindow / avgTokensPerFile) files. With SigMap all are visible.
+  // floor(contextWindow / avgTokensPerFile) files. With the full strategy this benchmark runs, SigMap's
+  // map lists files until its token budget is spent and counts the rest (filesHiddenSigMap below).
   const avgTokPerFile = repo.rawTokens / Math.max(repo.fileCount, 1);
   const gpt4oLimit    = MODELS[0].limit;
   const filesVisibleRaw    = repo.rawTokens > gpt4oLimit
@@ -306,7 +307,7 @@ if (unreliable.length) {
 console.log('\n\n' + sep);
 console.log('BENCHMARK 3 — Forced Assumptions & Clarifying Questions');
 console.log('When raw content > context window, LLM sees only a fraction of the codebase.');
-console.log('Every unseen file becomes an assumption. SigMap surfaces all files as signatures.');
+console.log('Every unseen file becomes an assumption. With the full strategy this benchmark runs, SigMap lists files until its token budget is spent and counts the rest.');
 console.log(sep);
 
 const fa = [
@@ -330,14 +331,18 @@ for (const r of results) {
     pad(r.filesVisible,                            fa[1].w, true),
     pad(r.filesVisibleRaw,                         fa[2].w, true),
     pad(r.filesHiddenRaw + ' hidden',              fa[3].w, true),
-    pad('0 hidden',                                fa[4].w, true),
+    pad(r.filesHiddenSigMap + ' hidden',           fa[4].w, true),
     pad(risk,                                      fa[5].w, true),
   ].join('  '));
 }
 console.log(faDiv);
 const criticalCount = results.filter(r => r.filesHiddenRaw > r.filesVisible * 0.5).length;
 console.log(`\n  ${criticalCount} repos have >50% of files hidden from the LLM without SigMap.`);
-console.log(`  SigMap reduces hidden files to 0 for all repos.`);
+// The SigMap column is the files its token budget left out of the map (droppedCount in the token-reduction report; 0 for a row that has none).
+const leftOutOfMap = results.reduce((s, r) => s + r.filesHiddenSigMap, 0);
+const hiddenWithoutSigMap = results.reduce((s, r) => s + r.filesHiddenRaw, 0);
+console.log(`  With SigMap ${leftOutOfMap.toLocaleString('en-US')} files are left out of the map to stay within its token budget`
+  + ` (${results.filter(r => r.filesHiddenSigMap > 0).length}/${results.length} repos), against ${hiddenWithoutSigMap.toLocaleString('en-US')} hidden without it.`);
 
 // ─── Table 4: API Cost Savings ────────────────────────────────────────────────
 console.log('\n\n' + sep);

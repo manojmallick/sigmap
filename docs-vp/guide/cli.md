@@ -75,7 +75,7 @@ If you are new to the product, start with the workflow pages first:
 | `plan "<goal>"` | Plan a change — files to read first, files likely to change (with score and reason), impact radius, covering tests |
 | `judge [--response <f>\|-] [--context <f>]` | Rule-based groundedness scoring for LLM responses (stdin ok; `--context` defaults to the generated one) |
 | `verify-plan <plan.md>` | Check a plan against the live index before execution — referenced files/symbols exist, blast radius, scope; `Creates:` / `--creates` marks names the plan introduces (`--json`; stdin via `-`) |
-| `verify <answer.md>` | **Flagship** grounding guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline). Short alias of `verify-ai-output` |
+| `verify <answer.md>` | **Flagship** grounding guard — check the files, test files, imports, calls and npm scripts an AI answer names against your repo, and say what was not checked (deterministic, offline). Short alias of `verify-ai-output` |
 | `verify-ai-output <answer.md>` | Full command name for `verify` — identical behaviour, flags, and exit codes |
 | `verify <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
 | `review-pr [--base <ref>\|--staged]` | Audit a diff — scope drift, god-node edits, missing tests, security-sensitive files (`--json`; exits 1 on findings) |
@@ -1710,7 +1710,7 @@ Equivalent to setting `testCoverage: true` in config, but applied only for the c
 
 ## doctor
 
-One-shot setup diagnostic. Runs resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, MCP wiring, the [MCP tool profile](/guide/mcp#tool-profiles-core-or-all) (which tools the server advertises and what their definitions cost; a warning when `mcp.tools` or its `mcp` block could not be read), and the git post-commit hook — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
+One-shot setup diagnostic. Runs resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, MCP wiring, the [MCP tool profile](/guide/mcp#tool-profiles-core-locate-or-all) (which tools the server advertises and what their definitions cost; a warning when `mcp.tools` or its `mcp` block could not be read), and the git post-commit hook — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
 
 ```bash
 sigmap doctor
@@ -1729,8 +1729,8 @@ sigmap doctor
 ✓ Coverage — in-context 71% (54/76 scoped source files) grade B
 ✓ Instruction files — AGENTS.md 18.4 KiB of 32.0 KiB · CLAUDE.md 142 of 200 lines
 ✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
-✓ MCP wiring — registered in .claude/settings.json
-✓ MCP tool profile — all (22 tools, ~2,517 tokens of definitions) · "mcp.tools": "core" would advertise 7 tools, ~908 tokens
+✓ MCP wiring — registered in .mcp.json
+✓ MCP tool profile — all (22 tools, ~2,561 tokens of definitions) · "mcp.tools": "core" would advertise 7 tools, ~953 tokens; "locate" 2 tools, ~278 tokens (where-is-it questions only)
 ✓ Git hook — .git/hooks/post-commit regenerates context after each commit (runs ~/node_modules/sigmap/gen-context.js)
 ✓ Local state in git — .context/ is ignored by git
 
@@ -2793,7 +2793,7 @@ sigmap --diff main
 
 ## --mcp
 
-Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, Windsurf, and Zed. Do not call this directly — wire it via `sigmap --setup` or the IDE config (see [MCP setup](/guide/mcp)). Which tools it advertises, and answers, is the `mcp.tools` profile: all 22 with no key, the seven of `core` in a config written by `sigmap --init`; `sigmap doctor` shows the active one (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)).
+Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, Windsurf, and Zed. Do not call this directly — wire it via `sigmap --setup` or the IDE config (see [MCP setup](/guide/mcp)). Which tools it advertises, and answers, is the `mcp.tools` profile: all 22 with no key, the two of `locate` in a config written by `sigmap --init` (`core` is seven); `sigmap doctor` shows the active one (see [Tool profiles](/guide/mcp#tool-profiles-core-locate-or-all)).
 
 ```bash
 node gen-context.js --mcp
@@ -3235,7 +3235,7 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 sigmap --init
 ```
 
-A new config starts on the `index` strategy and the two-tool `locate` MCP profile — `"strategy": "index"` and `"mcp": { "tools": "locate" }`: a short always-on map, with `query_context` and `get_lines` for where-is-it questions, under a third of the tool-definition tokens of `core` (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all) and [Choosing a setup](/guide/choosing-a-setup#what-a-new-install-starts-on) for what it was measured to do and what it drops). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps strategy `full` and every tool. To start from the previous profile, set `"mcp": { "tools": "core" }` (and `"strategy": "full"`).
+A new config starts on the `index` strategy and the two-tool `locate` MCP profile — `"strategy": "index"` and `"mcp": { "tools": "locate" }`: a short always-on map, with `query_context` and `get_lines` for where-is-it questions, under a third of the tool-definition tokens of `core` (see [Tool profiles](/guide/mcp#tool-profiles-core-locate-or-all) and [Choosing a setup](/guide/choosing-a-setup#what-a-new-install-starts-on) for what it was measured to do and what it drops). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps strategy `full` and every tool. To start from the previous profile, set `"mcp": { "tools": "core" }` (and `"strategy": "full"`).
 
 ::: tip `.context/` keeps itself out of git
 `--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.
@@ -3276,9 +3276,9 @@ sigmap --impact src/auth/service.ts --json
 
 ## --callers / --callees
 
-**Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS, Python, Java, Go, and Rust** (Java/Go/Rust added in v8.14.0).
+**Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`, incomplete (below); `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS, Python, Java, Go, and Rust** (Java/Go/Rust added in v8.14.0).
 
-Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
+Call sites are resolved by name, and precision differs by language ([measured](/guide/callgraph-accuracy)): a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
 
 **Calls made through a receiver (`x.m()`, `this.m()`, `self.m()`) are not resolved outside Java.** For a symbol in TypeScript, Python or Go the output says so and `--json` carries `receiverCalls`, because an empty list there is not a safe answer ([measured](/guide/callgraph-accuracy)).
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "Claude Code settings — both MCP servers configured. Copy to .claude/settings.json in your project root.",
+  "_comment": "Claude Code project MCP servers live in .mcp.json at the project root. Copy the mcpServers block there (both servers configured), replace the placeholder path, and leave the _comment lines out.",
   "mcpServers": {
     "sigmap": {
       "_comment": "SigMap: fast always-on code signatures (~200-4K tokens per call)",

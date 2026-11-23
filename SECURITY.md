@@ -36,7 +36,11 @@ The workflows that publish it pin every action to a commit SHA, run with a read-
 - Keep SigMap updated to the latest version
 - Review generated signatures before using them in production
 - Do not commit API keys or secrets to version control
-- Use `.sigmapignore` to exclude sensitive files from analysis
+- To keep a file's signatures out of the generated context files and `.context/sig-index.json`, list it in `.contextignore` and run `sigmap` again (what was generated before keeps the file until you do), then run `sigmap explain <file>` and expect `EXCLUDED` with `Reason: matched .contextignore`; `INCLUDED`, or `EXCLUDED` for another reason, means the pattern did not match.
+  - The matcher is simpler than gitignore. Plain paths, `dir/`, `*.ext` and `dir/*` work; a leading `/`, a one-character `?` and a `!` re-include do not, and a pattern that does not match fails open.
+  - With `monorepo: true`, a root `.contextignore` is not applied to the packages: put the file in each package's own `.contextignore` and check the package's generated files, because `sigmap explain` is not reliable there.
+  - `.sigmapignore` is not a file filter: with auto-detected source roots it only keeps a top-level directory from becoming a source root, and it does nothing when `srcDirs` is set.
+- `.contextignore` is not an access control. Among other things, `sigmap lines`, the MCP `get_lines` tool, `--impact`, `--callers` and `node gen-project-map.js` can still read or name an excluded file; the MCP `get_diff_context` tool and `sigmap review-pr` print its signatures when it has changed in git; under the `full`, `per-module` and `hot-cold` strategies a mapped file that imports it names the module in its dependency line; and `.context/extract-cache.json` records its name. To stop an agent reading a file, use the agent's own permission settings and also deny SigMap's file-reading MCP tools (`get_lines`, `get_diff_context`), or do not install the server.
 - Validate context before passing it to LLMs
 
 ### For Contributors

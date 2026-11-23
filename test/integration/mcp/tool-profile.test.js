@@ -222,9 +222,9 @@ test('"core": the profile\'s tools, and at most 1,000 tokens of definitions', ()
   });
 });
 
-test('the figures the docs quote (~2.5k all, ~0.9k core) are the real ones', () => {
-  // docs-vp/guide/mcp.md says "about 2.5k" / "~0.9k". If a description change moves
-  // either by more than rounding, update the page — not this range.
+test('the figures the docs quote (~2.6k all, ~1.0k core, chars/4) are the real ones', () => {
+  // docs-vp/guide/mcp.md says "about 2.6k" / "~1.0k" (published-claims.test.js reads the page and compares it with resolveProfile).
+  // If a description change moves either by more than rounding, update the page — not this range.
   assert.ok(tokens(TOOLS) >= 2300 && tokens(TOOLS) <= 2700, `all = ${tokens(TOOLS)} tokens`);
   const core = profile.resolveProfile({ mcp: { tools: 'core' } });
   assert.ok(core.tokens >= 800 && core.tokens <= 1000, `core = ${core.tokens} tokens`);

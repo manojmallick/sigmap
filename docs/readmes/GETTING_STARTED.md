@@ -456,10 +456,11 @@ sigmap --init
 ```
 
 Creates:
-- `gen-context.config.json` — annotated config with all options
-- `.contextignore` — exclusion rules (gitignore syntax)
+- `gen-context.config.json` — a starter config (annotated, with the commonly used options, when the example file ships beside the script; the [config reference](https://sigmap.io/guide/config.html) lists them all)
+- `.contextignore` — exclusion rules (gitignore-style patterns)
+- a "Creation workflow" block in `CLAUDE.md`
 
-A config that already exists is never rewritten. The new one starts the MCP server on the seven-tool `core` profile (`"mcp": { "tools": "core" }`); set it to `"all"` to advertise all 22 tools — see [section 10](#10-mcp-server-setup).
+A config that already exists is never rewritten. The new one starts on the `index` strategy and the two-tool `locate` MCP profile (`"strategy": "index"`, `"mcp": { "tools": "locate" }`); set `"mcp": { "tools": "core" }` for seven tools or `"all"` for all 22 — see [section 10](#10-mcp-server-setup).
 
 Run this first on a new project to customize what gets indexed.
 
@@ -821,7 +822,7 @@ Best for: projects with MCP (Claude Code, Cursor) where you're focused on a spec
 
 ## 10. MCP server setup
 
-The MCP server exposes 22 tools by default to Claude Code, Cursor, and Windsurf (`tools/list` is the full reference). The three you reach for first:
+The MCP server exposes 22 tools by default to Claude Code, Cursor, and Windsurf (`tools/list` is the full reference). Three of the oldest are described here; a config written by `sigmap --init` advertises none of them (see the profiles below):
 
 | Tool | What it does |
 |---|---|
@@ -829,11 +830,11 @@ The MCP server exposes 22 tools by default to Claude Code, Cursor, and Windsurf 
 | `search_signatures` | Keyword search across all signatures — find where a function is defined |
 | `get_map` | Returns import graph, class hierarchy, or route table |
 
-`mcp.tools` in `gen-context.config.json` chooses which tools the server advertises, and a config written by `sigmap --init` sets it to `"core"`: seven tools (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) for about 0.9k tokens of definitions where all 22 cost about 2.5k. On `core`, `search_signatures` and `get_map` are not advertised and a call to them is refused. Set `"mcp": { "tools": "all" }` and restart the server to get all 22; `sigmap doctor` shows the active profile. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-or-all).
+`mcp.tools` in `gen-context.config.json` chooses which tools the server advertises. A project with no `mcp.tools` key gets all 22, and a config written by `sigmap --init` sets it to `"locate"`: two tools, `query_context` and `get_lines`. `"core"` is seven (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`). By the chars/4 estimate `sigmap advise` prints, the definitions of `core` weigh about 1.0k tokens and those of `locate` about 0.3k (all 22: about 2.6k); on the API's own counter (the study's figures) `core` reads 1,505 tokens and `locate` 426. On `locate` and on `core`, `search_signatures` and `get_map` are not advertised and a call to them is refused. Set `"mcp": { "tools": "all" }` and restart the server to get all 22; `sigmap doctor` shows the active profile. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-locate-or-all).
 
 ### Enable in Claude Code
 
-Add to `.claude/settings.json`:
+Add to `.mcp.json` in your project root (or run `sigmap mcp install claude`, which writes it with an `npx -y sigmap --mcp` entry):
 
 ```json
 {
@@ -875,7 +876,7 @@ SigMap detects your AI tool config files and adds itself automatically.
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
 ```
 
-Should return JSON listing the tools the project advertises: all 22 by default, including `read_context`, `search_signatures` and `get_map`; on the `core` profile a `sigmap --init` config sets, the seven listed above (`read_context` is among them, the other two are not).
+Should return JSON listing the tools the project advertises: all 22 with no `mcp.tools` key, including `read_context`, `search_signatures` and `get_map`; on the `locate` profile a `sigmap --init` config sets, only `query_context` and `get_lines` (on `core`, `read_context` is listed and the other two are not).
 
 ---
 

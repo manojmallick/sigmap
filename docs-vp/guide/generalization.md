@@ -38,7 +38,7 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 105 tasks is yes — 80.4% hit@5 in the latest saved v8.88.0 run — with one caveat that matters: the benchmark pins each repo's `srcDirs` in `benchmarks/config-overrides.json` (all 21 repos). The zero-config, third-party measurement is the [xrepo corpus](/guide/retrieval-benchmark): 55.3% hit@5 over 208 tasks in 35 repos, indexed the way a first-time user's `sigmap` run would.
+these 105 tasks is yes — 80.4% hit@5 in the latest saved v8.88.0 run — with one caveat that matters: the benchmark pins each repo's `srcDirs` in `benchmarks/config-overrides.json` (all 21 repos). The zero-config, third-party measurement is the [xrepo corpus](/guide/retrieval-benchmark): 56.7% hit@5 over 208 tasks in 35 repos, indexed the way a first-time user's `sigmap` run would.
 :::
 
 - **21 repos** (including 3 R language repos)

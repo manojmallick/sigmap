@@ -28,7 +28,7 @@ Every strategy's always-on file carries the same `## SigMap commands` block (~22
 
 | Strategy | Always injected | Context loss | MCP required | Best fit |
 |----------|----------------|--------------|--------------|----------|
-| `full` | ~4,000 tokens | No | No | Default for all IDEs and onboarding |
+| `full` | ~4,000 tokens | No | No | The default with no config, for all IDEs; a project set up with `sigmap --init` starts on `index` |
 | `index` | ~400 tokens (map only) | No — index holds everything | No (`sigmap ask` suffices) | Large repos; agents that will actually look things up |
 | `per-module` | ~350–450 tokens overview | No | No | Module-based projects, focused work |
 | `hot-cold` | ~200–800 hot set | Cold files unless fetched | Yes for cold | Claude Code / Cursor with MCP |

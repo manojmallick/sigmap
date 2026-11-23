@@ -64,9 +64,9 @@ that applies it are in [the agent study](/guide/agent-study) (`benchmarks/agent-
   five files with signatures and `:start-end` anchors. It needs no MCP server and adds no tool definitions. It stays silent for slash commands, prompts under four words, a prompt it cannot read
   (under 90% ASCII letters) and a project with no index. `SIGMAP_PREFETCH=0` turns it off. See [the prefetch hook](/guide/cli#the-prefetch-hook).
 - **`index` plus `locate`** (what `sigmap --init` writes for a new project, above): `{ "strategy": "index", "mcp": { "tools": "locate" } }` in `gen-context.config.json`, and the MCP server registered
-  (`sigmap mcp install <client>`). The model carries a short map and two tools, `query_context` and `get_lines`, about 426 tokens of definitions a turn. It drops the impact, callee and
+  (`sigmap mcp install <client>`). The model carries a short map and two tools, `query_context` and `get_lines`, about 426 tokens of definitions a turn (the API's own counter). It drops the impact, callee and
   verification tools, so it is for *where is this implemented?* questions. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
-- **`index` plus `core`** (opt-in): seven tools, about 1,505 tokens of definitions a turn, for an agent that also edits and checks code. The study measured location questions,
+- **`index` plus `core`** (opt-in): seven tools, about 1,505 tokens of definitions a turn (same counter), for an agent that also edits and checks code. The study measured location questions,
   not editing, so it does not say whether `core` pays for an editing agent.
 
 ## What not to use

@@ -130,7 +130,7 @@ export function buildConcise(d) {
     '```bash',
     'npx sigmap                          # generate compact signature context for the repo',
     'npx sigmap ask "<your query>"       # rank the files relevant to a task',
-    'npx sigmap verify-ai-output ans.md  # flag fabricated files/imports/symbols in an AI answer',
+    'npx sigmap verify-ai-output ans.md  # check the files, imports and calls an AI answer names',
     'npx sigmap --mcp                    # start the MCP server over stdio',
     '```',
     '',

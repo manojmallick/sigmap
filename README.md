@@ -31,7 +31,7 @@
 ```bash
 npx sigmap
 npx sigmap ask "Where is auth handled?"
-npx sigmap verify answer.md      # flags files, imports and symbols an AI answer made up
+npx sigmap verify answer.md      # checks the files, imports, backticked calls and npm scripts an AI answer names
 ```
 
 Zero config. Zero dependencies. Under 10 seconds.
@@ -42,7 +42,7 @@ Zero config. Zero dependencies. Under 10 seconds.
 
 SigMap builds a **deterministic, auditable signature-and-evidence map** of your codebase — no LLM calls, no embeddings, byte-stable output (apart from one trailing timestamp line, and independent of where the repo is checked out) — so AI agents, CI, and reviewers can *trust and verify* which files and symbols are real before acting. Same repo in, same map out, every time.
 
-That map is exactly what agentic grep is worst at: reproducible, auditable context an agent can consume without a copy-paste, and a grounding check that proves an AI answer is anchored to real signatures and line numbers. Token reduction comes for free — but trust is the point.
+That map is exactly what agentic grep is worst at: reproducible, auditable context an agent can consume without a copy-paste, and a grounding check that tests whether the files, the imports it can resolve and the backticked calls an AI answer names exist in your repo. Token reduction comes for free — but trust is the point.
 
 **Model-agnostic.** Works with:
 - **Cloud LLMs:** Claude, GPT-4, Copilot, Gemini
@@ -57,7 +57,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
 - **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
-- **Auditable & grounded** — every symbol in the AST and anchored-regex tiers carries a real `:start-end` line anchor; Tier-3 formats (R, Lua, Elixir, config formats) are listed without anchors, as [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) states. `sigmap verify` flags any AI claim that isn't grounded.
+- **Auditable & grounded** — every symbol in the AST and anchored-regex tiers carries a real `:start-end` line anchor; Tier-3 formats (R, Lua, Elixir, config formats) are listed without anchors, as [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) states. `sigmap verify` checks the files, imports, backticked calls and npm scripts an AI answer names against your repo, and its footer says what it did not check, among them member calls, library APIs (named imports from, and members of, installed libraries) and whether a call in raw code or a fenced block exists (in a fenced block it does check the argument count of a function it knows).
 - **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
 
 **Proof it pays off** (full benchmark below):
@@ -242,11 +242,11 @@ Use SigMap with open-source tools and fully self-hosted setups:
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. All 22 are advertised unless `mcp.tools` says otherwise: `"core"` is seven of them (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) for about 0.9k tokens of definitions where all 22 cost about 2.5k, and `sigmap --init` writes it into a new config. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius, incomplete), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. All 22 are advertised unless `mcp.tools` says otherwise: `"core"` is seven of them (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) and `"locate"` is two (`query_context`, `get_lines`). By the chars/4 estimate `sigmap advise` prints, the definitions of `core` weigh about 1.0k tokens and those of `locate` about 0.3k (all 22: about 2.6k); on the API's own counter (the study's figures) `core` reads 1,505 tokens and `locate` 426. Full reference: [llms-full.txt](llms-full.txt).
 
-A project set up with `sigmap --init` starts on the `index` strategy and advertises only two of these tools, `query_context` and `get_lines` (the setup the [agent study](https://sigmap.io/guide/choosing-a-setup#what-a-new-install-starts-on) measured; it drops the impact, callee and verification tools). Set `"mcp": { "tools": "core" }` or `"all"` in `gen-context.config.json` for more; a project with no config advertises all of them.
+A project set up with `sigmap --init` starts on the `index` strategy and advertises only two of these tools, `query_context` and `get_lines` (the setup the [agent study](https://sigmap.io/guide/choosing-a-setup#what-a-new-install-starts-on) measured; it drops the impact, callee and verification tools). Set `"mcp": { "tools": "core" }` or `"all"` in `gen-context.config.json` for more; a project with no config advertises all of them, and a config that already exists is never rewritten.
 
-SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
+SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` ground the symbols, lines and calls they can resolve and size an incomplete blast radius (a call through a receiver is resolved only in Java, and only in part there) — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agent-s-live-loop).
 
 ---
 
@@ -258,7 +258,7 @@ Verify AI work against the live index instead of trusting it blind:
 sigmap conventions                  # extract the repo's file-naming / export / test conventions
 sigmap scaffold "<name>"            # propose a convention-matched file/dir (refuses if conventions conflict)
 sigmap verify-plan <plan.md>        # check a plan: do the files/symbols exist? blast radius? scope?
-sigmap verify-ai-output <answer.md> # flag fabricated files/imports/symbols/tests in an AI answer
+sigmap verify-ai-output <answer.md> # check the files, test files, imports, backticked calls and npm scripts an AI answer names
 sigmap review-pr                    # audit a diff: scope drift, god-node edits, missing tests, security files
 sigmap create "<task>"             # run the whole pipeline: scaffold → verify-plan → verify-ai-output → review-pr
 ```
@@ -285,7 +285,7 @@ SigMap treats coding agents as **consumers, not competitors**: it hands them a d
 
 | Agent | One-time setup | How it consumes SigMap |
 |---|---|---|
-| **Claude Code** | `sigmap mcp install claude` | 22 MCP tools by default (`search_signatures`, `get_lines`, `get_diff_context`, `squeeze_output`…), or the seven of the `core` profile |
+| **Claude Code** | `sigmap mcp install claude` | 22 MCP tools by default (`search_signatures`, `get_lines`, `get_diff_context`, `squeeze_output`…), the seven of `core` or the two of `locate` |
 | **OpenCode** | `sigmap mcp install opencode` | Uses OpenCode's local MCP config |
 | **Cursor** | `sigmap mcp install cursor` | MCP tools, plus the `cursor` adapter writes `.cursorrules` |
 | **Cline** | `sigmap mcp install cursor` | Reads `.cursorrules`; same MCP server |

@@ -36,7 +36,7 @@ sigmap  # generates .github/copilot-instructions.md
 Your AI agent reads this file, either by:
 1. **Manual paste** — copy the markdown into your chat
 2. **File watcher** — auto-reload when you run `sigmap --watch`
-3. **IDE integration** — MCP, .cursor/mcp.json, or Claude Code settings
+3. **IDE integration** — MCP: `.mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor)
 4. **API integration** — HTTP fetch from a local endpoint
 5. **CLI pipe** — direct stdout stream to your model
 

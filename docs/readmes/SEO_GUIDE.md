@@ -209,7 +209,7 @@ Drop-in content for AI search (Perplexity, SearchGPT, Gemini) and traditional SE
 Each answer opens with a one-sentence direct answer AI search can lift verbatim, then the command. Publish on a public FAQ page and wrap in the `FAQPage` JSON-LD (schema above).
 
 **Q: How do I stop my AI coding agent from hallucinating file paths, imports, or APIs?**
-Run `sigmap verify` (or the `verify_suggestion` MCP tool). It deterministically checks an AI suggestion against your repo, your private symbols, **and the libraries actually installed** in `node_modules` / site-packages — flagging fake files, unresolvable imports, and non-existent symbols before they ship. No LLM, no network, byte-stable.
+Run `sigmap verify` (or the `verify_suggestion` MCP tool). It deterministically checks an AI suggestion against your repo, your private symbols, **and the libraries actually installed** in `node_modules` / site-packages — flagging files, imports and backticked function names it cannot find, and saying what it did not check (calls in raw code, member calls and library APIs), before they ship. No LLM, no network, byte-stable.
 
 **Q: How do I give Cursor or Claude Code the right files without pasting my whole repo?**
 Run `sigmap ask "<task>"`. A deterministic offline ranker (identifier-aware BM25 + intent + graph-boost) returns the most relevant files as a compact signature map — roughly 2–5k tokens instead of 80k+ (~97% reduction) — written to `.context/query-context.md`, or served live via the `query_context` MCP tool.
@@ -224,7 +224,7 @@ SigMap maps your codebase to function and class signatures and ranks only the fi
 No. SigMap is fully deterministic and offline: hand-written signature extractors for 33 languages, a local ranker, and a grounding verifier. Zero runtime dependencies, no API keys, byte-stable output. That is the point — reproducible, auditable context an agent's live search cannot produce.
 
 **Q: How does SigMap verify against private or internal APIs that public-doc tools can't know?**
-It indexes your repo's own symbols plus the signatures of your installed dependencies (`.d.ts` / site-packages), so `verify_suggestion` can flag a call to `Internal.PaymentService.authorize()` or a wrong `lodash@4.17` API — private-API grounding no public-docs tool (e.g. Context7) can offer.
+It indexes your repo's own symbols plus the signatures of your installed dependencies (`.d.ts` / site-packages), so `verify_suggestion` can flag a backticked call to a function that neither your repo nor an installed library defines (it does not check member calls such as `Internal.PaymentService.authorize()`) — grounding in private code that no public-docs tool (e.g. Context7) can offer.
 
 ### 2 · Comparison — agentic grep vs deterministic grounding
 
@@ -235,7 +235,7 @@ The honest competitive wedge: SigMap does not compete *with* an agent's live sea
 | Determinism / reproducibility | Byte-stable — same repo yields an identical map | Non-deterministic — differs run to run |
 | Auditability | sha256 grounding hash; CI-diffable Evidence Pack | No audit trail |
 | Cost per lookup | $0 — local, no API calls | LLM tokens per search loop |
-| Hallucination guard | Flags fake files / imports / symbols vs repo + installed libs | None — the loop can invent paths |
+| Hallucination guard | Checks files / imports / backticked calls vs repo + installed libs, and lists what it did not check | None — the loop can invent paths |
 | Private-API grounding | Yes — repo + installed-library signatures | Only what the loop happens to read |
 | Speed | Instant local rank | Multi-step agent loop |
 | Live semantic recall | Limited (BM25 + intent, by design) | Strong — this is its strength |

@@ -10,7 +10,7 @@ A reproducible signature-and-evidence map that agents, CI, and reviewers can tru
 
 export const solves = `## What SigMap solves
 
-- AI agents hallucinate functions, files, and imports that don't exist — \`verify-ai-output\` flags fabricated references before you trust them.
+- AI agents hallucinate functions, files, and imports that don't exist — \`verify-ai-output\` checks the files, imports and calls an answer names against your repo, and says what it could not check.
 - Agents load 60–80K tokens of raw source just to orient — \`ask\` ranks the codebase and sends ~2K tokens of the relevant signatures.
 - Cold start every session — \`note\` + the \`read_memory\` MCP tool carry decisions and focus across sessions.
 - No blast-radius awareness before editing a hub file — \`--impact\` shows every file a change touches.
