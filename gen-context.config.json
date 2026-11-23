@@ -35,8 +35,8 @@
   "mcp": {
     "autoRegister": true
   },
-  "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold'",
-  "strategy": "full",
+  "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold' | 'index'. This repository uses 'index' on purpose, as a new install does (#1071); test/integration/index-strategy.test.js pins it.",
+  "strategy": "index",
   "hotCommits": 10,
   "depMap": true,
   "todos": true,
