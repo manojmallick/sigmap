@@ -104,11 +104,17 @@ Co-authored-by: Name <email@example.com>
 ```javascript
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Above the default `maxSigsPerFile` (25), so for any limit up to 200 the configured budget decides
+// what is written; a larger setting is capped here. Most in-tree extractors use 200 (#576).
+const PER_FILE_LIMIT = 200;
+
 function extract(src) {
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
   // ... regex extraction only — no npm packages ...
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 module.exports = { extract };
@@ -116,7 +122,7 @@ module.exports = { extract };
 
 Rules:
 - Never throw — return `[]` on any error
-- Never exceed 25 signatures per file
+- Never exceed 200 signatures per file (`PER_FILE_LIMIT`), and say so when you cut: `capWithNotice` (`src/util/truncate.js`) appends `… +N more signatures`. The generated context file then keeps the first `maxSigsPerFile` (default 25) of what the extractor returns, and the retrieval index up to `maxIndexSigsPerFile` (default 200; never fewer than `maxSigsPerFile`, never more than the extractor returned); neither cut belongs in the extractor
 - Strip all bodies — nothing after opening `{`
 - Strip all comments
 - Indent methods 2 spaces inside their class/struct

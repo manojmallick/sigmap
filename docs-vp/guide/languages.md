@@ -28,7 +28,7 @@ Not every language gets the same depth — the tiers (AST / anchored regex / pat
 
 ## How extraction works
 
-Full source code goes in. Only public shapes come out. Bodies, comments, imports, and private members are stripped entirely.
+Full source code goes in. Only public shapes come out. Bodies, comments and imports are stripped entirely, and so are private members where an extractor reads visibility (see *Never extracted* below).
 
 **TypeScript example — input (1,240 tokens):**
 
@@ -84,7 +84,7 @@ export class UserService
 - Comments — `//`, `/*`, `#`, `"""`, `'''` in all languages
 - Import and require statements
 - Variable declarations that aren't type definitions
-- Private class members (`_prefix`, `#` prefix, `private` keyword)
+- Private class members, where an extractor reads them (`_prefix`, `#` prefix, `private` keyword; the Ruby extractor lists `private` and `protected` defs and skips only a leading `_`)
 - Test files (`*.test.*`, `*.spec.*`, `*_test.*`)
 - Generated files (`*.pb.*`, `*.generated.*`)
 - Any credential, key, token, or secret pattern
@@ -104,7 +104,7 @@ Recall against each language's own parser is measured for Python, Ruby and C / C
 | Rust | `.rs` | pub fn, pub struct, trait, enum, impl methods, pub type |
 | C# | `.cs` | public class, interface, enum, public methods, record, struct |
 | C / C++ | `.c` `.cpp` `.h` `.hpp` `.cc` | functions and prototypes, class / struct / union, enum, namespace, methods (in-class and out-of-line), template, `:start-end` anchors; type aliases are not listed ([recall](/guide/extraction-recall)) |
-| Ruby | `.rb` `.rake` | def, class, module, attr_accessor, include / extend ([recall](/guide/extraction-recall)) |
+| Ruby | `.rb` `.rake` | class, module, def (each `def` under the class or module that owns it), with `:start-end` anchors ([recall](/guide/extraction-recall)) |
 | PHP | `.php` | function, class, interface, trait, public methods |
 | Swift | `.swift` | func, class / struct, protocol, enum, extension |
 | Dart | `.dart` | class, void / return type functions, abstract class, mixin, methods |

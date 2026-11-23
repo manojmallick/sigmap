@@ -65,7 +65,7 @@ every number on this page is `node benchmarks/agent-study/summarize.mjs` over th
 
 ## Set it up the way the runs did
 
-This is the documented optimum: the **index** strategy and the **core** tool profile. Retrieval is identical under every strategy; what
+This is the `index` setup the study measured: the **index** strategy and the **core** tool profile. (Since v8.88.0 `sigmap --init` writes `index` with the two-tool `locate` profile instead, the setup the later confirmatory runs measured: [what a new install starts on](/guide/choosing-a-setup#what-a-new-install-starts-on).) Retrieval is identical under every strategy; what
 changes is what the model carries on every turn.
 
 ```bash
@@ -79,12 +79,12 @@ npx sigmap --adapter claude      # builds .context/sig-index.json and writes a s
 Register the MCP server with your agent (`npx -y sigmap --mcp`; see [MCP](/guide/mcp)). With the `core` profile the agent sees seven
 tools instead of twenty-two.
 
-Two things the study led to are now in SigMap, both opt-in:
+Two things the study led to are now in SigMap, a tool profile and a hook. `sigmap --init` writes the profile into a new config; the hook is opt-in.
 
 - **`"mcp": { "tools": "locate" }`** advertises only `query_context` and `get_lines`, the two tools agents used. It cuts the tool definitions
-  from 1,505 tokens to 426 on every turn and was cheaper than `core` on the same questions (−4% for Haiku 5.5 over 887 paired runs, −10% for
+  from 1,505 tokens to 426 on every turn (on the API's token counter) and was cheaper than `core` on the same questions (−4% for Haiku 5.5 over 887 paired runs, −10% for
   Sonnet 5.5 over 110). Use it when you ask where code is; keep `core` when the agent also changes and checks code, because `locate` drops
-  the impact, callee and verification tools and the study did not test those. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all).
+  the impact, callee and verification tools and the study did not test those. See [tool profiles](/guide/mcp#tool-profiles-core-locate-or-all). `sigmap --init` writes it for a new project; an existing config keeps what it has.
 - **`sigmap hooks install claude --prefetch`** is the route that needs no tools at all. A Claude Code `UserPromptSubmit` hook runs
   `sigmap ask` on each substantive prompt and hands the model the ranking as context before the turn starts. The study's `prefetch` puts
   the same text in the prompt itself; the installed hook was measured separately (`prefetch-hook`) and **its saving is not established**
@@ -184,7 +184,7 @@ Four things the table shows that a single headline would hide:
 | Setup | what the agent got | real cost | tokens | tool calls |
 |---|---|---:|---:|---:|
 | `current` | the full generated section and the default MCP tool profile (4.3k tokens a turn) | **+9%** [+4, +14] | +41% | −17% |
-| `lean` | seven tools and a three-line section (1.0k a turn) | **+16%** [+11, +20] | +34% | +41% |
+| `lean` | seven tools and a three-line section (1.0k a turn by chars/4) | **+16%** [+11, +20] | +34% | +41% |
 | `skill-always` | a skill whose description asks to be called first | **+25%** [+20, +30] | +61% | +67% |
 | `skill` (two runs) | one short skill the agent may or may not call | −5% [−9, −1], +1% [−3, +6] ~ | −9%, 0% ~ | −16%, −4% ~ |
 | `skill-shipped` | the three skills `sigmap skills install --client claude` writes | −1% [−5, +4] ~ | −1% ~ | −7% ~ |

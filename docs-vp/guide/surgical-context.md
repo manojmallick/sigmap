@@ -127,12 +127,12 @@ re-fetch any body via `get_lines`. The usual budget report still prints:
 Point your agent's MCP client at the SigMap server, then let it call `get_lines`
 on the anchors it sees.
 
-**Claude Code / Cursor / Codex** (`mcp` config):
+**Claude Code / Cursor** (`.mcp.json` / `.cursor/mcp.json`; Codex CLI reads `[mcp_servers.sigmap]` in `~/.codex/config.toml`, and `sigmap mcp install <client>` writes any of them):
 
 ```json
 {
   "mcpServers": {
-    "sigmap": { "command": "npx", "args": ["sigmap", "mcp"] }
+    "sigmap": { "command": "npx", "args": ["-y", "sigmap", "--mcp"] }
   }
 }
 ```

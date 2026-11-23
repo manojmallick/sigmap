@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Codex CLI, OpenCode, Cursor, and Windsurf on-demand access to your codebase signatures. No setup-time npm install is needed.
 
-The SigMap MCP server exposes 22 tools over the stdio Model Context Protocol (all of them by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer). Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 22 tools over the stdio Model Context Protocol (all of them by default; [`mcp.tools`](#tool-profiles-core-locate-or-all) lets a project advertise fewer). Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -142,7 +142,7 @@ The server is verified against the black-box [`@hasmcp/mcp-spec-test`](https://w
 Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server answers `tools/list` with all 22 tools (the `initialize` response itself declares only the `tools` capability), so a host that fetches the list when it starts the server has them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
-All tools are available on-demand — your AI agent calls only what it needs. All 22 are advertised by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer.
+All tools are available on-demand — your AI agent calls only what it needs. All 22 are advertised by default; [`mcp.tools`](#tool-profiles-core-locate-or-all) lets a project advertise fewer.
 
 | Tool | What it does | Arg(s) | Example call |
 |------|-------------|--------|-------------|
@@ -160,7 +160,7 @@ All tools are available on-demand — your AI agent calls only what it needs. Al
 | `read_memory` | **Memory** — recall the cross-session decision log (notes left via `sigmap note`) plus the last `ask` session focus. Kills agent cold-start. New in v6.15.0. | `limit` (optional number, default 10) | `read_memory(limit=10)` |
 | `get_diff_context` | Returns every changed file (working tree, staged, or vs a base ref) with its current signatures + blast radius (importers, tests, routes) + risk label. Lists files shell-free. New in v8.0. | `base` (optional string), `staged` (optional bool), `depth` (optional number, default 2) | `get_diff_context(base="main")` |
 | `get_architecture_overview` | One-call codebase map: module breakdown (files/tokens), most-depended-on hub files, dependency-cycle count, route totals. Since v8.43 every section derives from the cached knowledge map — route totals count real route nodes. Extends `get_map`. New in v8.0. | none | `get_architecture_overview()` |
-| `verify_suggestion` | Ground an AI code suggestion before writing it — verify a snippet against the repo **and the libraries actually installed** in `node_modules` (the grounding moat); flags fake files/imports/symbols/scripts and reports the installed libraries verified against with pinned versions. New in v8.2. | `code` (required string) | `verify_suggestion(code="const r = Router()")` |
+| `verify_suggestion` | Ground an AI code suggestion before writing it — verify a snippet against the repo **and the libraries actually installed** in `node_modules` (the grounding moat); checks the files, imports, backticked calls and npm scripts it names (calls in raw code, member calls and library APIs are not checked) and reports the installed libraries it read, with pinned versions. New in v8.2. | `code` (required string) | `verify_suggestion(code="const r = Router()")` |
 | `squeeze_output` | Compress noisy tool/command/agent output — a stack trace, CI/build log, or JSON payload — before it enters context. Same deterministic, offline engine as `sigmap squeeze`: keeps the signal, strips the noise, enriches the top stack frame. Passes the input through unchanged when nothing is squeezable. New in v8.8. | `content` (required string) | `squeeze_output(content="Traceback…")` |
 | `get_budget` | Session spend ledger — estimated tokens SigMap emitted this session (chars/4, from the local gain log), optional budget remaining, and context freshness. Counts only SigMap output, not the whole chat. Advises degrade-gracefully tactics (terse, squeeze, summarize-then-drop) at ≥80% budget. New in v8.23. | `session` (optional string) · `budgetTokens` (optional number) | `get_budget(budgetTokens=50000)` |
 | `get_callee_signatures` | Returns the **exact current signature(s)** of named symbols from the index — so the model never guesses a callee’s parameters from training memory. Unknown names get a closest-match suggestion. New in v7.19. | `symbols` (required string[]) | `get_callee_signatures(symbols=["loadConfig"])` |
@@ -181,16 +181,16 @@ Send the session's **running totals** at the end of a task; a later call for the
 
 ## Tool profiles: core, locate or all
 
-Every tool definition is sent to your agent at the start of every MCP session — about 2.5k tokens for all 22 — whether or not it is ever called, and each one is another thing for the model to choose between. `mcp.tools` in `gen-context.config.json` decides how many the server advertises:
+Every tool definition is sent to your agent at the start of every MCP session — about 2.6k tokens for all 22 (a chars/4 estimate) — whether or not it is ever called, and each one is another thing for the model to choose between. `mcp.tools` in `gen-context.config.json` decides how many the server advertises:
 
-| `mcp.tools` | Tools advertised | Definition tokens | Use when |
+| `mcp.tools` | Tools advertised | Definition tokens (chars/4 estimate) | Use when |
 |---|---|---|---|
-| `"all"` (the default; also what an absent key means) | all 22 | ~2.5k | you use the live-index notify tools, checkpoints, the knowledge map or the architecture views |
-| `"core"` | 7 — `query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion` (the five tools of the [live loop](#your-agent-s-live-loop) below, plus `read_context` and `get_impact`) | ~0.9k | the agent only needs the retrieval + grounding loop |
+| `"all"` (the default; also what an absent key means) | all 22 | ~2.6k | you use the live-index notify tools, checkpoints, the knowledge map or the architecture views |
+| `"core"` | 7 — `query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion` (the five tools of the [live loop](#your-agent-s-live-loop) below, plus `read_context` and `get_impact`) | ~1.0k | the agent only needs the retrieval + grounding loop |
 | `"locate"` | 2 — `query_context`, `get_lines` | ~0.3k | the questions are *where is this implemented?* and nothing is edited or checked through the server (see below) |
 | `["get_lines", "verify_suggestion"]` | exactly the names listed | by list | you want a tighter or different set |
 
-Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap uses everywhere; `sigmap doctor` prints the exact figure for your project (counting `log_session_usage` when [`session.mcpCapture`](#opt-in-log-session-usage) is on), and what `core` would cost if you are on `all`.
+Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap uses everywhere; `sigmap doctor` prints the same estimate for your project's profile (counting `log_session_usage` when [`session.mcpCapture`](#opt-in-log-session-usage) is on), and what `core` would cost if you are on `all`.
 
 ```json
 { "mcp": { "tools": "core" } }
@@ -208,7 +208,7 @@ Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap us
 - **It is read once, and held for as long as it runs** — when the server first handles a `tools/list`, a `tools/call` or a `server/discover` (`initialize` does not read it), like the tool list your editor caches. Restart the server (or the editor) after changing it.
 - **A value SigMap cannot read never breaks the server.** A string that is not `all`, `core` or `locate`, an empty list, a value of the wrong type, or an `mcp` that is not an object: the server falls back to `all`. Names in a list that are not tools are dropped and the rest are served. A key beside `tools` that SigMap does not read (`mcp.tool`, say) is ignored, so a typo in the key itself leaves `all`. `sigmap doctor` warns in every case and says what it did instead.
 - **Existing configs keep every tool.** With no `mcp.tools` key you get the same 22 tools, with the same names, parameter names, types, enums and `required` lists as before. Their descriptions are shorter — all 22 tool descriptions and 15 of the 33 parameter descriptions — so a client that validates arguments sees no difference and one that shows or caches the description text sees different text. `sigmap --init` writes `"locate"` (and `"strategy": "index"`) into a **new** config, wherever it runs, and never rewrites one that exists; `--output`, `tune --apply` and `roots --fix` can also create a config, but write only the keys they set, so a config created by one of them keeps all 22.
-- **Some guidance below names tools `core` does not advertise.** The workflows under [Three common MCP workflows](#three-common-mcp-workflows) use `explain_file` and `list_modules`; on `core`, rank with `query_context` and read a module with `read_context(module=...)`. The agent skills and the wiki that mention MCP tools also give a CLI alternative (`sigmap note`, `sigmap budget`, `sigmap squeeze`), and the wiki lists only the tools your project advertises. A refused call says why and who can change it.
+- **Some guidance below names tools `core` and `locate` do not advertise.** The workflows under [Three common MCP workflows](#three-common-mcp-workflows) use `explain_file` and `list_modules`; on `core` or `locate`, rank with `query_context` and read lines with `get_lines` (`read_context(module=...)` reads a module's signatures under strategy `full`, but under `index`, which `sigmap --init` writes, it returns the map and no signatures). The agent skills and the wiki that mention MCP tools also give a CLI alternative (`sigmap note`, `sigmap budget`, `sigmap squeeze`), and the wiki lists only the tools your project advertises. A refused call says why and who can change it.
 
 ## Your agent's live loop
 
@@ -219,10 +219,10 @@ SigMap doesn't compete with your agent's live search — it's what the live loop
 | "Which files matter for this task?" | `query_context` | Ranked files with scores and explain signals — reproducible, no embeddings |
 | "What exactly can I call here?" | `get_callee_signatures` | Exact signatures for the symbols in scope, before the model writes a call |
 | "Show me just those lines" | `get_lines` | The anchored `:start-end` range — no whole-file dumps |
-| "What breaks if I change this?" | `get_method_impact` | Every function that transitively calls the symbol (JS/TS, Python, Java, Go, Rust) |
+| "What breaks if I change this?" | `get_method_impact` | Every function that transitively calls the symbol (JS/TS, Python, Java, Go, Rust), as a **lower bound**: a call through a receiver (`x.m()`) is resolved only in Java, and only in part there; a function that does not call the symbol can also be listed |
 | "Is this suggestion real?" | `verify_suggestion` | The snippet checked against the repo **and the libraries actually installed** |
 
-The canonical sequence: your agent greps (or asks) its way to a candidate area → `query_context` confirms and ranks → `get_callee_signatures` + `get_lines` ground the exact surface → the model writes code → `verify_suggestion` proves the calls exist → `get_method_impact` sizes the blast radius before committing. Grep finds; SigMap grounds.
+The canonical sequence: your agent greps (or asks) its way to a candidate area → `query_context` confirms and ranks → `get_callee_signatures` + `get_lines` ground the exact surface → the model writes code → `verify_suggestion` checks the imports, file paths and npm scripts the suggestion names (calls in raw code, member calls and library APIs are not checked) → `get_method_impact` sizes an incomplete blast radius before committing. Grep finds; SigMap grounds.
 
 ## Token cost per tool call
 
@@ -253,7 +253,7 @@ Use `ask` to create `.context/query-context.md`, let the model answer, then run 
 
 ## Test the server
 
-Send a raw JSON-RPC request to confirm the server starts and returns its tool definitions (all 22, unless [`mcp.tools`](#tool-profiles-core-or-all) narrows them).
+Send a raw JSON-RPC request to confirm the server starts and returns its tool definitions (all 22, unless [`mcp.tools`](#tool-profiles-core-locate-or-all) narrows them).
 
 ```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp

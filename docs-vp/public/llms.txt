@@ -17,7 +17,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
 ## What SigMap solves
 
-- AI agents hallucinate functions, files, and imports that don't exist — `verify-ai-output` flags fabricated references before you trust them.
+- AI agents hallucinate functions, files, and imports that don't exist — `verify-ai-output` checks the files, imports and calls an answer names against your repo, and says what it could not check.
 - Agents load 60–80K tokens of raw source just to orient — `ask` ranks the codebase and sends ~2K tokens of the relevant signatures.
 - Cold start every session — `note` + the `read_memory` MCP tool carry decisions and focus across sessions.
 - No blast-radius awareness before editing a hub file — `--impact` shows every file a change touches.
@@ -37,7 +37,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 ```bash
 npx sigmap                          # generate compact signature context for the repo
 npx sigmap ask "<your query>"       # rank the files relevant to a task
-npx sigmap verify-ai-output ans.md  # flag fabricated files/imports/symbols in an AI answer
+npx sigmap verify-ai-output ans.md  # check the files, imports and calls an AI answer names
 npx sigmap --mcp                    # start the MCP server over stdio
 ```
 

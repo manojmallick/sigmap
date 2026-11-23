@@ -24,13 +24,13 @@ The server runs on **stdio** — the MCP host manages the process lifecycle. You
 
 ### 3. Auto-register during setup
 
-When you run `--setup`, SigMap automatically detects and updates `.claude/settings.json` and `.cursor/mcp.json` if they exist:
+When you run `--setup`, SigMap registers itself in the editors it finds: Claude Code (when `.mcp.json` or `.claude/settings.json` exists; it writes `.mcp.json` and moves an older SigMap entry out of `.claude/settings.json`), Cursor (when `.cursor/mcp.json` exists) and the other editors listed under `--setup` in the [CLI reference](https://sigmap.io/guide/cli):
 
 ```bash
 node gen-context.js --setup
 ```
 
-It also prints a manual config snippet you can paste into any other tool.
+It also prints where Claude Code, Codex CLI and OpenCode read their MCP config.
 
 ---
 
@@ -38,7 +38,7 @@ It also prints a manual config snippet you can paste into any other tool.
 
 ### Claude Code
 
-Add to `.claude/settings.json` (project-level) or `~/.claude/settings.json` (global):
+Add to `.mcp.json` in your project root (or run `sigmap mcp install claude`, which writes it with an `npx -y sigmap --mcp` entry):
 
 ```json
 {
@@ -68,13 +68,13 @@ Add to `.cursor/mcp.json` in your project root:
 
 ### Both servers (SigMap + Repomix)
 
-See [examples/claude-code-settings.json](../examples/claude-code-settings.json) for a ready-to-use config with both servers configured.
+See [examples/claude-code-settings.json](../../examples/claude-code-settings.json) for an example `mcpServers` block with both servers; copy it into `.mcp.json` and replace the placeholder path.
 
 ---
 
 ## Available tools
 
-Three of the server's tools are described here, the oldest of them; the [MCP guide](https://sigmap.io/guide/mcp) lists all 22. `mcp.tools` in `gen-context.config.json` chooses which tools a project advertises: with no key it is all 22, and a config written by `sigmap --init` sets `"core"`, which advertises `read_context` but not `search_signatures` or `get_map` (a call to a tool the profile does not advertise is refused). Set `"mcp": { "tools": "all" }` and restart the server to get them back. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-or-all).
+Three of the server's tools are described here, the oldest of them; the [MCP guide](https://sigmap.io/guide/mcp) lists all 22. `mcp.tools` in `gen-context.config.json` chooses which tools a project advertises: with no key it is all 22, and a config written by `sigmap --init` sets `"locate"`, which advertises only `query_context` and `get_lines`, so none of the three below (a call to a tool the profile does not advertise is refused; `"core"` keeps `read_context` but not `search_signatures` or `get_map`). Set `"mcp": { "tools": "all" }` and restart the server to get them back. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-locate-or-all).
 
 ### `read_context`
 

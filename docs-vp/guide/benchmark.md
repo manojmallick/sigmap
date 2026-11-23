@@ -167,7 +167,7 @@ This is the best benchmark when the question is: *"When an AI answer cites a fil
 - **Variants and routes:** `--sigmap-variant index` is the documented setup (`strategy: "index"` plus the `core` MCP profile), `prefetch` puts the ranking in the prompt, `lean`/`skill*` are probes; `--agent api` talks to the Messages API directly, for a key Claude Code requests are refused for; `--session-auth` uses the logged-in Claude Code session; `--change` replaces the locate questions with merged bug fixes graded by hidden tests. The harness refuses a plan whose two arms differ in any file the agent can search.
 - **The study built on it:** [Agent study: results](/guide/agent-study) and [protocol](/guide/agent-study-protocol) (pre-registered). Data and tools: `benchmarks/agent-study/`.
 
-No figure from it is published yet — the harness ships ready, the numbers come from a live run. Until then every tool-call, token-cost and task-success claim elsewhere on this page remains what it says it is: modelled.
+The figures from live runs are published in [Agent study: results](/guide/agent-study), with what was and was not measured. They are not the figures on this page, where every tool-call, token-cost and task-success claim remains what it says it is: modelled.
 
 This is the best benchmark when the question is: *"Does an agent with SigMap actually use fewer tool calls and tokens, and still find the right file?"*
 

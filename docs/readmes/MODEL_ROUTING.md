@@ -1,7 +1,7 @@
 # Model Routing Guide
 
 > **Goal:** Route each AI task to the cheapest model that can reliably do it.  
-> Applying this guide cuts API costs by **40–80%** on a typical mixed workload.
+> This guide suggests a tier for each task from file and task signals; it does not check that the tier is enough for the task. What routing saves depends on your mix of tasks and on the prices; the example under *Cost calculation reference* works one assumed session out from the prices above and is not a measurement.
 
 ---
 
@@ -174,12 +174,12 @@ Add a cost check to your CI using the routing report:
 
 ## Cost calculation reference
 
-For a typical 60-minute session with context at each turn:
+For an assumed 60-minute session with context at each turn, priced at the top of each tier's input range above ($1, $2 and $10 per MTok):
 
 | Model tier | Turns | Tokens/turn | Cost (est.) |
 |---|---|---|---|
-| All powerful | 20 | 4,000 | **$1.20** |
-| Mixed routing | 10 fast + 8 balanced + 2 powerful | 4,000 each | **$0.28** |
+| All powerful | 20 | 4,000 | **$0.80** |
+| Mixed routing | 10 fast + 8 balanced + 2 powerful | 4,000 each | **$0.18** |
 | **Saving** | | | **~77%** |
 
 ---
