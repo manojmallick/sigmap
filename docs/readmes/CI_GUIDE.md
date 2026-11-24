@@ -130,7 +130,7 @@ Both files are merged automatically — no separate configuration needed.
 ## Git-diff priority
 
 When `diffPriority: true` (the default), recently git-committed files appear
-**first** in the generated output and are protected from token-budget drops.
+**first** in the generated output and sort ahead of other files of the same kind when the budget drops files; they are not protected from it.
 
 ```json
 {

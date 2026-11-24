@@ -442,7 +442,8 @@ const tree = (dir) => {
     assert.ok(/at most once an hour \(it is cached in `\.context\/config-cache\/`\)/.test(cli) && /BASE_CONFIG_TTL_MS\s*=\s*60\s*\*\s*60\s*\*\s*1000/.test(read('src/config/loader.js')), 'cli.md: a remote extends is cached for an hour (the constant is pinned)');
     assert.ok(/roughly half a second when it ranks and 0\.2 to 0\.3 s when it skips, timed by hand on a loaded laptop; no committed script times it/.test(cli), 'cli.md says the hook\'s speed is a hand timing');
     const strategies = read('docs-vp/guide/strategies.md');
-    assert.ok(/This table, and the scenarios and "Winner" lines further down, are design intent, not measurement: no agent run exists for `per-module` or `hot-cold`, and the one measured record for `full` is the old default \(`current`\)/.test(strategies), 'strategies.md says its table and scenarios are design intent');
+    // (the page was rewritten with measured figures on 2026-11-24: its by-situation table now says, row by row, what each choice is backed by; the property pinned is unchanged)
+    assert.ok(/No agent run exists for `per-module` or `hot-cold`: their rows are design intent, not measurement\./.test(strategies) && /The runs of the old default \(`current`: the `full` section and every tool\) are the only ones that bear on `full`: \+9% with Haiku 5\.5 and −28% with Haiku 4\.5/.test(strategies) && /These are design intent: no agent run exists for `per-module` or `hot-cold`/.test(strategies), 'strategies.md says which rows and scenarios are design intent and what the measured records for full are');
   });
 
   await test('the qualifiers in each row are the ones the evidence supports, and a profile change needs a server restart (a run)', async () => {
