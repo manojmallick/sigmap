@@ -149,9 +149,9 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 
 A host loads a bounded part of an instruction file and says nothing about the rest. Codex reads at most `project_doc_max_bytes` of an `AGENTS.md` (32 KiB by default; the key in your `config.toml` wins when it is set), so a 43 KB file reaches the agent cut in the middle of a section. Claude Code asks for a short `CLAUDE.md`, about 200 lines.
 
-The `"codex"` and `"claude"` outputs are therefore written to fit. SigMap measures the finished file, the lines you wrote above its block included, and re-sizes the block with the same drop order the token budget uses (test files first, then config, generated, least recently changed, fewest signatures) until it fits. The file says how many files it left out, and so does the run: `AGENTS.md: kept 61 of 118 files to fit Codex's limit of 32.0 KiB`. When a limit is tighter than the optional sections (`## deps`, `## versions`, `## todos`, `## changes`), those are left out of that one file; every other output is unchanged, and `.context/sig-index.json` still holds every file for `sigmap ask`. If the lines you wrote above the block already exceed the limit, the run says so and the block shrinks to its fixed header.
+The `"codex"` and `"claude"` outputs are therefore written to fit. SigMap measures the finished file, the lines you wrote above its block included, and re-sizes the block with the same drop order the token budget uses (generated files first, then mocks, tests and config files, then the least recently changed, inside each top-level directory) until it fits. The file says how many files it left out, and so does the run: `AGENTS.md: kept 61 of 118 files to fit Codex's limit of 32.0 KiB`. When a limit is tighter than the optional sections (`## deps`, `## versions`, `## todos`, `## changes`), those are left out of that one file; every other output is unchanged, and `.context/sig-index.json` still holds every file for `sigmap ask`. If the lines you wrote above the block already exceed the limit, the run says so and the block shrinks to its fixed header.
 
-`sigmap doctor` prints each instruction file's size against its limit and warns when one is over. Set `codexMaxBytes` or `claudeMaxLines` to a number to choose your own limit, or to `0` to write the whole map as before. Only a single budgeted file is sized this way; `per-module`, `hot-cold` and `index` already write small files.
+`sigmap doctor` prints each instruction file's size against its limit and warns when one is over. Set `codexMaxBytes` or `claudeMaxLines` to a number to choose your own limit, or to `0` to write the whole map as before. Only a single budgeted file is sized this way; `per-module` and `index` already write small files; `hot-cold` writes its hot set with no cap, so it can pass both limits.
 
 ### What SigMap writes into an existing file
 
@@ -203,13 +203,13 @@ Caching is not free: a 1h write across only two requests costs 2 + 0.1 = 2.1× a
 | `coverageTarget` | `number` | `0.80` | Target fraction of source files to include (0.0–1.0). Default: 80%. |
 | `modelContextLimit` | `number` | `128000` | Model context window size in tokens. Hard cap = `modelContextLimit × maxTokensHeadroom`. Left unset, a declared [`models.roster`](#models) can lower it to the roster's smallest window. |
 | `maxTokensHeadroom` | `number` | `0.20` | Fraction of the model context reserved for SigMap output. Default 0.20 = 25 600-token cap for 128K models. |
-| `maxTokens` | `number` | `6000` | Used only when `autoMaxTokens: false`, or as a minimum floor. Pinning it while `autoMaxTokens` is on now prints a notice — see [the interaction](#maxtokens-vs-automaxtokens). |
+| `maxTokens` | `number` | `6000` | The budget of the context files when `autoMaxTokens: false`; with it on, the context files ignore it and pinning it prints a notice — see [the interaction](#maxtokens-vs-automaxtokens). `sigmap evidence` and `ask --with-source` read it either way. |
 
 **Formula:** `effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))`
 
 When the hard cap prevents hitting the coverage target by more than 10 percentage points, SigMap prints a warning and suggests switching to `strategy: "per-module"`.
 
-The budget is a **total**, not a signatures-only allowance (v8.51.8). Every context file carries a fixed preamble — the adapter header, the `## SigMap commands` block, the coverage line and the budget disclosure — and that cost is reserved before any file is admitted, so the emitted file stays at or under the effective budget rather than exceeding it by the size of the preamble. Note this is the *effective* budget: with `autoMaxTokens: true` (the default) the scaler may legitimately raise the target above `maxTokens`, so pin `autoMaxTokens: false` if you need `maxTokens` itself to be the ceiling.
+The budget is a **total**, not a signatures-only allowance (v8.51.8). Every context file carries a fixed preamble — the adapter header, the `## SigMap commands` block, the coverage line and the budget disclosure — and that cost is reserved before any file is admitted, so the preamble and the signature sections stay within the effective budget; the optional sections (`## deps`, `## versions`, `## dependencies`, `## todos`, `## changes`) are written after it. Note this is the *effective* budget: with `autoMaxTokens: true` (the default) the scaler may legitimately raise the target above `maxTokens`, so pin `autoMaxTokens: false` if you need `maxTokens` itself to be the ceiling.
 
 To pin a fixed budget (v4.0 behaviour):
 ```json
@@ -340,9 +340,9 @@ A directory a scorer penalises by name (`docs/`, `examples/`, `tests/`, `documen
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `strategy` | `"full" \| "index" \| "per-module" \| "hot-cold"` | `"full"` | Context output strategy. `full` = one file, all signatures. `index` = the always-on file is a **map only**; every signature stays in `.context/sig-index.json` and is pulled per question by `sigmap ask` (largest always-on saving); `sigmap --init` writes it into a new config. `per-module` = one file per source directory. `hot-cold` = recently changed files auto-injected; everything else in a cold file for MCP retrieval. See [Strategies](/guide/strategies). |
+| `strategy` | `"full" \| "index" \| "per-module" \| "hot-cold"` | `"full"` | Context output strategy. `full` = one file with the signatures that fit the budget. `index` = the always-on file is a **map only**; every signature stays in `.context/sig-index.json` and is pulled per question by `sigmap ask`; `sigmap --init` writes it into a new config. `per-module` = one file per top-level directory (or root file), plus an overview. `hot-cold` = recently changed files auto-injected with no token cap; everything else in a cold file that nothing injects (`sigmap ask` or MCP reach it). See [Strategies](/guide/strategies). |
 | `hotCommits` | `number` | `10` | Number of recent commits to include in the hot set when `strategy` is `"hot-cold"`. |
-| `diffPriority` | `boolean` | `true` | When true, files changed in the current git diff are ranked highest in the output. |
+| `diffPriority` | `boolean` | `true` | When true, files changed in the last `hotCommits` commits sort ahead of other files of the same kind when the budget drops files and are written first; under `hot-cold` they are the hot set (with `false` the hot set is empty). Uncommitted edits are not included. |
 
 ## Features
 

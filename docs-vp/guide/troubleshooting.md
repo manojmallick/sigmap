@@ -106,7 +106,8 @@ Run `sigmap doctor` afterwards: its `Git hook` line tells you whether the hook i
 
 - The budget auto-scales to your repo by default (`autoMaxTokens: true`). If files are still being dropped, the repo is very large. Try the options below.
 - Switch to `"strategy": "per-module"` — each module gets its own full budget rather than sharing one pool.
-- Switch to `"strategy": "hot-cold"` — recently changed files are always injected; older files are served on demand via MCP.
+- Switch to `"strategy": "index"` — the always-on file is a map of about 600 tokens, no file is dropped from the retrieval index (a file with more than 200 signatures is cut at 200), and `sigmap ask` pulls what a question needs (see [Strategies](/guide/strategies)). `sigmap --report` will keep showing the same `files dropped: N` after the switch: it always prices the single-file `full` layout, whatever the strategy, so it no longer describes what is written; `sigmap doctor`'s coverage line (`in-context 0%` under `index`) and the `budget: dropped N` line of a normal run have the same blind spot.
+- `"strategy": "hot-cold"` injects the files changed in the last `hotCommits` commits and has no cap, so it does not drop files but can grow large; the older files are in `context-cold.md` and reachable with `sigmap ask` or MCP.
 - Raise `coverageTarget` (default `0.80`) closer to `1.0` to push the formula toward a higher budget.
 - Raise `maxTokensHeadroom` (default `0.20`) to let SigMap use a larger fraction of the model context window.
 - Add exclusions to `.contextignore` to remove generated/vendor files from the index.

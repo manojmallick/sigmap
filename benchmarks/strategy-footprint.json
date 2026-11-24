@@ -1,0 +1,3401 @@
+{
+ "schema": 1,
+ "sigmap_version": "8.88.0",
+ "measured_with_commit": "930d1a0636a4f9d2359ed71fff48c4d48b44b6e6",
+ "unit": "tokens = ceil(chars / 4)",
+ "repos": [
+  {
+   "repo": "akka",
+   "commits": 27350,
+   "tracked_files": 4623,
+   "files_scanned": 981,
+   "raw_tokens": 3262741,
+   "modules": 29,
+   "indexed": {
+    "n": 981,
+    "of": 981
+   },
+   "index_cap": {
+    "files": 13,
+    "signatures": 6930
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "akka-actor",
+     "tokens": 23943,
+     "files": 122
+    },
+    {
+     "module": "akka-actor-testkit-typed",
+     "tokens": 5982,
+     "files": 33
+    },
+    {
+     "module": "akka-actor-typed",
+     "tokens": 13737,
+     "files": 66
+    },
+    {
+     "module": "akka-bench-jmh",
+     "tokens": 8734,
+     "files": 79
+    },
+    {
+     "module": "akka-cluster",
+     "tokens": 4027,
+     "files": 24
+    },
+    {
+     "module": "akka-cluster-metrics",
+     "tokens": 2163,
+     "files": 10
+    },
+    {
+     "module": "akka-cluster-sharding",
+     "tokens": 4767,
+     "files": 28
+    },
+    {
+     "module": "akka-cluster-sharding-typed",
+     "tokens": 5111,
+     "files": 24
+    },
+    {
+     "module": "akka-cluster-tools",
+     "tokens": 1588,
+     "files": 3
+    },
+    {
+     "module": "akka-cluster-typed",
+     "tokens": 3507,
+     "files": 15
+    },
+    {
+     "module": "akka-coordination",
+     "tokens": 1385,
+     "files": 8
+    },
+    {
+     "module": "akka-discovery",
+     "tokens": 989,
+     "files": 5
+    },
+    {
+     "module": "akka-distributed-data",
+     "tokens": 6037,
+     "files": 21
+    },
+    {
+     "module": "akka-docs",
+     "tokens": 1962,
+     "files": 5
+    },
+    {
+     "module": "akka-multi-node-testkit",
+     "tokens": 1533,
+     "files": 5
+    },
+    {
+     "module": "akka-persistence",
+     "tokens": 7116,
+     "files": 48
+    },
+    {
+     "module": "akka-persistence-query",
+     "tokens": 6707,
+     "files": 62
+    },
+    {
+     "module": "akka-persistence-tck",
+     "tokens": 1887,
+     "files": 11
+    },
+    {
+     "module": "akka-persistence-testkit",
+     "tokens": 6153,
+     "files": 24
+    },
+    {
+     "module": "akka-persistence-typed",
+     "tokens": 11683,
+     "files": 59
+    },
+    {
+     "module": "akka-pki",
+     "tokens": 632,
+     "files": 2
+    },
+    {
+     "module": "akka-remote",
+     "tokens": 8558,
+     "files": 56
+    },
+    {
+     "module": "akka-serialization-jackson",
+     "tokens": 1797,
+     "files": 8
+    },
+    {
+     "module": "akka-stream",
+     "tokens": 23666,
+     "files": 138
+    },
+    {
+     "module": "akka-stream-testkit",
+     "tokens": 1218,
+     "files": 8
+    },
+    {
+     "module": "akka-stream-typed",
+     "tokens": 1533,
+     "files": 8
+    },
+    {
+     "module": "akka-testkit",
+     "tokens": 3116,
+     "files": 18
+    },
+    {
+     "module": "native-image-tests",
+     "tokens": 972,
+     "files": 3
+    },
+    {
+     "module": "samples",
+     "tokens": 4635,
+     "files": 37
+    }
+   ],
+   "full": {
+    "claude_md": 1733,
+    "agents_md": 7651,
+    "copilot": 24011,
+    "sections": {
+     "claude_md": 12,
+     "agents_md": 54,
+     "copilot": 154
+    },
+    "on_demand": 0,
+    "dropped": 827
+   },
+   "index": {
+    "claude_md": 993,
+    "agents_md": 993,
+    "copilot": 1042,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 827
+   },
+   "per_module": {
+    "claude_md": 846,
+    "agents_md": 846,
+    "copilot": 894,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 165138,
+    "dropped": 51
+   },
+   "hot_cold": {
+    "claude_md": 533,
+    "agents_md": 533,
+    "copilot": 582,
+    "sections": {
+     "claude_md": 1,
+     "agents_md": 1,
+     "copilot": 1
+    },
+    "on_demand": 156266,
+    "dropped": 0,
+    "hot_files": 1
+   }
+  },
+  {
+   "repo": "axios",
+   "commits": 1,
+   "tracked_files": 330,
+   "files_scanned": 90,
+   "raw_tokens": 79530,
+   "modules": 4,
+   "indexed": {
+    "n": 90,
+    "of": 90
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "examples",
+     "tokens": 857,
+     "files": 17
+    },
+    {
+     "module": "lib",
+     "tokens": 3216,
+     "files": 49
+    },
+    {
+     "module": "sandbox",
+     "tokens": 471,
+     "files": 3
+    },
+    {
+     "module": "tests",
+     "tokens": 2575,
+     "files": 21
+    }
+   ],
+   "full": {
+    "claude_md": 1177,
+    "agents_md": 4318,
+    "copilot": 4366,
+    "sections": {
+     "claude_md": 18,
+     "agents_md": 73,
+     "copilot": 73
+    },
+    "on_demand": 0,
+    "dropped": 17
+   },
+   "index": {
+    "claude_md": 515,
+    "agents_md": 515,
+    "copilot": 563,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 17
+   },
+   "per_module": {
+    "claude_md": 415,
+    "agents_md": 415,
+    "copilot": 463,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 7119,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 6167,
+    "agents_md": 6167,
+    "copilot": 6215,
+    "sections": {
+     "claude_md": 90,
+     "agents_md": 90,
+     "copilot": 90
+    },
+    "on_demand": 347,
+    "dropped": 0,
+    "hot_files": 90
+   }
+  },
+  {
+   "repo": "click",
+   "commits": 1,
+   "tracked_files": 150,
+   "files_scanned": 69,
+   "raw_tokens": 219550,
+   "modules": 3,
+   "indexed": {
+    "n": 69,
+    "of": 69
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "examples",
+     "tokens": 2334,
+     "files": 22
+    },
+    {
+     "module": "src",
+     "tokens": 6415,
+     "files": 16
+    },
+    {
+     "module": "tests",
+     "tokens": 7009,
+     "files": 31
+    }
+   ],
+   "full": {
+    "claude_md": 1564,
+    "agents_md": 7983,
+    "copilot": 10482,
+    "sections": {
+     "claude_md": 11,
+     "agents_md": 42,
+     "copilot": 52
+    },
+    "on_demand": 0,
+    "dropped": 17
+   },
+   "index": {
+    "claude_md": 483,
+    "agents_md": 483,
+    "copilot": 537,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 17
+   },
+   "per_module": {
+    "claude_md": 404,
+    "agents_md": 404,
+    "copilot": 457,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 15758,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 15170,
+    "agents_md": 15170,
+    "copilot": 15223,
+    "sections": {
+     "claude_md": 69,
+     "agents_md": 69,
+     "copilot": 69
+    },
+    "on_demand": 321,
+    "dropped": 0,
+    "hot_files": 69
+   }
+  },
+  {
+   "repo": "cobra",
+   "commits": 1,
+   "tracked_files": 66,
+   "files_scanned": 56,
+   "raw_tokens": 154092,
+   "modules": 32,
+   "indexed": {
+    "n": 56,
+    "of": 56
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": ".github",
+     "tokens": 659,
+     "files": 3
+    },
+    {
+     "module": ".golangci.yml",
+     "tokens": 332,
+     "files": 1
+    },
+    {
+     "module": "CONDUCT.md",
+     "tokens": 358,
+     "files": 1
+    },
+    {
+     "module": "CONTRIBUTING.md",
+     "tokens": 356,
+     "files": 1
+    },
+    {
+     "module": "README.md",
+     "tokens": 364,
+     "files": 1
+    },
+    {
+     "module": "SECURITY.md",
+     "tokens": 390,
+     "files": 1
+    },
+    {
+     "module": "active_help.go",
+     "tokens": 420,
+     "files": 1
+    },
+    {
+     "module": "active_help_test.go",
+     "tokens": 398,
+     "files": 1
+    },
+    {
+     "module": "args.go",
+     "tokens": 644,
+     "files": 1
+    },
+    {
+     "module": "args_test.go",
+     "tokens": 714,
+     "files": 1
+    },
+    {
+     "module": "bash_completions.go",
+     "tokens": 663,
+     "files": 1
+    },
+    {
+     "module": "bash_completionsV2.go",
+     "tokens": 434,
+     "files": 1
+    },
+    {
+     "module": "bash_completionsV2_test.go",
+     "tokens": 340,
+     "files": 1
+    },
+    {
+     "module": "bash_completions_test.go",
+     "tokens": 478,
+     "files": 1
+    },
+    {
+     "module": "cobra.go",
+     "tokens": 751,
+     "files": 1
+    },
+    {
+     "module": "cobra_test.go",
+     "tokens": 410,
+     "files": 1
+    },
+    {
+     "module": "command.go",
+     "tokens": 957,
+     "files": 1
+    },
+    {
+     "module": "command_test.go",
+     "tokens": 792,
+     "files": 1
+    },
+    {
+     "module": "command_win.go",
+     "tokens": 331,
+     "files": 1
+    },
+    {
+     "module": "completions.go",
+     "tokens": 966,
+     "files": 1
+    },
+    {
+     "module": "completions_test.go",
+     "tokens": 704,
+     "files": 1
+    },
+    {
+     "module": "doc",
+     "tokens": 1711,
+     "files": 11
+    },
+    {
+     "module": "fish_completions.go",
+     "tokens": 413,
+     "files": 1
+    },
+    {
+     "module": "fish_completions_test.go",
+     "tokens": 418,
+     "files": 1
+    },
+    {
+     "module": "flag_groups.go",
+     "tokens": 606,
+     "files": 1
+    },
+    {
+     "module": "flag_groups_test.go",
+     "tokens": 336,
+     "files": 1
+    },
+    {
+     "module": "powershell_completions.go",
+     "tokens": 525,
+     "files": 1
+    },
+    {
+     "module": "powershell_completions_test.go",
+     "tokens": 340,
+     "files": 1
+    },
+    {
+     "module": "shell_completions.go",
+     "tokens": 696,
+     "files": 1
+    },
+    {
+     "module": "site",
+     "tokens": 1165,
+     "files": 13
+    },
+    {
+     "module": "zsh_completions.go",
+     "tokens": 585,
+     "files": 1
+    },
+    {
+     "module": "zsh_completions_test.go",
+     "tokens": 339,
+     "files": 1
+    }
+   ],
+   "full": {
+    "claude_md": 2252,
+    "agents_md": 6045,
+    "copilot": 6093,
+    "sections": {
+     "claude_md": 10,
+     "agents_md": 38,
+     "copilot": 38
+    },
+    "on_demand": 0,
+    "dropped": 18
+   },
+   "index": {
+    "claude_md": 519,
+    "agents_md": 519,
+    "copilot": 567,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 18
+   },
+   "per_module": {
+    "claude_md": 870,
+    "agents_md": 870,
+    "copilot": 918,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 18595,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 8815,
+    "agents_md": 8815,
+    "copilot": 8863,
+    "sections": {
+     "claude_md": 56,
+     "agents_md": 56,
+     "copilot": 56
+    },
+    "on_demand": 352,
+    "dropped": 0,
+    "hot_files": 56
+   }
+  },
+  {
+   "repo": "dio",
+   "commits": 1,
+   "tracked_files": 504,
+   "files_scanned": 228,
+   "raw_tokens": 189844,
+   "modules": 5,
+   "indexed": {
+    "n": 228,
+    "of": 228
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "dio",
+     "tokens": 6528,
+     "files": 64
+    },
+    {
+     "module": "dio_test",
+     "tokens": 968,
+     "files": 18
+    },
+    {
+     "module": "example_dart",
+     "tokens": 1219,
+     "files": 24
+    },
+    {
+     "module": "example_flutter_app",
+     "tokens": 2844,
+     "files": 33
+    },
+    {
+     "module": "plugins",
+     "tokens": 6644,
+     "files": 89
+    }
+   ],
+   "full": {
+    "claude_md": 1714,
+    "agents_md": 7991,
+    "copilot": 9415,
+    "sections": {
+     "claude_md": 11,
+     "agents_md": 113,
+     "copilot": 140
+    },
+    "on_demand": 0,
+    "dropped": 88
+   },
+   "index": {
+    "claude_md": 689,
+    "agents_md": 689,
+    "copilot": 737,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 88
+   },
+   "per_module": {
+    "claude_md": 436,
+    "agents_md": 436,
+    "copilot": 484,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 18203,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 16641,
+    "agents_md": 16641,
+    "copilot": 16690,
+    "sections": {
+     "claude_md": 228,
+     "agents_md": 228,
+     "copilot": 228
+    },
+    "on_demand": 423,
+    "dropped": 0,
+    "hot_files": 228
+   }
+  },
+  {
+   "repo": "django",
+   "commits": 1,
+   "tracked_files": 7084,
+   "files_scanned": 2069,
+   "raw_tokens": 4842907,
+   "modules": 4,
+   "indexed": {
+    "n": 2069,
+    "of": 2069
+   },
+   "index_cap": {
+    "files": 11,
+    "signatures": 921
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "django",
+     "tokens": 24445,
+     "files": 151
+    },
+    {
+     "module": "js_tests",
+     "tokens": 342,
+     "files": 1
+    },
+    {
+     "module": "scripts",
+     "tokens": 2129,
+     "files": 11
+    },
+    {
+     "module": "tests",
+     "tokens": 25268,
+     "files": 180
+    }
+   ],
+   "full": {
+    "claude_md": 1274,
+    "agents_md": 8164,
+    "copilot": 24602,
+    "sections": {
+     "claude_md": 13,
+     "agents_md": 57,
+     "copilot": 165
+    },
+    "on_demand": 0,
+    "dropped": 1904
+   },
+   "index": {
+    "claude_md": 515,
+    "agents_md": 515,
+    "copilot": 568,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 1904
+   },
+   "per_module": {
+    "claude_md": 417,
+    "agents_md": 417,
+    "copilot": 470,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 52184,
+    "dropped": 1726
+   },
+   "hot_cold": {
+    "claude_md": 266978,
+    "agents_md": 266978,
+    "copilot": 267032,
+    "sections": {
+     "claude_md": 2069,
+     "agents_md": 2069,
+     "copilot": 2069
+    },
+    "on_demand": 329,
+    "dropped": 0,
+    "hot_files": 2069
+   }
+  },
+  {
+   "repo": "echo",
+   "commits": 1,
+   "tracked_files": 146,
+   "files_scanned": 117,
+   "raw_tokens": 317159,
+   "modules": 55,
+   "indexed": {
+    "n": 117,
+    "of": 117
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": ".github",
+     "tokens": 742,
+     "files": 5
+    },
+    {
+     "module": ".golangci.yaml",
+     "tokens": 318,
+     "files": 1
+    },
+    {
+     "module": "API_CHANGES_V5.md",
+     "tokens": 543,
+     "files": 1
+    },
+    {
+     "module": "CHANGELOG.md",
+     "tokens": 453,
+     "files": 1
+    },
+    {
+     "module": "README.md",
+     "tokens": 381,
+     "files": 1
+    },
+    {
+     "module": "ROADMAP.md",
+     "tokens": 343,
+     "files": 1
+    },
+    {
+     "module": "SECURITY.md",
+     "tokens": 325,
+     "files": 1
+    },
+    {
+     "module": "_fixture",
+     "tokens": 351,
+     "files": 3
+    },
+    {
+     "module": "bind.go",
+     "tokens": 916,
+     "files": 1
+    },
+    {
+     "module": "bind_cache_test.go",
+     "tokens": 343,
+     "files": 1
+    },
+    {
+     "module": "bind_field_error_test.go",
+     "tokens": 345,
+     "files": 1
+    },
+    {
+     "module": "bind_test.go",
+     "tokens": 676,
+     "files": 1
+    },
+    {
+     "module": "binder.go",
+     "tokens": 1101,
+     "files": 1
+    },
+    {
+     "module": "binder_error_response_test.go",
+     "tokens": 385,
+     "files": 1
+    },
+    {
+     "module": "binder_external_test.go",
+     "tokens": 345,
+     "files": 1
+    },
+    {
+     "module": "binder_generic.go",
+     "tokens": 855,
+     "files": 1
+    },
+    {
+     "module": "binder_generic_test.go",
+     "tokens": 643,
+     "files": 1
+    },
+    {
+     "module": "binder_test.go",
+     "tokens": 676,
+     "files": 1
+    },
+    {
+     "module": "codecov.yml",
+     "tokens": 314,
+     "files": 1
+    },
+    {
+     "module": "context.go",
+     "tokens": 892,
+     "files": 1
+    },
+    {
+     "module": "context_generic.go",
+     "tokens": 377,
+     "files": 1
+    },
+    {
+     "module": "context_generic_test.go",
+     "tokens": 389,
+     "files": 1
+    },
+    {
+     "module": "context_test.go",
+     "tokens": 626,
+     "files": 1
+    },
+    {
+     "module": "dispatch_pool_test.go",
+     "tokens": 486,
+     "files": 1
+    },
+    {
+     "module": "echo.go",
+     "tokens": 968,
+     "files": 1
+    },
+    {
+     "module": "echo_test.go",
+     "tokens": 595,
+     "files": 1
+    },
+    {
+     "module": "echotest",
+     "tokens": 802,
+     "files": 6
+    },
+    {
+     "module": "group.go",
+     "tokens": 1076,
+     "files": 1
+    },
+    {
+     "module": "group_method_handling_test.go",
+     "tokens": 473,
+     "files": 1
+    },
+    {
+     "module": "group_test.go",
+     "tokens": 605,
+     "files": 1
+    },
+    {
+     "module": "httperror.go",
+     "tokens": 632,
+     "files": 1
+    },
+    {
+     "module": "httperror_external_test.go",
+     "tokens": 360,
+     "files": 1
+    },
+    {
+     "module": "httperror_test.go",
+     "tokens": 383,
+     "files": 1
+    },
+    {
+     "module": "ip.go",
+     "tokens": 614,
+     "files": 1
+    },
+    {
+     "module": "ip_test.go",
+     "tokens": 434,
+     "files": 1
+    },
+    {
+     "module": "json.go",
+     "tokens": 407,
+     "files": 1
+    },
+    {
+     "module": "json_test.go",
+     "tokens": 615,
+     "files": 1
+    },
+    {
+     "module": "middleware",
+     "tokens": 9442,
+     "files": 52
+    },
+    {
+     "module": "perf_bench_test.go",
+     "tokens": 621,
+     "files": 1
+    },
+    {
+     "module": "query_fastpath_test.go",
+     "tokens": 401,
+     "files": 1
+    },
+    {
+     "module": "renderer.go",
+     "tokens": 408,
+     "files": 1
+    },
+    {
+     "module": "renderer_test.go",
+     "tokens": 324,
+     "files": 1
+    },
+    {
+     "module": "response.go",
+     "tokens": 701,
+     "files": 1
+    },
+    {
+     "module": "response_test.go",
+     "tokens": 493,
+     "files": 1
+    },
+    {
+     "module": "route.go",
+     "tokens": 671,
+     "files": 1
+    },
+    {
+     "module": "route_test.go",
+     "tokens": 468,
+     "files": 1
+    },
+    {
+     "module": "router.go",
+     "tokens": 734,
+     "files": 1
+    },
+    {
+     "module": "router_concurrent.go",
+     "tokens": 399,
+     "files": 1
+    },
+    {
+     "module": "router_concurrent_test.go",
+     "tokens": 445,
+     "files": 1
+    },
+    {
+     "module": "router_test.go",
+     "tokens": 811,
+     "files": 1
+    },
+    {
+     "module": "server.go",
+     "tokens": 481,
+     "files": 1
+    },
+    {
+     "module": "server_test.go",
+     "tokens": 528,
+     "files": 1
+    },
+    {
+     "module": "static_encoded_separator_test.go",
+     "tokens": 388,
+     "files": 1
+    },
+    {
+     "module": "vhost.go",
+     "tokens": 340,
+     "files": 1
+    },
+    {
+     "module": "vhost_test.go",
+     "tokens": 321,
+     "files": 1
+    }
+   ],
+   "full": {
+    "claude_md": 2309,
+    "agents_md": 8034,
+    "copilot": 15404,
+    "sections": {
+     "claude_md": 13,
+     "agents_md": 33,
+     "copilot": 75
+    },
+    "on_demand": 0,
+    "dropped": 42
+   },
+   "index": {
+    "claude_md": 515,
+    "agents_md": 515,
+    "copilot": 563,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 42
+   },
+   "per_module": {
+    "claude_md": 1197,
+    "agents_md": 1197,
+    "copilot": 1245,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 38765,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 22452,
+    "agents_md": 22452,
+    "copilot": 22500,
+    "sections": {
+     "claude_md": 117,
+     "agents_md": 117,
+     "copilot": 117
+    },
+    "on_demand": 339,
+    "dropped": 0,
+    "hot_files": 117
+   }
+  },
+  {
+   "repo": "express",
+   "commits": 1,
+   "tracked_files": 213,
+   "files_scanned": 49,
+   "raw_tokens": 73948,
+   "modules": 3,
+   "indexed": {
+    "n": 49,
+    "of": 49
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "examples",
+     "tokens": 1334,
+     "files": 25
+    },
+    {
+     "module": "lib",
+     "tokens": 1384,
+     "files": 6
+    },
+    {
+     "module": "test",
+     "tokens": 1089,
+     "files": 18
+    }
+   ],
+   "full": {
+    "claude_md": 1676,
+    "agents_md": 2990,
+    "copilot": 3038,
+    "sections": {
+     "claude_md": 12,
+     "agents_md": 49,
+     "copilot": 49
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "index": {
+    "claude_md": 607,
+    "agents_md": 607,
+    "copilot": 655,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "per_module": {
+    "claude_md": 403,
+    "agents_md": 403,
+    "copilot": 452,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 3807,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 2990,
+    "agents_md": 2990,
+    "copilot": 3038,
+    "sections": {
+     "claude_md": 49,
+     "agents_md": 49,
+     "copilot": 49
+    },
+    "on_demand": 436,
+    "dropped": 0,
+    "hot_files": 49
+   }
+  },
+  {
+   "repo": "fastapi",
+   "commits": 1,
+   "tracked_files": 2985,
+   "files_scanned": 949,
+   "raw_tokens": 963508,
+   "modules": 4,
+   "indexed": {
+    "n": 949,
+    "of": 949
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "docs_src",
+     "tokens": 27721,
+     "files": 359
+    },
+    {
+     "module": "fastapi",
+     "tokens": 18835,
+     "files": 31
+    },
+    {
+     "module": "scripts",
+     "tokens": 8780,
+     "files": 65
+    },
+    {
+     "module": "tests",
+     "tokens": 29806,
+     "files": 288
+    }
+   ],
+   "full": {
+    "claude_md": 1692,
+    "agents_md": 7801,
+    "copilot": 24480,
+    "sections": {
+     "claude_md": 17,
+     "agents_md": 60,
+     "copilot": 81
+    },
+    "on_demand": 0,
+    "dropped": 868
+   },
+   "index": {
+    "claude_md": 647,
+    "agents_md": 647,
+    "copilot": 701,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 868
+   },
+   "per_module": {
+    "claude_md": 417,
+    "agents_md": 417,
+    "copilot": 471,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 85142,
+    "dropped": 206
+   },
+   "hot_cold": {
+    "claude_md": 164153,
+    "agents_md": 164153,
+    "copilot": 164206,
+    "sections": {
+     "claude_md": 949,
+     "agents_md": 949,
+     "copilot": 949
+    },
+    "on_demand": 344,
+    "dropped": 0,
+    "hot_files": 949
+   }
+  },
+  {
+   "repo": "flask",
+   "commits": 1,
+   "tracked_files": 236,
+   "files_scanned": 51,
+   "raw_tokens": 139452,
+   "modules": 2,
+   "indexed": {
+    "n": 51,
+    "of": 51
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "src",
+     "tokens": 6467,
+     "files": 20
+    },
+    {
+     "module": "tests",
+     "tokens": 5415,
+     "files": 31
+    }
+   ],
+   "full": {
+    "claude_md": 2001,
+    "agents_md": 7905,
+    "copilot": 7958,
+    "sections": {
+     "claude_md": 7,
+     "agents_md": 29,
+     "copilot": 29
+    },
+    "on_demand": 0,
+    "dropped": 22
+   },
+   "index": {
+    "claude_md": 598,
+    "agents_md": 598,
+    "copilot": 652,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 22
+   },
+   "per_module": {
+    "claude_md": 392,
+    "agents_md": 392,
+    "copilot": 446,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 11882,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 11475,
+    "agents_md": 11475,
+    "copilot": 11528,
+    "sections": {
+     "claude_md": 51,
+     "agents_md": 51,
+     "copilot": 51
+    },
+    "on_demand": 426,
+    "dropped": 0,
+    "hot_files": 51
+   }
+  },
+  {
+   "repo": "fmt",
+   "commits": 1,
+   "tracked_files": 142,
+   "files_scanned": 69,
+   "raw_tokens": 633668,
+   "modules": 3,
+   "indexed": {
+    "n": 69,
+    "of": 69
+   },
+   "index_cap": {
+    "files": 6,
+    "signatures": 1316
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "include",
+     "tokens": 4070,
+     "files": 14
+    },
+    {
+     "module": "support",
+     "tokens": 1328,
+     "files": 9
+    },
+    {
+     "module": "test",
+     "tokens": 5975,
+     "files": 46
+    }
+   ],
+   "full": {
+    "claude_md": 1559,
+    "agents_md": 7255,
+    "copilot": 7308,
+    "sections": {
+     "claude_md": 11,
+     "agents_md": 40,
+     "copilot": 40
+    },
+    "on_demand": 0,
+    "dropped": 29
+   },
+   "index": {
+    "claude_md": 527,
+    "agents_md": 527,
+    "copilot": 580,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 29
+   },
+   "per_module": {
+    "claude_md": 405,
+    "agents_md": 405,
+    "copilot": 458,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 11373,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 10775,
+    "agents_md": 10775,
+    "copilot": 10828,
+    "sections": {
+     "claude_md": 69,
+     "agents_md": 69,
+     "copilot": 69
+    },
+    "on_demand": 327,
+    "dropped": 0,
+    "hot_files": 69
+   }
+  },
+  {
+   "repo": "gin",
+   "commits": 1,
+   "tracked_files": 130,
+   "files_scanned": 118,
+   "raw_tokens": 210655,
+   "modules": 55,
+   "indexed": {
+    "n": 118,
+    "of": 118
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": ".github",
+     "tokens": 992,
+     "files": 9
+    },
+    {
+     "module": ".golangci.yml",
+     "tokens": 435,
+     "files": 1
+    },
+    {
+     "module": ".goreleaser.yaml",
+     "tokens": 437,
+     "files": 1
+    },
+    {
+     "module": "BENCHMARKS.md",
+     "tokens": 522,
+     "files": 1
+    },
+    {
+     "module": "CHANGELOG.md",
+     "tokens": 524,
+     "files": 1
+    },
+    {
+     "module": "CODE_OF_CONDUCT.md",
+     "tokens": 461,
+     "files": 1
+    },
+    {
+     "module": "CONTRIBUTING.md",
+     "tokens": 437,
+     "files": 1
+    },
+    {
+     "module": "README.md",
+     "tokens": 534,
+     "files": 1
+    },
+    {
+     "module": "auth.go",
+     "tokens": 580,
+     "files": 1
+    },
+    {
+     "module": "auth_test.go",
+     "tokens": 544,
+     "files": 1
+    },
+    {
+     "module": "benchmarks_test.go",
+     "tokens": 674,
+     "files": 1
+    },
+    {
+     "module": "binding",
+     "tokens": 4120,
+     "files": 30
+    },
+    {
+     "module": "codec",
+     "tokens": 973,
+     "files": 5
+    },
+    {
+     "module": "codecov.yml",
+     "tokens": 430,
+     "files": 1
+    },
+    {
+     "module": "context.go",
+     "tokens": 1027,
+     "files": 1
+    },
+    {
+     "module": "context_appengine.go",
+     "tokens": 433,
+     "files": 1
+    },
+    {
+     "module": "context_file_test.go",
+     "tokens": 479,
+     "files": 1
+    },
+    {
+     "module": "context_test.go",
+     "tokens": 767,
+     "files": 1
+    },
+    {
+     "module": "debug.go",
+     "tokens": 554,
+     "files": 1
+    },
+    {
+     "module": "debug_test.go",
+     "tokens": 599,
+     "files": 1
+    },
+    {
+     "module": "deprecated.go",
+     "tokens": 458,
+     "files": 1
+    },
+    {
+     "module": "deprecated_test.go",
+     "tokens": 437,
+     "files": 1
+    },
+    {
+     "module": "docs",
+     "tokens": 583,
+     "files": 1
+    },
+    {
+     "module": "errors.go",
+     "tokens": 708,
+     "files": 1
+    },
+    {
+     "module": "errors_test.go",
+     "tokens": 478,
+     "files": 1
+    },
+    {
+     "module": "examples",
+     "tokens": 433,
+     "files": 1
+    },
+    {
+     "module": "fs.go",
+     "tokens": 535,
+     "files": 1
+    },
+    {
+     "module": "fs_test.go",
+     "tokens": 509,
+     "files": 1
+    },
+    {
+     "module": "gin.go",
+     "tokens": 1036,
+     "files": 1
+    },
+    {
+     "module": "ginS",
+     "tokens": 1286,
+     "files": 3
+    },
+    {
+     "module": "gin_integration_test.go",
+     "tokens": 674,
+     "files": 1
+    },
+    {
+     "module": "gin_test.go",
+     "tokens": 761,
+     "files": 1
+    },
+    {
+     "module": "githubapi_test.go",
+     "tokens": 568,
+     "files": 1
+    },
+    {
+     "module": "internal",
+     "tokens": 753,
+     "files": 4
+    },
+    {
+     "module": "logger.go",
+     "tokens": 824,
+     "files": 1
+    },
+    {
+     "module": "logger_test.go",
+     "tokens": 653,
+     "files": 1
+    },
+    {
+     "module": "middleware_test.go",
+     "tokens": 555,
+     "files": 1
+    },
+    {
+     "module": "mode.go",
+     "tokens": 543,
+     "files": 1
+    },
+    {
+     "module": "mode_test.go",
+     "tokens": 486,
+     "files": 1
+    },
+    {
+     "module": "path.go",
+     "tokens": 507,
+     "files": 1
+    },
+    {
+     "module": "path_test.go",
+     "tokens": 521,
+     "files": 1
+    },
+    {
+     "module": "recovery.go",
+     "tokens": 711,
+     "files": 1
+    },
+    {
+     "module": "recovery_test.go",
+     "tokens": 655,
+     "files": 1
+    },
+    {
+     "module": "render",
+     "tokens": 2685,
+     "files": 17
+    },
+    {
+     "module": "response_writer.go",
+     "tokens": 663,
+     "files": 1
+    },
+    {
+     "module": "response_writer_test.go",
+     "tokens": 711,
+     "files": 1
+    },
+    {
+     "module": "routergroup.go",
+     "tokens": 877,
+     "files": 1
+    },
+    {
+     "module": "routergroup_test.go",
+     "tokens": 614,
+     "files": 1
+    },
+    {
+     "module": "routes_test.go",
+     "tokens": 928,
+     "files": 1
+    },
+    {
+     "module": "test_helpers.go",
+     "tokens": 533,
+     "files": 1
+    },
+    {
+     "module": "testdata",
+     "tokens": 752,
+     "files": 2
+    },
+    {
+     "module": "tree.go",
+     "tokens": 891,
+     "files": 1
+    },
+    {
+     "module": "tree_test.go",
+     "tokens": 761,
+     "files": 1
+    },
+    {
+     "module": "utils.go",
+     "tokens": 703,
+     "files": 1
+    },
+    {
+     "module": "utils_test.go",
+     "tokens": 626,
+     "files": 1
+    }
+   ],
+   "full": {
+    "claude_md": 2042,
+    "agents_md": 7990,
+    "copilot": 12467,
+    "sections": {
+     "claude_md": 9,
+     "agents_md": 49,
+     "copilot": 80
+    },
+    "on_demand": 0,
+    "dropped": 38
+   },
+   "index": {
+    "claude_md": 659,
+    "agents_md": 659,
+    "copilot": 707,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 38
+   },
+   "per_module": {
+    "claude_md": 1130,
+    "agents_md": 1130,
+    "copilot": 1178,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 40940,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 18291,
+    "agents_md": 18291,
+    "copilot": 18339,
+    "sections": {
+     "claude_md": 118,
+     "agents_md": 118,
+     "copilot": 118
+    },
+    "on_demand": 457,
+    "dropped": 0,
+    "hot_files": 118
+   }
+  },
+  {
+   "repo": "httpx",
+   "commits": 1,
+   "tracked_files": 125,
+   "files_scanned": 53,
+   "raw_tokens": 141789,
+   "modules": 2,
+   "indexed": {
+    "n": 53,
+    "of": 53
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "httpx",
+     "tokens": 6039,
+     "files": 20
+    },
+    {
+     "module": "tests",
+     "tokens": 7563,
+     "files": 33
+    }
+   ],
+   "full": {
+    "claude_md": 2002,
+    "agents_md": 8020,
+    "copilot": 9228,
+    "sections": {
+     "claude_md": 9,
+     "agents_md": 31,
+     "copilot": 37
+    },
+    "on_demand": 0,
+    "dropped": 16
+   },
+   "index": {
+    "claude_md": 538,
+    "agents_md": 538,
+    "copilot": 591,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 16
+   },
+   "per_module": {
+    "claude_md": 393,
+    "agents_md": 393,
+    "copilot": 447,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 13602,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 13240,
+    "agents_md": 13240,
+    "copilot": 13293,
+    "sections": {
+     "claude_md": 53,
+     "agents_md": 53,
+     "copilot": 53
+    },
+    "on_demand": 381,
+    "dropped": 0,
+    "hot_files": 53
+   }
+  },
+  {
+   "repo": "kotlinx-coroutines",
+   "commits": 1,
+   "tracked_files": 1330,
+   "files_scanned": 923,
+   "raw_tokens": 977997,
+   "modules": 10,
+   "indexed": {
+    "n": 923,
+    "of": 923
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "benchmarks",
+     "tokens": 3328,
+     "files": 38
+    },
+    {
+     "module": "buildSrc",
+     "tokens": 871,
+     "files": 9
+    },
+    {
+     "module": "integration",
+     "tokens": 2111,
+     "files": 16
+    },
+    {
+     "module": "integration-testing",
+     "tokens": 496,
+     "files": 3
+    },
+    {
+     "module": "kotlinx-coroutines-core",
+     "tokens": 22919,
+     "files": 298
+    },
+    {
+     "module": "kotlinx-coroutines-debug",
+     "tokens": 3250,
+     "files": 41
+    },
+    {
+     "module": "kotlinx-coroutines-test",
+     "tokens": 3055,
+     "files": 25
+    },
+    {
+     "module": "reactive",
+     "tokens": 12627,
+     "files": 124
+    },
+    {
+     "module": "test-utils",
+     "tokens": 1300,
+     "files": 8
+    },
+    {
+     "module": "ui",
+     "tokens": 2865,
+     "files": 42
+    }
+   ],
+   "full": {
+    "claude_md": 1277,
+    "agents_md": 8023,
+    "copilot": 23413,
+    "sections": {
+     "claude_md": 15,
+     "agents_md": 98,
+     "copilot": 287
+    },
+    "on_demand": 0,
+    "dropped": 636
+   },
+   "index": {
+    "claude_md": 693,
+    "agents_md": 693,
+    "copilot": 741,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 636
+   },
+   "per_module": {
+    "claude_md": 519,
+    "agents_md": 519,
+    "copilot": 567,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 52822,
+    "dropped": 319
+   },
+   "hot_cold": {
+    "claude_md": 76082,
+    "agents_md": 76082,
+    "copilot": 76131,
+    "sections": {
+     "claude_md": 923,
+     "agents_md": 923,
+     "copilot": 923
+    },
+    "on_demand": 448,
+    "dropped": 0,
+    "hot_files": 923
+   }
+  },
+  {
+   "repo": "laravel",
+   "commits": 1,
+   "tracked_files": 3179,
+   "files_scanned": 1511,
+   "raw_tokens": 1686322,
+   "modules": 1,
+   "indexed": {
+    "n": 1511,
+    "of": 1511
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "src",
+     "tokens": 22958,
+     "files": 204
+    }
+   ],
+   "full": {
+    "claude_md": 1748,
+    "agents_md": 8070,
+    "copilot": 22990,
+    "sections": {
+     "claude_md": 9,
+     "agents_md": 69,
+     "copilot": 204
+    },
+    "on_demand": 0,
+    "dropped": 1307
+   },
+   "index": {
+    "claude_md": 738,
+    "agents_md": 738,
+    "copilot": 787,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 1307
+   },
+   "per_module": {
+    "claude_md": 382,
+    "agents_md": 382,
+    "copilot": 430,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 22958,
+    "dropped": 1307
+   },
+   "hot_cold": {
+    "claude_md": 146678,
+    "agents_md": 146678,
+    "copilot": 146726,
+    "sections": {
+     "claude_md": 1511,
+     "agents_md": 1511,
+     "copilot": 1511
+    },
+    "on_demand": 523,
+    "dropped": 0,
+    "hot_files": 1511
+   }
+  },
+  {
+   "repo": "okhttp",
+   "commits": 1,
+   "tracked_files": 795,
+   "files_scanned": 386,
+   "raw_tokens": 483115,
+   "modules": 27,
+   "indexed": {
+    "n": 386,
+    "of": 386
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "android-test",
+     "tokens": 1784,
+     "files": 17
+    },
+    {
+     "module": "android-test-app",
+     "tokens": 709,
+     "files": 3
+    },
+    {
+     "module": "build-logic",
+     "tokens": 725,
+     "files": 5
+    },
+    {
+     "module": "container-tests",
+     "tokens": 829,
+     "files": 4
+    },
+    {
+     "module": "maven-tests",
+     "tokens": 813,
+     "files": 4
+    },
+    {
+     "module": "mockwebserver",
+     "tokens": 1580,
+     "files": 14
+    },
+    {
+     "module": "mockwebserver-deprecated",
+     "tokens": 1390,
+     "files": 7
+    },
+    {
+     "module": "mockwebserver-junit4",
+     "tokens": 631,
+     "files": 1
+    },
+    {
+     "module": "mockwebserver-junit5",
+     "tokens": 667,
+     "files": 2
+    },
+    {
+     "module": "module-tests",
+     "tokens": 724,
+     "files": 2
+    },
+    {
+     "module": "native-image-tests",
+     "tokens": 765,
+     "files": 4
+    },
+    {
+     "module": "okcurl",
+     "tokens": 843,
+     "files": 5
+    },
+    {
+     "module": "okhttp",
+     "tokens": 14979,
+     "files": 150
+    },
+    {
+     "module": "okhttp-brotli",
+     "tokens": 651,
+     "files": 2
+    },
+    {
+     "module": "okhttp-dnsoverhttps",
+     "tokens": 881,
+     "files": 3
+    },
+    {
+     "module": "okhttp-hpacktests",
+     "tokens": 879,
+     "files": 6
+    },
+    {
+     "module": "okhttp-idna-mapping-table",
+     "tokens": 933,
+     "files": 5
+    },
+    {
+     "module": "okhttp-java-net-cookiejar",
+     "tokens": 647,
+     "files": 1
+    },
+    {
+     "module": "okhttp-logging-interceptor",
+     "tokens": 1035,
+     "files": 2
+    },
+    {
+     "module": "okhttp-osgi-tests",
+     "tokens": 628,
+     "files": 1
+    },
+    {
+     "module": "okhttp-sse",
+     "tokens": 896,
+     "files": 5
+    },
+    {
+     "module": "okhttp-testing-support",
+     "tokens": 5391,
+     "files": 39
+    },
+    {
+     "module": "okhttp-tls",
+     "tokens": 2398,
+     "files": 16
+    },
+    {
+     "module": "okhttp-urlconnection",
+     "tokens": 659,
+     "files": 2
+    },
+    {
+     "module": "okhttp-zstd",
+     "tokens": 620,
+     "files": 1
+    },
+    {
+     "module": "regression-test",
+     "tokens": 1240,
+     "files": 10
+    },
+    {
+     "module": "samples",
+     "tokens": 6156,
+     "files": 75
+    }
+   ],
+   "full": {
+    "claude_md": 1379,
+    "agents_md": 7949,
+    "copilot": 17641,
+    "sections": {
+     "claude_md": 16,
+     "agents_md": 108,
+     "copilot": 198
+    },
+    "on_demand": 0,
+    "dropped": 188
+   },
+   "index": {
+    "claude_md": 1031,
+    "agents_md": 1031,
+    "copilot": 1079,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 188
+   },
+   "per_module": {
+    "claude_md": 792,
+    "agents_md": 792,
+    "copilot": 841,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 49453,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 33998,
+    "agents_md": 33998,
+    "copilot": 34046,
+    "sections": {
+     "claude_md": 386,
+     "agents_md": 386,
+     "copilot": 386
+    },
+    "on_demand": 622,
+    "dropped": 0,
+    "hot_files": 386
+   }
+  },
+  {
+   "repo": "rails",
+   "commits": 1,
+   "tracked_files": 4901,
+   "files_scanned": 3405,
+   "raw_tokens": 4601077,
+   "modules": 11,
+   "indexed": {
+    "n": 3405,
+    "of": 3405
+   },
+   "index_cap": {
+    "files": 13,
+    "signatures": 827
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "actioncable",
+     "tokens": 10411,
+     "files": 101
+    },
+    {
+     "module": "actionmailbox",
+     "tokens": 4761,
+     "files": 89
+    },
+    {
+     "module": "actionpack",
+     "tokens": 22957,
+     "files": 186
+    },
+    {
+     "module": "actiontext",
+     "tokens": 7047,
+     "files": 108
+    },
+    {
+     "module": "actionview",
+     "tokens": 23036,
+     "files": 167
+    },
+    {
+     "module": "activejob",
+     "tokens": 9438,
+     "files": 127
+    },
+    {
+     "module": "activemodel",
+     "tokens": 18278,
+     "files": 156
+    },
+    {
+     "module": "activerecord",
+     "tokens": 23291,
+     "files": 205
+    },
+    {
+     "module": "activestorage",
+     "tokens": 12791,
+     "files": 175
+    },
+    {
+     "module": "activesupport",
+     "tokens": 22886,
+     "files": 236
+    },
+    {
+     "module": "railties",
+     "tokens": 22928,
+     "files": 212
+    }
+   ],
+   "full": {
+    "claude_md": 1300,
+    "agents_md": 8091,
+    "copilot": 22903,
+    "sections": {
+     "claude_md": 10,
+     "agents_md": 111,
+     "copilot": 252
+    },
+    "on_demand": 0,
+    "dropped": 3153
+   },
+   "index": {
+    "claude_md": 740,
+    "agents_md": 740,
+    "copilot": 788,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 3153
+   },
+   "per_module": {
+    "claude_md": 518,
+    "agents_md": 518,
+    "copilot": 566,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 177824,
+    "dropped": 1643
+   },
+   "hot_cold": {
+    "claude_md": 356671,
+    "agents_md": 356671,
+    "copilot": 356719,
+    "sections": {
+     "claude_md": 3405,
+     "agents_md": 3405,
+     "copilot": 3405
+    },
+    "on_demand": 461,
+    "dropped": 0,
+    "hot_files": 3405
+   }
+  },
+  {
+   "repo": "redux",
+   "commits": 1,
+   "tracked_files": 476,
+   "files_scanned": 25,
+   "raw_tokens": 21015,
+   "modules": 3,
+   "indexed": {
+    "n": 25,
+    "of": 25
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "src",
+     "tokens": 1734,
+     "files": 14
+    },
+    {
+     "module": "test",
+     "tokens": 850,
+     "files": 5
+    },
+    {
+     "module": "website",
+     "tokens": 1018,
+     "files": 6
+    }
+   ],
+   "full": {
+    "claude_md": 1370,
+    "agents_md": 2698,
+    "copilot": 2746,
+    "sections": {
+     "claude_md": 13,
+     "agents_md": 25,
+     "copilot": 25
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "index": {
+    "claude_md": 639,
+    "agents_md": 639,
+    "copilot": 687,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "per_module": {
+    "claude_md": 403,
+    "agents_md": 403,
+    "copilot": 451,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 3602,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 2698,
+    "agents_md": 2698,
+    "copilot": 2746,
+    "sections": {
+     "claude_md": 25,
+     "agents_md": 25,
+     "copilot": 25
+    },
+    "on_demand": 478,
+    "dropped": 0,
+    "hot_files": 25
+   }
+  },
+  {
+   "repo": "rust-analyzer",
+   "commits": 1,
+   "tracked_files": 2266,
+   "files_scanned": 752,
+   "raw_tokens": 3674423,
+   "modules": 4,
+   "indexed": {
+    "n": 752,
+    "of": 752
+   },
+   "index_cap": {
+    "files": 2,
+    "signatures": 2463
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "crates",
+     "tokens": 23615,
+     "files": 155
+    },
+    {
+     "module": "editors",
+     "tokens": 4122,
+     "files": 26
+    },
+    {
+     "module": "lib",
+     "tokens": 4511,
+     "files": 36
+    },
+    {
+     "module": "xtask",
+     "tokens": 1048,
+     "files": 15
+    }
+   ],
+   "full": {
+    "claude_md": 1387,
+    "agents_md": 7859,
+    "copilot": 23898,
+    "sections": {
+     "claude_md": 9,
+     "agents_md": 59,
+     "copilot": 171
+    },
+    "on_demand": 0,
+    "dropped": 581
+   },
+   "index": {
+    "claude_md": 634,
+    "agents_md": 634,
+    "copilot": 688,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 581
+   },
+   "per_module": {
+    "claude_md": 414,
+    "agents_md": 414,
+    "copilot": 468,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 33296,
+    "dropped": 520
+   },
+   "hot_cold": {
+    "claude_md": 95834,
+    "agents_md": 95834,
+    "copilot": 95888,
+    "sections": {
+     "claude_md": 752,
+     "agents_md": 752,
+     "copilot": 752
+    },
+    "on_demand": 433,
+    "dropped": 0,
+    "hot_files": 752
+   }
+  },
+  {
+   "repo": "sidekiq",
+   "commits": 1,
+   "tracked_files": 347,
+   "files_scanned": 174,
+   "raw_tokens": 188919,
+   "modules": 4,
+   "indexed": {
+    "n": 174,
+    "of": 174
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "lib",
+     "tokens": 7406,
+     "files": 67
+    },
+    {
+     "module": "myapp",
+     "tokens": 967,
+     "files": 22
+    },
+    {
+     "module": "test",
+     "tokens": 3252,
+     "files": 49
+    },
+    {
+     "module": "web",
+     "tokens": 1284,
+     "files": 35
+    }
+   ],
+   "full": {
+    "claude_md": 833,
+    "agents_md": 7347,
+    "copilot": 7395,
+    "sections": {
+     "claude_md": 22,
+     "agents_md": 113,
+     "copilot": 113
+    },
+    "on_demand": 0,
+    "dropped": 61
+   },
+   "index": {
+    "claude_md": 529,
+    "agents_md": 529,
+    "copilot": 577,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 61
+   },
+   "per_module": {
+    "claude_md": 411,
+    "agents_md": 411,
+    "copilot": 459,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 12909,
+    "dropped": 1
+   },
+   "hot_cold": {
+    "claude_md": 12200,
+    "agents_md": 12200,
+    "copilot": 12248,
+    "sections": {
+     "claude_md": 174,
+     "agents_md": 174,
+     "copilot": 174
+    },
+    "on_demand": 323,
+    "dropped": 0,
+    "hot_files": 174
+   }
+  },
+  {
+   "repo": "spdlog",
+   "commits": 1,
+   "tracked_files": 180,
+   "files_scanned": 115,
+   "raw_tokens": 265033,
+   "modules": 4,
+   "indexed": {
+    "n": 115,
+    "of": 115
+   },
+   "index_cap": {
+    "files": 3,
+    "signatures": 538
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "bench",
+     "tokens": 750,
+     "files": 5
+    },
+    {
+     "module": "include",
+     "tokens": 14250,
+     "files": 63
+    },
+    {
+     "module": "src",
+     "tokens": 465,
+     "files": 2
+    },
+    {
+     "module": "tests",
+     "tokens": 1539,
+     "files": 14
+    }
+   ],
+   "full": {
+    "claude_md": 1961,
+    "agents_md": 7929,
+    "copilot": 14244,
+    "sections": {
+     "claude_md": 12,
+     "agents_md": 42,
+     "copilot": 75
+    },
+    "on_demand": 0,
+    "dropped": 40
+   },
+   "index": {
+    "claude_md": 477,
+    "agents_md": 477,
+    "copilot": 525,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 40
+   },
+   "per_module": {
+    "claude_md": 414,
+    "agents_md": 414,
+    "copilot": 462,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 17004,
+    "dropped": 31
+   },
+   "hot_cold": {
+    "claude_md": 21173,
+    "agents_md": 21173,
+    "copilot": 21221,
+    "sections": {
+     "claude_md": 115,
+     "agents_md": 115,
+     "copilot": 115
+    },
+    "on_demand": 307,
+    "dropped": 0,
+    "hot_files": 115
+   }
+  },
+  {
+   "repo": "svelte",
+   "commits": 1,
+   "tracked_files": 8743,
+   "files_scanned": 1310,
+   "raw_tokens": 706337,
+   "modules": 3,
+   "indexed": {
+    "n": 1310,
+    "of": 1310
+   },
+   "index_cap": {
+    "files": 3,
+    "signatures": 1254
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "benchmarking",
+     "tokens": 1273,
+     "files": 17
+    },
+    {
+     "module": "packages",
+     "tokens": 27354,
+     "files": 176
+    },
+    {
+     "module": "playgrounds",
+     "tokens": 1162,
+     "files": 7
+    }
+   ],
+   "full": {
+    "claude_md": 1869,
+    "agents_md": 7971,
+    "copilot": 27428,
+    "sections": {
+     "claude_md": 14,
+     "agents_md": 65,
+     "copilot": 185
+    },
+    "on_demand": 0,
+    "dropped": 1125
+   },
+   "index": {
+    "claude_md": 829,
+    "agents_md": 829,
+    "copilot": 878,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 1125
+   },
+   "per_module": {
+    "claude_md": 411,
+    "agents_md": 411,
+    "copilot": 460,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 29789,
+    "dropped": 1110
+   },
+   "hot_cold": {
+    "claude_md": 80368,
+    "agents_md": 80368,
+    "copilot": 80416,
+    "sections": {
+     "claude_md": 1310,
+     "agents_md": 1310,
+     "copilot": 1310
+    },
+    "on_demand": 403,
+    "dropped": 0,
+    "hot_files": 1310
+   }
+  },
+  {
+   "repo": "tokio",
+   "commits": 1,
+   "tracked_files": 883,
+   "files_scanned": 421,
+   "raw_tokens": 1075310,
+   "modules": 6,
+   "indexed": {
+    "n": 421,
+    "of": 421
+   },
+   "index_cap": {
+    "files": 1,
+    "signatures": 4
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "benches",
+     "tokens": 581,
+     "files": 5
+    },
+    {
+     "module": "tests-build",
+     "tokens": 467,
+     "files": 2
+    },
+    {
+     "module": "tokio",
+     "tokens": 23496,
+     "files": 163
+    },
+    {
+     "module": "tokio-stream",
+     "tokens": 4714,
+     "files": 50
+    },
+    {
+     "module": "tokio-test",
+     "tokens": 1607,
+     "files": 8
+    },
+    {
+     "module": "tokio-util",
+     "tokens": 9992,
+     "files": 57
+    }
+   ],
+   "full": {
+    "claude_md": 1604,
+    "agents_md": 8068,
+    "copilot": 23490,
+    "sections": {
+     "claude_md": 10,
+     "agents_md": 71,
+     "copilot": 152
+    },
+    "on_demand": 0,
+    "dropped": 269
+   },
+   "index": {
+    "claude_md": 618,
+    "agents_md": 618,
+    "copilot": 667,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 269
+   },
+   "per_module": {
+    "claude_md": 447,
+    "agents_md": 447,
+    "copilot": 495,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 40857,
+    "dropped": 136
+   },
+   "hot_cold": {
+    "claude_md": 52266,
+    "agents_md": 52266,
+    "copilot": 52314,
+    "sections": {
+     "claude_md": 421,
+     "agents_md": 421,
+     "copilot": 421
+    },
+    "on_demand": 433,
+    "dropped": 0,
+    "hot_files": 421
+   }
+  },
+  {
+   "repo": "vapor",
+   "commits": 1,
+   "tracked_files": 329,
+   "files_scanned": 248,
+   "raw_tokens": 368835,
+   "modules": 2,
+   "indexed": {
+    "n": 248,
+    "of": 248
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "Sources",
+     "tokens": 12038,
+     "files": 189
+    },
+    {
+     "module": "Tests",
+     "tokens": 8437,
+     "files": 54
+    }
+   ],
+   "full": {
+    "claude_md": 1425,
+    "agents_md": 8049,
+    "copilot": 12233,
+    "sections": {
+     "claude_md": 21,
+     "agents_md": 95,
+     "copilot": 164
+    },
+    "on_demand": 0,
+    "dropped": 84
+   },
+   "index": {
+    "claude_md": 480,
+    "agents_md": 480,
+    "copilot": 528,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 84
+   },
+   "per_module": {
+    "claude_md": 394,
+    "agents_md": 394,
+    "copilot": 442,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 20475,
+    "dropped": 5
+   },
+   "hot_cold": {
+    "claude_md": 20881,
+    "agents_md": 20881,
+    "copilot": 20929,
+    "sections": {
+     "claude_md": 248,
+     "agents_md": 248,
+     "copilot": 248
+    },
+    "on_demand": 307,
+    "dropped": 0,
+    "hot_files": 248
+   }
+  },
+  {
+   "repo": "vue-core",
+   "commits": 1,
+   "tracked_files": 703,
+   "files_scanned": 308,
+   "raw_tokens": 577783,
+   "modules": 3,
+   "indexed": {
+    "n": 308,
+    "of": 308
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "packages",
+     "tokens": 16555,
+     "files": 149
+    },
+    {
+     "module": "packages-private",
+     "tokens": 1090,
+     "files": 21
+    },
+    {
+     "module": "scripts",
+     "tokens": 1013,
+     "files": 6
+    }
+   ],
+   "full": {
+    "claude_md": 1242,
+    "agents_md": 8002,
+    "copilot": 16588,
+    "sections": {
+     "claude_md": 20,
+     "agents_md": 107,
+     "copilot": 172
+    },
+    "on_demand": 0,
+    "dropped": 136
+   },
+   "index": {
+    "claude_md": 531,
+    "agents_md": 531,
+    "copilot": 579,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 136
+   },
+   "per_module": {
+    "claude_md": 411,
+    "agents_md": 411,
+    "copilot": 460,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 18658,
+    "dropped": 132
+   },
+   "hot_cold": {
+    "claude_md": 29823,
+    "agents_md": 29823,
+    "copilot": 29872,
+    "sections": {
+     "claude_md": 308,
+     "agents_md": 308,
+     "copilot": 308
+    },
+    "on_demand": 348,
+    "dropped": 0,
+    "hot_files": 308
+   }
+  },
+  {
+   "repo": "zod",
+   "commits": 1,
+   "tracked_files": 583,
+   "files_scanned": 163,
+   "raw_tokens": 447236,
+   "modules": 1,
+   "indexed": {
+    "n": 163,
+    "of": 163
+   },
+   "index_cap": {
+    "files": 6,
+    "signatures": 1212
+   },
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "packages",
+     "tokens": 7198,
+     "files": 83
+    }
+   ],
+   "full": {
+    "claude_md": 859,
+    "agents_md": 7182,
+    "copilot": 7230,
+    "sections": {
+     "claude_md": 10,
+     "agents_md": 83,
+     "copilot": 83
+    },
+    "on_demand": 0,
+    "dropped": 80
+   },
+   "index": {
+    "claude_md": 552,
+    "agents_md": 552,
+    "copilot": 600,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 80
+   },
+   "per_module": {
+    "claude_md": 384,
+    "agents_md": 384,
+    "copilot": 433,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 7198,
+    "dropped": 80
+   },
+   "hot_cold": {
+    "claude_md": 12713,
+    "agents_md": 12713,
+    "copilot": 12761,
+    "sections": {
+     "claude_md": 163,
+     "agents_md": 163,
+     "copilot": 163
+    },
+    "on_demand": 399,
+    "dropped": 0,
+    "hot_files": 163
+   }
+  },
+  {
+   "repo": "zustand",
+   "commits": 1,
+   "tracked_files": 143,
+   "files_scanned": 17,
+   "raw_tokens": 57506,
+   "modules": 2,
+   "indexed": {
+    "n": 17,
+    "of": 17
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "src",
+     "tokens": 930,
+     "files": 9
+    },
+    {
+     "module": "tests",
+     "tokens": 816,
+     "files": 8
+    }
+   ],
+   "full": {
+    "claude_md": 1323,
+    "agents_md": 1371,
+    "copilot": 1419,
+    "sections": {
+     "claude_md": 16,
+     "agents_md": 17,
+     "copilot": 17
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "index": {
+    "claude_md": 548,
+    "agents_md": 548,
+    "copilot": 597,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 0
+   },
+   "per_module": {
+    "claude_md": 392,
+    "agents_md": 392,
+    "copilot": 440,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 1746,
+    "dropped": 0
+   },
+   "hot_cold": {
+    "claude_md": 1371,
+    "agents_md": 1371,
+    "copilot": 1419,
+    "sections": {
+     "claude_md": 17,
+     "agents_md": 17,
+     "copilot": 17
+    },
+    "on_demand": 394,
+    "dropped": 0,
+    "hot_files": 17
+   }
+  },
+  {
+   "repo": "sigmap",
+   "commits": 1783,
+   "tracked_files": 1084,
+   "files_scanned": 224,
+   "raw_tokens": 456957,
+   "modules": 3,
+   "indexed": {
+    "n": 224,
+    "of": 224
+   },
+   "index_cap": null,
+   "index_identical": true,
+   "per_module_files": [
+    {
+     "module": "gen-project-map.js",
+     "tokens": 365,
+     "files": 1
+    },
+    {
+     "module": "packages",
+     "tokens": 1879,
+     "files": 13
+    },
+    {
+     "module": "src",
+     "tokens": 15277,
+     "files": 92
+    }
+   ],
+   "ask_tokens": [
+    1574,
+    1448,
+    1242,
+    2084
+   ],
+   "full": {
+    "claude_md": 1696,
+    "agents_md": 8043,
+    "copilot": 15391,
+    "sections": {
+     "claude_md": 14,
+     "agents_md": 55,
+     "copilot": 100
+    },
+    "on_demand": 0,
+    "dropped": 124
+   },
+   "index": {
+    "claude_md": 487,
+    "agents_md": 487,
+    "copilot": 540,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 0,
+    "dropped": 124
+   },
+   "per_module": {
+    "claude_md": 410,
+    "agents_md": 410,
+    "copilot": 464,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 17521,
+    "dropped": 118
+   },
+   "hot_cold": {
+    "claude_md": 278,
+    "agents_md": 278,
+    "copilot": 331,
+    "sections": {
+     "claude_md": 0,
+     "agents_md": 0,
+     "copilot": 0
+    },
+    "on_demand": 38790,
+    "dropped": 0,
+    "hot_files": 0
+   }
+  }
+ ],
+ "hot_cold_sweep": {
+  "akka": [
+   {
+    "hot_commits": 1,
+    "hot_files": 0,
+    "claude_md": 277,
+    "agents_md": 277
+   },
+   {
+    "hot_commits": 5,
+    "hot_files": 1,
+    "claude_md": 533,
+    "agents_md": 533
+   },
+   {
+    "hot_commits": 10,
+    "hot_files": 1,
+    "claude_md": 533,
+    "agents_md": 533
+   },
+   {
+    "hot_commits": 25,
+    "hot_files": 8,
+    "claude_md": 2513,
+    "agents_md": 2513
+   },
+   {
+    "hot_commits": 50,
+    "hot_files": 16,
+    "claude_md": 4438,
+    "agents_md": 4438
+   },
+   {
+    "hot_commits": 100,
+    "hot_files": 89,
+    "claude_md": 19219,
+    "agents_md": 19219
+   },
+   {
+    "hot_commits": 250,
+    "hot_files": 974,
+    "claude_md": 155282,
+    "agents_md": 155282
+   },
+   {
+    "hot_commits": 500,
+    "hot_files": 979,
+    "claude_md": 155972,
+    "agents_md": 155972
+   },
+   {
+    "hot_commits": 1000,
+    "hot_files": 0,
+    "claude_md": 278,
+    "agents_md": 278,
+    "invalid": "the hot set is empty although a smaller window has files: the git log read failed, so this is not a measurement"
+   }
+  ],
+  "sigmap": [
+   {
+    "hot_commits": 1,
+    "hot_files": 0,
+    "claude_md": 277,
+    "agents_md": 277
+   },
+   {
+    "hot_commits": 5,
+    "hot_files": 0,
+    "claude_md": 277,
+    "agents_md": 277
+   },
+   {
+    "hot_commits": 10,
+    "hot_files": 0,
+    "claude_md": 278,
+    "agents_md": 278
+   },
+   {
+    "hot_commits": 25,
+    "hot_files": 0,
+    "claude_md": 278,
+    "agents_md": 278
+   },
+   {
+    "hot_commits": 50,
+    "hot_files": 2,
+    "claude_md": 612,
+    "agents_md": 612
+   },
+   {
+    "hot_commits": 100,
+    "hot_files": 17,
+    "claude_md": 5030,
+    "agents_md": 5030
+   },
+   {
+    "hot_commits": 250,
+    "hot_files": 48,
+    "claude_md": 11943,
+    "agents_md": 11943
+   },
+   {
+    "hot_commits": 500,
+    "hot_files": 114,
+    "claude_md": 25530,
+    "agents_md": 25530
+   },
+   {
+    "hot_commits": 1000,
+    "hot_files": 184,
+    "claude_md": 34837,
+    "agents_md": 34837
+   }
+  ]
+ }
+}

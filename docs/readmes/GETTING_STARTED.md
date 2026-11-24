@@ -763,60 +763,65 @@ vendor/
 
 ### `maxTokens` — the budget
 
-Default is `6000`. When output would exceed this, SigMap drops files in this order:
-1. Test files first
-2. Config files
-3. Generated files
-4. Least recently changed
-5. Files with fewest signatures
+Default is `6000`, and it is the budget of the context files only when `autoMaxTokens` is `false`: by default SigMap scales the budget to the repository (80% of its signature tokens, between 4,000 and 25,600). When the output would exceed the budget, SigMap drops files in this order:
+1. Generated files first
+2. Mock files
+3. Test files
+4. Config files
+5. Then the least recently changed (a file that no longer fits in full is collapsed to its line anchors before it is dropped)
 
-Raise it if you have a large codebase and want more coverage. Lower it for models with smaller context windows.
+The order is exact inside one top-level directory. With several, each directory first keeps up to 24 of its best files (until 60% of the budget is used), so a test file of a small directory can outlast a source file of a large one. Entry points (`main`, `app`, `Program.cs`) are dropped last.
+
+For more coverage on a large codebase raise `maxTokensHeadroom`, or set `autoMaxTokens` to `false` and `maxTokens` to a number. Pin a lower number for models with smaller context windows.
 
 ---
 
 ## 9. Advanced strategies
 
-SigMap has three output strategies. Set in `gen-context.config.json`:
+SigMap has four output strategies. Set in `gen-context.config.json`. Measured sizes, what each leaves out, and when each fits are on [sigmap.io/guide/strategies](https://sigmap.io/guide/strategies).
 
-### `full` (default)
-Single file, all signatures, always injected. Works with every AI tool. Best starting point.
+### `full` (default with no config)
+Single file with all the signatures that fit the budget, always injected. Works with every AI tool. On a larger repository it drops the files over the budget; the retrieval index still holds them.
 
 ```json
 { "strategy": "full" }
 ```
 
-Token reduction: **90–96%**
-
-### `per-module`
-One context file per source directory + a thin overview file. The AI loads only the module it needs.
+### `index` (what `sigmap --init` writes)
+The always-on file is a map of a few hundred tokens, with no signatures; every signature stays in `.context/sig-index.json`, which `sigmap ask` reads.
 
 ```json
-{ "strategy": "per-module" }
+{ "strategy": "index" }
+```
+
+### `per-module`
+One context file per top-level directory (a source file at the repository root counts as a module of its own) + a short overview file. You load only the module file you need (`sigmap ask` ranks files across every module). Each module has its own budget, so a module over it loses files.
+
+```json
+{ "srcDirs": ["server", "web"], "strategy": "per-module" }
 ```
 
 ```
-.github/copilot-instructions.md    ← thin overview (~200 tokens)
-.github/context-src-auth.md        ← auth module only (~150 tokens)
-.github/context-src-users.md       ← users module only (~180 tokens)
+.github/copilot-instructions.md    ← thin overview (a few hundred tokens)
+.github/context-server.md          ← server/, up to its budget
+.github/context-web.md             ← web/, up to its budget
 ```
 
-Token reduction: **97–99%** per question (AI reads only the relevant module).
 Best for: large codebases with clear module boundaries.
 
 ### `hot-cold`
-Hot (recently changed) files are always injected. Cold (stable) files stay in a separate file, readable via MCP.
+Hot (recently changed) files are always injected, with no token cap. Cold (stable) files stay in a separate file that nothing injects; `sigmap ask` and MCP `read_context` reach them.
 
 ```json
 { "strategy": "hot-cold", "hotCommits": 10 }
 ```
 
 ```
-.github/copilot-instructions.md   ← only files changed in last 10 commits (~300 tokens)
-.github/context-cold.md           ← everything else (read via MCP when needed)
+.github/copilot-instructions.md   ← only files changed in the last 10 commits
+.github/context-cold.md           ← everything else
 ```
 
-Token reduction: **98–99.5%** on active sessions.
-Best for: projects with MCP (Claude Code, Cursor) where you're focused on a specific area.
+Best for: a repository with history, when recent work should be in front of the agent. Keep `hotCommits` low, and do not use it on a shallow checkout, where every file is hot.
 
 ---
 
@@ -946,7 +951,7 @@ src/generated/
 → Either install globally (`npm install -g sigmap`) or set `sigmap.scriptPath` in VS Code settings to the absolute path of your local `gen-context.js`.
 
 ### Over-budget warning: some files were dropped
-→ Either raise `maxTokens` in config, or add more exclusions to `.contextignore`. Check which files were dropped: `sigmap --report` shows `files dropped`.
+→ Either raise `maxTokensHeadroom` (or set `autoMaxTokens` to `false` and `maxTokens` to a larger number), or add more exclusions to `.contextignore`. Check which files were dropped: `sigmap --report` shows `files dropped`.
 
 ### Secret scan is redacting a false positive
 → The pattern matched something that isn't a secret. Add a `.contextignore` rule to exclude that file, or check `src/security/patterns.js` to see which pattern triggered.
