@@ -6101,7 +6101,7 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
   /**
    * Stop the running watcher (SIGTERM) and clear its PID file.
    *
-   * @returns {{ status: 'stopped'|'not-running'|'stale', pid?: number }}
+   * @returns {{ status: 'stopped'|'not-running'|'stale'|'not-permitted', pid?: number }}
    */
   function stop(cwd) {
     const pid = readPid(cwd);
@@ -6112,7 +6112,16 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
     }
     try {
       process.kill(pid, 'SIGTERM');
-    } catch (_) {}
+    } catch (err) {
+      if (err && err.code === 'ESRCH') {
+        removePidFile(cwd);
+        return { status: 'stale', pid };
+      }
+      if (err && err.code === 'EPERM') {
+        return { status: 'not-permitted', pid };
+      }
+      throw err;
+    }
     removePidFile(cwd);
     return { status: 'stopped', pid };
   }
@@ -50857,10 +50866,16 @@ function main() {
 
     if (sub === 'stop') {
       const r = daemon.stop(cwd);
-      if (jsonOut) { writeAll(1, JSON.stringify(r) + '\n'); process.exit(0); }
+      if (jsonOut) {
+        writeAll(1, JSON.stringify(r) + '\n');
+        process.exit(r.status === 'not-permitted' ? 1 : 0);
+      }
       if (r.status === 'not-running') console.log('[sigmap] daemon not running');
       else if (r.status === 'stale') console.log(`[sigmap] removed stale pid file (pid ${r.pid} no longer alive)`);
-      else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
+      else if (r.status === 'not-permitted') {
+        console.error(`[sigmap] cannot stop daemon (pid ${r.pid}): permission denied; pid file kept`);
+        process.exit(1);
+      } else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
       process.exit(0);
     }
 

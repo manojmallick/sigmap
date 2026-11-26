@@ -2661,12 +2661,12 @@ $ sigmap daemon start
 [sigmap] logs: .context/daemon.log   stop with: sigmap daemon stop
 ```
 
-`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running. Add `--json` to any subcommand for machine-readable output. The shape differs by subcommand: `status` prints `{ running, pid, pidFile, logFile }` and keeps its exit code (1 when not running); `start` prints `{ status: "started" | "already", pid, logFile }` and `stop` prints `{ status: "stopped" | "stale" | "not-running", pid }`, both exiting 0.
+`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running, removes a stale PID file if the process is already gone (`ESRCH`), and keeps the PID file if signalling is not permitted (`EPERM`). Add `--json` to any subcommand for machine-readable output. The shape differs by subcommand: `status` prints `{ running, pid, pidFile, logFile }` and keeps its exit code (1 when not running); `start` prints `{ status: "started" | "already", pid, logFile }` (exiting 0) and `stop` prints `{ status: "stopped" | "stale" | "not-running" | "not-permitted", pid }` (exiting 1 on `not-permitted`, 0 otherwise).
 
 | Subcommand | Exit code | Behaviour |
 |-----------|-----------|-----------|
 | `daemon start` | 0 | starts (or reports already-running); detaches and returns |
-| `daemon stop` | 0 | SIGTERM the watcher, remove the PID file |
+| `daemon stop` | 0 · 1 on EPERM | SIGTERM the watcher and remove the PID file (keeps PID file on `not-permitted`) |
 | `daemon status` | 0 running · 1 not | report PID + log path; self-cleans a stale PID file |
 
 ---
