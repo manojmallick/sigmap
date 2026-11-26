@@ -172,7 +172,8 @@ test('--json emits a machine-readable status', () => {
 });
 
 // ── exit codes and --json shapes, as documented (#918) ───────────────────────
-// `status` exits 1 when nothing runs (human AND --json form); start / stop exit 0.
+// `status` exits 1 when nothing runs (human AND --json form); start exits 0, and so
+// does stop unless the signal is refused (`not-permitted`, tested further down).
 // The three subcommands print three different JSON shapes — only `status` has `running`.
 //
 // These pin the CLI's contract, not the watcher's lifetime, so they run against a
@@ -251,6 +252,154 @@ test('the help row and the quick reference both state the exit code (#918)', () 
   const cli = fs.readFileSync(path.resolve(__dirname, '../../docs-vp/guide/cli.md'), 'utf8');
   const quickRef = cli.split('\n').find((l) => l.startsWith('| `daemon start\\|stop\\|status`'));
   assert.ok(quickRef && /exits 1 when not running/.test(quickRef), quickRef);
+});
+
+// ── kill errors during stop (EPERM / ESRCH) ──────────────────────────────────
+
+function unusedPid() {
+  const dead = spawnSync(process.execPath, ['-e', ''], { stdio: 'ignore' });
+  return dead.pid;
+}
+
+function daemonWithKillError(dir, pid, signalErrorCode, useBundledOnly, ...args) {
+  const preload = path.join(dir, 'mock-kill.cjs');
+  fs.writeFileSync(
+    preload,
+    [
+      'const origKill = process.kill.bind(process);',
+      `const targetPid = ${pid};`,
+      `const sigErrCode = ${JSON.stringify(signalErrorCode)};`,
+      'process.kill = (p, sig) => {',
+      '  if (p === targetPid) {',
+      '    if (sig === 0) {',
+      '      if (sigErrCode === "EPERM") {',
+      '        const err = new Error("kill EPERM");',
+      '        err.code = "EPERM";',
+      '        throw err;',
+      '      }',
+      '      return true;',
+      '    }',
+      '    const err = new Error("kill " + sigErrCode);',
+      '    err.code = sigErrCode;',
+      '    throw err;',
+      '  }',
+      '  return origKill(p, sig);',
+      '};',
+    ].join('\n') + '\n',
+  );
+  let entry = GEN_CONTEXT;
+  let tmpBundleDir = null;
+  if (useBundledOnly) {
+    tmpBundleDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-daemon-bundle-'));
+    entry = path.join(tmpBundleDir, 'gen-context.js');
+    fs.copyFileSync(GEN_CONTEXT, entry);
+  }
+  try {
+    const res = spawnSync(process.execPath, ['-r', preload, entry, 'daemon', ...args], {
+      cwd: dir,
+      encoding: 'utf8',
+    });
+    return { stdout: res.stdout || '', stderr: res.stderr || '', code: res.status };
+  } finally {
+    if (tmpBundleDir) fs.rmSync(tmpBundleDir, { recursive: true, force: true });
+  }
+}
+
+test('daemon.stop keeps PID file and returns not-permitted on EPERM, and treats ESRCH as stale', () => {
+  const daemonMod = require(path.resolve(__dirname, '../../src/daemon/daemon'));
+  const origKill = process.kill.bind(process);
+  withProject((dir) => {
+    const pid = unusedPid();
+    fs.mkdirSync(path.join(dir, '.context'), { recursive: true });
+
+    // EPERM on both probe (0) and SIGTERM: live process owned by another user
+    fs.writeFileSync(pidFilePath(dir), `${pid}\n`);
+    process.kill = (p, sig) => {
+      if (p === pid) {
+        const err = new Error('kill EPERM');
+        err.code = 'EPERM';
+        throw err;
+      }
+      return origKill(p, sig);
+    };
+    try {
+      const res = daemonMod.stop(dir);
+      assert.strictEqual(res.status, 'not-permitted');
+      assert.strictEqual(res.pid, pid);
+      assert.ok(fs.existsSync(pidFilePath(dir)), 'PID file must remain after EPERM');
+    } finally {
+      process.kill = origKill;
+    }
+
+    // ESRCH on SIGTERM after isAlive(0) returned true (process exited in between)
+    fs.writeFileSync(pidFilePath(dir), `${pid}\n`);
+    process.kill = (p, sig) => {
+      if (p === pid) {
+        if (sig === 0) return true;
+        const err = new Error('kill ESRCH');
+        err.code = 'ESRCH';
+        throw err;
+      }
+      return origKill(p, sig);
+    };
+    try {
+      const res = daemonMod.stop(dir);
+      assert.strictEqual(res.status, 'stale');
+      assert.strictEqual(res.pid, pid);
+      assert.ok(!fs.existsSync(pidFilePath(dir)), 'stale PID file should be removed after ESRCH');
+    } finally {
+      process.kill = origKill;
+    }
+  });
+});
+
+test('CLI daemon stop reports not-permitted (exit 1, keeps PID file) and stale on ESRCH across source & bundle', () => {
+  for (const useBundledOnly of [false, true]) {
+    withProject((dir) => {
+      const pid = unusedPid();
+      fs.mkdirSync(path.join(dir, '.context'), { recursive: true });
+      fs.writeFileSync(pidFilePath(dir), `${pid}\n`);
+
+      const epermHuman = daemonWithKillError(dir, pid, 'EPERM', useBundledOnly, 'stop');
+      assert.strictEqual(epermHuman.code, 1, `EPERM should exit 1 (bundle=${useBundledOnly}): ${epermHuman.stdout}${epermHuman.stderr}`);
+      assert.ok(/permission denied|not permitted/i.test(epermHuman.stderr), `expected permission error on stderr, got: ${epermHuman.stderr}`);
+      assert.ok(/daemon\.pid/.test(epermHuman.stderr), `the message must name the PID file, got: ${epermHuman.stderr}`);
+      assert.ok(/not a SigMap watcher/.test(epermHuman.stderr), `the message must say when to delete it, got: ${epermHuman.stderr}`);
+      assert.ok(fs.existsSync(pidFilePath(dir)), 'PID file must remain after CLI EPERM');
+
+      const epermJson = daemonWithKillError(dir, pid, 'EPERM', useBundledOnly, 'stop', '--json');
+      assert.strictEqual(epermJson.code, 1, 'EPERM --json must exit 1');
+      assert.deepStrictEqual(JSON.parse(epermJson.stdout), { status: 'not-permitted', pid });
+      assert.ok(fs.existsSync(pidFilePath(dir)), 'PID file must remain after CLI --json EPERM');
+
+      const esrchHuman = daemonWithKillError(dir, pid, 'ESRCH', useBundledOnly, 'stop');
+      assert.strictEqual(esrchHuman.code, 0, `ESRCH stale should exit 0 (bundle=${useBundledOnly})`);
+      assert.ok(/stale/i.test(esrchHuman.stdout), `expected stale message on stdout, got: ${esrchHuman.stdout}`);
+      assert.ok(!fs.existsSync(pidFilePath(dir)), 'PID file should be removed after ESRCH');
+
+      fs.writeFileSync(pidFilePath(dir), `${pid}\n`);
+      const esrchJson = daemonWithKillError(dir, pid, 'ESRCH', useBundledOnly, 'stop', '--json');
+      assert.strictEqual(esrchJson.code, 0, 'ESRCH --json must exit 0');
+      assert.deepStrictEqual(JSON.parse(esrchJson.stdout), { status: 'stale', pid });
+      assert.ok(!fs.existsSync(pidFilePath(dir)), 'PID file should be removed after --json ESRCH');
+    });
+  }
+});
+
+test('CLI daemon stop surfaces any other kill error and keeps the PID file, across source & bundle', () => {
+  for (const useBundledOnly of [false, true]) {
+    withProject((dir) => {
+      const pid = unusedPid();
+      fs.mkdirSync(path.join(dir, '.context'), { recursive: true });
+      fs.writeFileSync(pidFilePath(dir), `${pid}\n`);
+
+      const r = daemonWithKillError(dir, pid, 'EINVAL', useBundledOnly, 'stop');
+      assert.notStrictEqual(r.code, 0, `an unexpected error must not exit 0 (bundle=${useBundledOnly})`);
+      assert.ok(/kill EINVAL/.test(r.stderr), `expected the kill error on stderr, got: ${r.stderr}`);
+      assert.ok(!/daemon stopped/.test(r.stdout), `must not claim it stopped, got: ${r.stdout}`);
+      assert.ok(fs.existsSync(pidFilePath(dir)), 'PID file must remain after an unexpected error');
+    });
+  }
 });
 
 console.log('');

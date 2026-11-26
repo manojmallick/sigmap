@@ -107,7 +107,7 @@ function start(cwd, opts = {}) {
 /**
  * Stop the running watcher (SIGTERM) and clear its PID file.
  *
- * @returns {{ status: 'stopped'|'not-running'|'stale', pid?: number }}
+ * @returns {{ status: 'stopped'|'not-running'|'stale'|'not-permitted', pid?: number }}
  */
 function stop(cwd) {
   const pid = readPid(cwd);
@@ -118,7 +118,16 @@ function stop(cwd) {
   }
   try {
     process.kill(pid, 'SIGTERM');
-  } catch (_) {}
+  } catch (err) {
+    if (err && err.code === 'ESRCH') {
+      removePidFile(cwd);
+      return { status: 'stale', pid };
+    }
+    if (err && err.code === 'EPERM') {
+      return { status: 'not-permitted', pid };
+    }
+    throw err;
+  }
   removePidFile(cwd);
   return { status: 'stopped', pid };
 }

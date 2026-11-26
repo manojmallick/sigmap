@@ -45,7 +45,7 @@ const USAGE = [
   { argv: '--watch', desc: 'Generate + watch for file changes' },
   { argv: '--setup', desc: 'Generate + install git hook + watch' },
   { argv: '--generate', desc: 'Same as a bare run — the flag the installed post-commit hook passes' },
-  { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running)' },
+  { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running; stop exits 1 if not permitted)' },
   { argv: '--mcp', desc: 'Start MCP server on stdio' },
   { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
   { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },

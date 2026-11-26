@@ -3724,7 +3724,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: '--watch', desc: 'Generate + watch for file changes' },
     { argv: '--setup', desc: 'Generate + install git hook + watch' },
     { argv: '--generate', desc: 'Same as a bare run — the flag the installed post-commit hook passes' },
-    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running)' },
+    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running; stop exits 1 if not permitted)' },
     { argv: '--mcp', desc: 'Start MCP server on stdio' },
     { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
     { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
@@ -6101,7 +6101,7 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
   /**
    * Stop the running watcher (SIGTERM) and clear its PID file.
    *
-   * @returns {{ status: 'stopped'|'not-running'|'stale', pid?: number }}
+   * @returns {{ status: 'stopped'|'not-running'|'stale'|'not-permitted', pid?: number }}
    */
   function stop(cwd) {
     const pid = readPid(cwd);
@@ -6112,7 +6112,16 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
     }
     try {
       process.kill(pid, 'SIGTERM');
-    } catch (_) {}
+    } catch (err) {
+      if (err && err.code === 'ESRCH') {
+        removePidFile(cwd);
+        return { status: 'stale', pid };
+      }
+      if (err && err.code === 'EPERM') {
+        return { status: 'not-permitted', pid };
+      }
+      throw err;
+    }
     removePidFile(cwd);
     return { status: 'stopped', pid };
   }
@@ -50857,10 +50866,18 @@ function main() {
 
     if (sub === 'stop') {
       const r = daemon.stop(cwd);
-      if (jsonOut) { writeAll(1, JSON.stringify(r) + '\n'); process.exit(0); }
+      if (jsonOut) {
+        writeAll(1, JSON.stringify(r) + '\n');
+        process.exit(r.status === 'not-permitted' ? 1 : 0);
+      }
       if (r.status === 'not-running') console.log('[sigmap] daemon not running');
       else if (r.status === 'stale') console.log(`[sigmap] removed stale pid file (pid ${r.pid} no longer alive)`);
-      else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
+      else if (r.status === 'not-permitted') {
+        const pidPath = _displayPath(daemon.pidFile(cwd), cwd);
+        console.error(`[sigmap] cannot stop daemon (pid ${r.pid}): permission denied; kept ${pidPath}`);
+        console.error(`[sigmap] stop it as the user who started it, or delete that file if pid ${r.pid} is not a SigMap watcher`);
+        process.exit(1);
+      } else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
       process.exit(0);
     }
 
