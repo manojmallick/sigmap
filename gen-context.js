@@ -3724,7 +3724,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: '--watch', desc: 'Generate + watch for file changes' },
     { argv: '--setup', desc: 'Generate + install git hook + watch' },
     { argv: '--generate', desc: 'Same as a bare run — the flag the installed post-commit hook passes' },
-    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running)' },
+    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running; stop exits 1 if not permitted)' },
     { argv: '--mcp', desc: 'Start MCP server on stdio' },
     { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
     { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
@@ -50873,7 +50873,9 @@ function main() {
       if (r.status === 'not-running') console.log('[sigmap] daemon not running');
       else if (r.status === 'stale') console.log(`[sigmap] removed stale pid file (pid ${r.pid} no longer alive)`);
       else if (r.status === 'not-permitted') {
-        console.error(`[sigmap] cannot stop daemon (pid ${r.pid}): permission denied; pid file kept`);
+        const pidPath = _displayPath(daemon.pidFile(cwd), cwd);
+        console.error(`[sigmap] cannot stop daemon (pid ${r.pid}): permission denied; kept ${pidPath}`);
+        console.error(`[sigmap] stop it as the user who started it, or delete that file if pid ${r.pid} is not a SigMap watcher`);
         process.exit(1);
       } else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
       process.exit(0);

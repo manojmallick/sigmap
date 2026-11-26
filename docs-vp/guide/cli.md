@@ -124,7 +124,7 @@ If you are new to the product, start with the workflow pages first:
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `run` | Alias for a bare generate (`sigmap run --report`, etc.) |
 | `--watch` | Watch for file changes and regenerate incrementally |
-| `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`); `status` exits 1 when not running |
+| `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`); `status` exits 1 when not running, `stop` exits 1 if it is not permitted to signal the process |
 | `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, Zed, VS Code, OpenCode, Gemini CLI, Codex CLI; install git hook; start watcher |
 | `--generate` | Same as a bare run — the flag the post-commit hook `--setup` installs passes (see [`--setup`](#setup)) |
 | `--diff` | Changed files: working tree vs HEAD (shows risk score per file) |
@@ -2661,7 +2661,7 @@ $ sigmap daemon start
 [sigmap] logs: .context/daemon.log   stop with: sigmap daemon stop
 ```
 
-`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running, removes a stale PID file if the process is already gone (`ESRCH`), and keeps the PID file if signalling is not permitted (`EPERM`). Add `--json` to any subcommand for machine-readable output. The shape differs by subcommand: `status` prints `{ running, pid, pidFile, logFile }` and keeps its exit code (1 when not running); `start` prints `{ status: "started" | "already", pid, logFile }` (exiting 0) and `stop` prints `{ status: "stopped" | "stale" | "not-running" | "not-permitted", pid }` (exiting 1 on `not-permitted`, 0 otherwise).
+`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running, removes a stale PID file if the process is already gone (`ESRCH`), and keeps the PID file if signalling is not permitted (`EPERM`). In that last case, stop the process as the user who started it, or delete `.context/daemon.pid` if the PID is not a SigMap watcher. Add `--json` to any subcommand for machine-readable output. The shape differs by subcommand: `status` prints `{ running, pid, pidFile, logFile }` and keeps its exit code (1 when not running); `start` prints `{ status: "started" | "already", pid, logFile }` (exiting 0) and `stop` prints `{ status: "stopped" | "stale" | "not-running" | "not-permitted", pid }` (exiting 1 on `not-permitted`, 0 otherwise).
 
 | Subcommand | Exit code | Behaviour |
 |-----------|-----------|-----------|
